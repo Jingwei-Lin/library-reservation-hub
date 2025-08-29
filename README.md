@@ -1,19 +1,24 @@
 # ELEC5619-Practical06-Group-4
 
 # Library Reservation & Review Hub
-# ELEC5619-Practical06-Group-4
 
 ## ⚠️ Development Notes
 1. **MySQL Credentials**  
    - This project uses Spring Boot to connect to MySQL. You need to configure your local username and password for development.  
-   - It is recommended to use a `.env` file or local `application.yml` to override the defaults:  
+   - Please create or edit the `.env` file in the `LibraryReservationReviewHub` folder and set your credentials:  
+     ```env
+     DB_USERNAME=your_username
+     DB_PASSWORD=your_password
+     ```  
+   - The application will automatically read these environment variables in `application.yml`:  
      ```yaml
      spring:
        datasource:
-         username: your_mysql_username
-         password: your_mysql_password
+         username: ${DB_USERNAME}
+         password: ${DB_PASSWORD}
      ```  
-   - **Important**: Do not commit `.env` or `application.yml` containing real credentials to GitHub. You can provide a `.env.example` as a template.  
+   - **Important**: Do not commit your local `.env` file to GitHub. Only provide a `.env.example` with placeholder values as a template.
+
 
 2. **API Testing / Documentation**  
    - The project integrates Knife4j for API documentation and testing. You can open the following URL in a browser to access and test APIs:  

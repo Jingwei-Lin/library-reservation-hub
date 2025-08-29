@@ -26,14 +26,19 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
+    // mysql
     implementation 'com.mysql:mysql-connector-j'
+    // lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // mybatis-plus
     implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.13'
+    // knife4j
     implementation("com.github.xiaoymin:knife4j-openapi3-jakarta-spring-boot-starter:4.4.0")
+    // Hutool 工具库 https://doc.hutool.cn/pages/index/
+    implementation 'cn.hutool:hutool-all:5.8.26'
 
 }
 

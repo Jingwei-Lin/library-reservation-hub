@@ -1,7 +1,25 @@
 # ELEC5619-Practical06-Group-4
 
 # Library Reservation & Review Hub
+# ELEC5619-Practical06-Group-4
 
+## ⚠️ Development Notes
+1. **MySQL Credentials**  
+   - This project uses Spring Boot to connect to MySQL. You need to configure your local username and password for development.  
+   - It is recommended to use a `.env` file or local `application.yml` to override the defaults:  
+     ```yaml
+     spring:
+       datasource:
+         username: your_mysql_username
+         password: your_mysql_password
+     ```  
+   - **Important**: Do not commit `.env` or `application.yml` containing real credentials to GitHub. You can provide a `.env.example` as a template.  
+
+2. **API Testing / Documentation**  
+   - The project integrates Knife4j for API documentation and testing. You can open the following URL in a browser to access and test APIs:  
+     [http://localhost:8432/api/doc.html#/home](http://localhost:8432/api/doc.html#/home)
+
+---
 ## 1. Project Overview
 **Real-world problem:**  
 In many libraries, users face difficulties in **reserving books**, **tracking availability**, and **sharing reviews** with the community. Existing systems are often outdated, lack a modern interface, and fail to integrate social features.

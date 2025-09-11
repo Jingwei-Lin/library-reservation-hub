@@ -1,45 +1,55 @@
-server:
+  server:
     port: 8432
     servlet:
-        context-path: /api
+      context-path: /api
 
 
-spring:
+  spring:
     application:
-        name: LibraryReservationReviewHub
+      name: LibraryReservationReviewHub
 
     datasource:
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://localhost:3306/library_reservation_review_hub
-        username: ${DB_USERNAME}
-        password: ${DB_PASSWORD}
-
-# springdoc-openapi项目配置
-springdoc:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/library_reservation_review_hub
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+    h2:
+      console:
+        enabled: true
+        path: /h2-console
+    jpa:
+      hibernate:
+        ddl-auto: create-drop
+      show-sql: true
+  # springdoc-openapi项目配置
+  springdoc:
     swagger-ui:
-        path: /swagger-ui.html
-        tags-sorter: alpha
-        operations-sorter: alpha
+      path: /swagger-ui.html
+      tags-sorter: alpha
+      operations-sorter: alpha
     api-docs:
-        path: /v3/api-docs
+      path: /v3/api-docs
     group-configs:
-        - group: 'default'
-          paths-to-match: '/**'
-          packages-to-scan: com.comp5619.libraryreservationreviewhub.controller
-# knife4j的增强配置，不需要增强可以不配
-knife4j:
+      - group: 'default'
+        paths-to-match: '/**'
+        packages-to-scan: com.comp5619.libraryreservationreviewhub.controller
+  # knife4j的增强配置，不需要增强可以不配
+  knife4j:
     enable: true
     setting:
-        language: zh_cn
+      language: zh_cn
 
-mybatis-plus:
+  mybatis-plus:
     configuration:
-        # MyBatis configuration
-        map-underscore-to-camel-case: false
-        # print log info
-        log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+      # MyBatis configuration
+      map-underscore-to-camel-case: false
+      # print log info
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     global-config:
-        db-config:
-            logic-delete-field: isDelete
-            logic-delete-value: 1
-            logic-not-delete-value: 0
+      db-config:
+        logic-delete-field: isDelete
+        logic-delete-value: 1
+        logic-not-delete-value: 0
+
+  
+

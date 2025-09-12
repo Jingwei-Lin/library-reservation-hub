@@ -13,7 +13,7 @@ import java.util.Date;
 @Data
 public class WaitingList implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
 
     /**
      * 等待ID - 主键

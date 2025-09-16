@@ -16,24 +16,29 @@ public class UserUpdateRequest implements Serializable {
     private Long id;
 
     /**
-     * 用户昵称
+     * email (used as userAccount)
      */
-    private String userName;
+    private String userAccount;
 
     /**
-     * 用户头像
+     * first_name
      */
-    private String userAvatar;
+    private String firstName;
 
     /**
-     * 简介
+     * last_name
      */
-    private String userProfile;
+    private String lastName;
 
     /**
-     * 用户角色：user/admin
+     * phone
      */
-    private String userRole;
+    private String phone;
+
+    /**
+     * is_admin (maps to userRole: true = "admin", false = "user")
+     */
+    private Boolean isAdmin;
 
     private static final long serialVersionUID = 1L;
 }

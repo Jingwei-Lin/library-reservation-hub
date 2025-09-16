@@ -71,4 +71,5 @@ public class BookQueryRequest implements Serializable {
      * 排序顺序（升序/降序）
      */
     private String sortOrder;
+
 }

@@ -10,6 +10,7 @@ public enum ErrorCode {
     NOT_LOGIN_ERROR(40100, "Not logged in"),
     NO_AUTH_ERROR(40101, "No permission"),
     NOT_FOUND_ERROR(40400, "Requested data not found"),
+    BOOK_NOT_FOUND_ERROR(40401, "Book not found"),  // New entry
     FORBIDDEN_ERROR(40300, "Access forbidden"),
     SYSTEM_ERROR(50000, "Internal system error"),
     OPERATION_ERROR(50001, "Operation failed");

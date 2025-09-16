@@ -4,26 +4,10 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.comp5619.libraryreservationreviewhub.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="com.comp5619.libraryreservationreviewhub.model.entity.User">
-            <id property="id" column="id" jdbcType="BIGINT"/>
-            <result property="userAccount" column="userAccount" jdbcType="VARCHAR"/>
-            <result property="userPassword" column="userPassword" jdbcType="VARCHAR"/>
-            <result property="userName" column="userName" jdbcType="VARCHAR"/>
-            <result property="userAvatar" column="userAvatar" jdbcType="VARCHAR"/>
-            <result property="userProfile" column="userProfile" jdbcType="VARCHAR"/>
-            <result property="userRole" column="userRole" jdbcType="VARCHAR"/>
-            <result property="editTime" column="editTime" jdbcType="TIMESTAMP"/>
-            <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
-            <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
-            <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
+    <select id="selectByUserAccount" resultType="com.comp5619.libraryreservationreviewhub.model.entity.User">
+        SELECT user_id as id, email as userAccount, password as userPassword, first_name as firstName, last_name as lastName, is_admin as isAdmin, phone, create_time as createTime
+        FROM Users
+        WHERE email = #{userAccount}
+    </select>
 
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        id,userAccount,userPassword,
-        userName,userAvatar,userProfile,
-        userRole,editTime,createTime,
-        updateTime,isDelete,vipExpireTime,
-        vipCode,vipNumber
-    </sql>
 </mapper>

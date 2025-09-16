@@ -13,24 +13,27 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 针对表【user(用户)】的数据库操作Service
+ * 针对表【Users】的数据库操作Service
  */
 public interface UserService extends IService<User> {
 
     /**
      * 用户注册
      *
-     * @param userAccount   用户账户
+     * @param userAccount   用户账户 (email)
      * @param userPassword  用户密码
      * @param checkPassword 校验密码
+     * @param firstName     first_name
+     * @param lastName      last_name
+     * @param phone         phone
      * @return 新用户 id
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword);
+    long userRegister(String userAccount, String userPassword, String checkPassword, String firstName, String lastName, String phone);
 
     /**
      * 用户登录
      *
-     * @param userAccount  用户账户
+     * @param userAccount  用户账户 (email)
      * @param userPassword 用户密码
      * @param request
      * @return 脱敏后的用户信息

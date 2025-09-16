@@ -11,29 +11,29 @@ import java.io.Serializable;
 public class UserAddRequest implements Serializable {
 
     /**
-     * 用户昵称
-     */
-    private String userName;
-
-    /**
-     * 账号
+     * email (used as userAccount/username)
      */
     private String userAccount;
 
     /**
-     * 用户头像
+     * first_name
      */
-    private String userAvatar;
+    private String firstName;
 
     /**
-     * 用户简介
+     * last_name
      */
-    private String userProfile;
+    private String lastName;
 
     /**
-     * 用户角色: user, admin
+     * phone
      */
-    private String userRole;
+    private String phone;
+
+    /**
+     * is_admin (maps to userRole: true = "admin", false = "user")
+     */
+    private Boolean isAdmin;
 
     private static final long serialVersionUID = 1L;
 }

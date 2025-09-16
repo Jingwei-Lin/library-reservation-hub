@@ -2,13 +2,9 @@ package com.comp5619.libraryreservationreviewhub.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
-import cn.hutool.json.JSONArray;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
@@ -23,27 +19,20 @@ import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
- * @description 针对表【user(用户)】的数据库操作Service实现F
+ * @description 针对表【Users】的数据库操作Service实现
  */
 @Service
 @Slf4j
@@ -53,15 +42,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * 用户注册
      *
-     * @param userAccount   用户账户
+     * @param userAccount   用户账户 (email)
      * @param userPassword  用户密码
      * @param checkPassword 校验密码
+     * @param firstName     first_name
+     * @param lastName      last_name
+     * @param phone         phone
      * @return
      */
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String firstName, String lastName, String phone) {
         // 1. 校验参数
-        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
+        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, firstName, lastName)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         if (userAccount.length() < 4) {
@@ -73,7 +65,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
-        // 2. 检查用户账号是否和数据库中已有的重复
+        // 2. 检查用户账号 (email) 是否和数据库中已有的重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
         long count = this.baseMapper.selectCount(queryWrapper);
@@ -86,8 +78,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
-        user.setUserName("无名");
-        user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setPhone(phone);
+        user.setIsAdmin(false); // Default non-admin
+        user.setCreateTime(new Date()); // Set current time
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -95,40 +90,43 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return user.getId();
     }
 
+    /**
+     * 用户登录
+     *
+     * @param userAccount  用户账户 (email)
+     * @param userPassword 用户密码
+     * @param request
+     * @return 脱敏后的用户信息
+     */
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号错误");
-        }
-        if (userPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码错误");
-        }
-        // 2. 对用户传递的密码进行加密
-        String encryptPassword = getEncryptPassword(userPassword);
-        // 3. 查询数据库中的用户是否存在
+        // 2. 校验密码
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
-        User user = this.baseMapper.selectOne(queryWrapper);
-        // 不存在，抛异常
+        User user = this.getOne(queryWrapper);
         if (user == null) {
-            log.info("user login failed, userAccount cannot match userPassword");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或者密码错误");
+            log.info("用户登录失败，账号不存在");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不存在");
         }
-        // 4. 保存用户的登录态
+        String encryptPassword = getEncryptPassword(userPassword);
+        if (!encryptPassword.equals(user.getUserPassword())) {
+            log.info("用户登录失败，密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+        }
+        // 3. 记录用户登录态
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
-
-        return this.getLoginUserVO(user);
+        // 4. 脱敏返回
+        return getLoginUserVO(user);
     }
 
     /**
      * 获取加密后的密码
      *
-     * @param userPassword 用户密码
+     * @param userPassword
      * @return 加密后的密码
      */
     @Override
@@ -168,6 +166,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         LoginUserVO loginUserVO = new LoginUserVO();
         BeanUtil.copyProperties(user, loginUserVO);
+        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
+        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return loginUserVO;
     }
 
@@ -184,6 +184,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         UserVO userVO = new UserVO();
         BeanUtil.copyProperties(user, userVO);
+        userVO.setUserName(user.getFirstName() + " " + user.getLastName());
+        userVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return userVO;
     }
 
@@ -221,29 +223,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
         Long id = userQueryRequest.getId();
-        String userName = userQueryRequest.getUserName();
-        String userAccount = userQueryRequest.getUserAccount();
-        String userProfile = userQueryRequest.getUserProfile();
-        String userRole = userQueryRequest.getUserRole();
+        String userAccount = userQueryRequest.getUserAccount(); // email
+        String firstName = userQueryRequest.getFirstName();
+        String lastName = userQueryRequest.getLastName();
+        String phone = userQueryRequest.getPhone();
+        Boolean isAdmin = userQueryRequest.getIsAdmin();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
-        queryWrapper.eq(StrUtil.isNotBlank(userRole), "userRole", userRole);
+        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
         queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
-        queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
-        queryWrapper.like(StrUtil.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName);
+        queryWrapper.like(StrUtil.isNotBlank(lastName), "lastName", lastName);
+        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
+        // Search across firstName or lastName if either is provided
+        queryWrapper.and(StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName), wrapper ->
+                wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
+                        .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
         queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
     }
 
     @Override
     public boolean isAdmin(User user) {
-        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+        return user != null && Boolean.TRUE.equals(user.getIsAdmin());
     }
-
 }
-
-
-
-

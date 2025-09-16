@@ -10,7 +10,6 @@ import java.io.Serializable;
 /**
  * 用户查询请求
  */
-
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class UserQueryRequest extends PageRequest implements Serializable {
@@ -21,24 +20,29 @@ public class UserQueryRequest extends PageRequest implements Serializable {
     private Long id;
 
     /**
-     * 用户昵称
-     */
-    private String userName;
-
-    /**
-     * 账号
+     * email (userAccount)
      */
     private String userAccount;
 
     /**
-     * 简介
+     * first_name (searchable)
      */
-    private String userProfile;
+    private String firstName;
 
     /**
-     * 用户角色：user/admin/ban
+     * last_name (searchable)
      */
-    private String userRole;
+    private String lastName;
+
+    /**
+     * phone (searchable)
+     */
+    private String phone;
+
+    /**
+     * is_admin (searchable, maps to userRole)
+     */
+    private Boolean isAdmin;
 
     private static final long serialVersionUID = 1L;
 }

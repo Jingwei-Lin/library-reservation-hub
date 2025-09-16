@@ -19,19 +19,17 @@ import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
-import java.util.List;
-
+import java.util.Date; // Existing import
+import java.util.List; // Added import
 
 /**
  * 用户管理控制器
  * User Management Controller
  */
-
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -45,10 +43,13 @@ public class UserController {
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userRegisterRequest.getUserAccount();
+        String userAccount = userRegisterRequest.getUserAccount(); // email
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        String firstName = userRegisterRequest.getFirstName();
+        String lastName = userRegisterRequest.getLastName();
+        String phone = userRegisterRequest.getPhone();
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, firstName, lastName, phone);
         return ResultUtils.success(result);
     }
 
@@ -58,7 +59,7 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userLoginRequest.getUserAccount();
+        String userAccount = userLoginRequest.getUserAccount(); // email
         String userPassword = userLoginRequest.getUserPassword();
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
@@ -96,6 +97,8 @@ public class UserController {
         final String DEFAULT_PASSWORD = "12345678";
         String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
         user.setUserPassword(encryptPassword);
+        user.setIsAdmin(userAddRequest.getIsAdmin() != null ? userAddRequest.getIsAdmin() : false); // Default false
+        user.setCreateTime(new Date()); // Use imported Date class
         // 插入数据库
         boolean result = userService.save(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -148,6 +151,7 @@ public class UserController {
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
+        user.setCreateTime(user.getCreateTime()); // Preserve if updating
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
@@ -171,6 +175,4 @@ public class UserController {
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
     }
-
-
 }

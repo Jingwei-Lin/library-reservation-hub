@@ -1,6 +1,7 @@
 package com.comp5619.libraryreservationreviewhub.common;
 
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 
 public class ResultUtils {
 

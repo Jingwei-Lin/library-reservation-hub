@@ -17,44 +17,39 @@ public class LoginUserVO implements Serializable {
     private Long id;
 
     /**
-     * 账号
+     * email (userAccount)
      */
     private String userAccount;
 
     /**
-     * 用户昵称
+     * first_name
+     */
+    private String firstName;
+
+    /**
+     * last_name
+     */
+    private String lastName;
+
+    /**
+     * computed userName
      */
     private String userName;
 
     /**
-     * 用户头像
-     */
-    private String userAvatar;
-
-    /**
-     * 用户简介
-     */
-    private String userProfile;
-
-    /**
-     * 用户角色：user/admin
+     * is_admin (derived userRole)
      */
     private String userRole;
 
     /**
-     * 编辑时间
+     * phone
      */
-    private Date editTime;
+    private String phone;
 
     /**
-     * 创建时间
+     * create_time
      */
     private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
 
     private static final long serialVersionUID = 1L;
 }

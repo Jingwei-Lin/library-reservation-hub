@@ -10,10 +10,8 @@ import java.io.Serializable;
 @Data
 public class UserRegisterRequest implements Serializable {
 
-    private static final long serialVersionUID = 8735650154179439661L;
-
     /**
-     * 账号
+     * email (used as userAccount/username)
      */
     private String userAccount;
 
@@ -23,8 +21,24 @@ public class UserRegisterRequest implements Serializable {
     private String userPassword;
 
     /**
-     * 确认密码
+     * 校验密码
      */
     private String checkPassword;
 
+    /**
+     * first_name
+     */
+    private String firstName;
+
+    /**
+     * last_name
+     */
+    private String lastName;
+
+    /**
+     * phone
+     */
+    private String phone;
+
+    private static final long serialVersionUID = 1L;
 }

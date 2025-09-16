@@ -10,9 +10,9 @@
 
     datasource:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/library_reservation_review_hub
-      username: ${DB_USERNAME}
-      password: ${DB_PASSWORD}
+      url: jdbc:mysql://localhost:3306/library_reservation
+      username: root
+      password: REMOVED_DB_PASSWORD
     h2:
       console:
         enabled: true

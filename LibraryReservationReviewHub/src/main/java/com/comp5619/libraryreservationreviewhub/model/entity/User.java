@@ -10,65 +10,56 @@ import lombok.Data;
  * 用户
  * @TableName user
  */
-@TableName(value ="user")
+@TableName(value = "Users")
 @Data
 public class User implements Serializable {
     /**
      * id
      */
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(value = "user_id", type = IdType.AUTO)
     private Long id;
 
     /**
-     * 账号
+     * email (used as userAccount/username)
      */
+    @TableField("email")
     private String userAccount;
 
     /**
-     * 密码
+     * password
      */
+    @TableField("password")
     private String userPassword;
 
     /**
-     * 用户昵称
+     * first_name
      */
-    private String userName;
+    @TableField("first_name")
+    private String firstName;
 
     /**
-     * 用户头像
+     * last_name
      */
-    private String userAvatar;
+    @TableField("last_name")
+    private String lastName;
 
     /**
-     * 用户简介
+     * is_admin (maps to userRole: true = "admin", false = "user")
      */
-    private String userProfile;
+    @TableField("is_admin")
+    private Boolean isAdmin;
 
     /**
-     * 用户角色：user/admin
+     * phone
      */
-    private String userRole;
+    @TableField("phone")
+    private String phone;
 
     /**
-     * 编辑时间
+     * create_time (added to schema)
      */
-    private Date editTime;
-
-    /**
-     * 创建时间
-     */
+    @TableField("create_time")
     private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
-    /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

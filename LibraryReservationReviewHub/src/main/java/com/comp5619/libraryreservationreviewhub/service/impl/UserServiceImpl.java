@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
@@ -12,7 +11,6 @@ import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.mapper.UserMapper;
-import com.comp5619.libraryreservationreviewhub.model.Enum.UserRoleEnum;
 import com.comp5619.libraryreservationreviewhub.model.dto.user.UserQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
@@ -21,11 +19,9 @@ import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,8 +32,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-        implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     /**
      * 用户注册
@@ -109,29 +104,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         queryWrapper.eq("userAccount", userAccount);
         User user = this.getOne(queryWrapper);
         if (user == null) {
-            log.info("用户登录失败，账号不存在");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不存在");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
         }
-        String encryptPassword = getEncryptPassword(userPassword);
-        if (!encryptPassword.equals(user.getUserPassword())) {
-            log.info("用户登录失败，密码错误");
+        // 3. 密码校验
+        if (!user.getUserPassword().equals(getEncryptPassword(userPassword))) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
-        // 3. 记录用户登录态
+        // 4. 获取脱敏后的用户信息
+        LoginUserVO loginUserVO = getLoginUserVO(user);
+        // 5. 记录用户的登录态
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
-        // 4. 脱敏返回
-        return getLoginUserVO(user);
+        return loginUserVO;
     }
 
-    /**
-     * 获取加密后的密码
-     *
-     * @param userPassword
-     * @return 加密后的密码
-     */
     @Override
     public String getEncryptPassword(String userPassword) {
-        // 加盐，混淆密码
         final String SALT = "password";
         return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
     }
@@ -161,13 +148,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
-        if (user == null) {
-            return null;
-        }
+//        if (user == null) {
+//            return null;
+//        }
         LoginUserVO loginUserVO = new LoginUserVO();
-        BeanUtil.copyProperties(user, loginUserVO);
-        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
-        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
+//        BeanUtil.copyProperties(user, loginUserVO);
+//        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
+//        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return loginUserVO;
     }
 
@@ -179,13 +166,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public UserVO getUserVO(User user) {
-        if (user == null) {
-            return null;
-        }
+//        if (user == null) {
+//            return null;
+//        }
         UserVO userVO = new UserVO();
-        BeanUtil.copyProperties(user, userVO);
-        userVO.setUserName(user.getFirstName() + " " + user.getLastName());
-        userVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
+//        BeanUtil.copyProperties(user, userVO);
+//        userVO.setUserName(user.getFirstName() + " " + user.getLastName());
+//        userVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return userVO;
     }
 
@@ -219,34 +206,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
-        if (userQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
-        }
-        Long id = userQueryRequest.getId();
-        String userAccount = userQueryRequest.getUserAccount(); // email
-        String firstName = userQueryRequest.getFirstName();
-        String lastName = userQueryRequest.getLastName();
-        String phone = userQueryRequest.getPhone();
-        Boolean isAdmin = userQueryRequest.getIsAdmin();
-        String sortField = userQueryRequest.getSortField();
-        String sortOrder = userQueryRequest.getSortOrder();
+//        if (userQueryRequest == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+//        }
+//        Long id = userQueryRequest.getId();
+//        String userAccount = userQueryRequest.getUserAccount(); // email
+//        String firstName = userQueryRequest.getFirstName();
+//        String lastName = userQueryRequest.getLastName();
+//        String phone = userQueryRequest.getPhone();
+//        Boolean isAdmin = userQueryRequest.getIsAdmin();
+//        String sortField = userQueryRequest.getSortField();
+//        String sortOrder = userQueryRequest.getSortOrder();
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
-        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
-        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
-        queryWrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName);
-        queryWrapper.like(StrUtil.isNotBlank(lastName), "lastName", lastName);
-        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
-        // Search across firstName or lastName if either is provided
-        queryWrapper.and(StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName), wrapper ->
-                wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
-                        .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+//        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
+//        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
+//        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
+//        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
+//        // Search across firstName or lastName if either is provided
+//        if (StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName)) {
+//            queryWrapper.and(wrapper ->
+//                    wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
+//                            .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
+//        }
+//        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
     }
 
     @Override
     public boolean isAdmin(User user) {
-        return user != null && Boolean.TRUE.equals(user.getIsAdmin());
+        return user != null && user.isAdmin();
     }
 }

@@ -36,4 +36,12 @@ public class UserAddRequest implements Serializable {
     private Boolean isAdmin;
 
     private static final long serialVersionUID = 1L;
+
+    public boolean getIsAdmin() {
+        return isAdmin;
+    }
+
+    public void setIsAdmin(boolean isAdmin) {
+        this.isAdmin = isAdmin;
+    }
 }

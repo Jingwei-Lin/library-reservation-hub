@@ -7,9 +7,9 @@ import java.sql.Statement;
 public class PostgresTest {
     public static void main(String[] args) {
         // 数据库连接信息
-        String url = "jdbc:postgresql://localhost:5433/library_reservation";
-        String user = "postgres";
-        String password = "123456";
+        String url = "jdbc:mysql://localhost:3306/library_reservation";
+        String user = "root";
+        String password = "REMOVED_DB_PASSWORD";
 
         try {
             // 加载驱动（新版 JDBC 可以省略）

@@ -62,7 +62,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 2. 检查用户账号 (email) 是否和数据库中已有的重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("email", userAccount);
         long count = this.baseMapper.selectCount(queryWrapper);
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
@@ -101,7 +101,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 2. 校验密码
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
         if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
@@ -220,7 +220,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 //        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
 //        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
-//        queryWrapper.like(StrUtil.isNotBlank(userAccount), "userAccount", userAccount);
+//        queryWrapper.like(StrUtil.isNotBlank(userAccount), "email", userAccount);
 //        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
 //        // Search across firstName or lastName if either is provided
 //        if (StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName)) {

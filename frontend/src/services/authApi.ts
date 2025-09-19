@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8432'; // Adjust to your backend URL
+const API_BASE_URL = 'http://localhost:8432/api'; // Adjust to your backend URL
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -19,6 +19,16 @@ export const registerUser = async (userData: {
     phone: string;
 }) => {
     const response = await api.post('/user/register', userData);
+
+    fetch("/api/user/register", {
+      method: "POST",
+      body: JSON.stringify(user),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include"
+    })
+
     return response.data;
 };
 

@@ -5,9 +5,9 @@
 <mapper namespace="com.comp5619.libraryreservationreviewhub.mapper.UserMapper">
 
     <select id="selectByUserAccount" resultType="com.comp5619.libraryreservationreviewhub.model.entity.User">
-        SELECT user_id as id, email as userAccount, password as userPassword, first_name as firstName, last_name as lastName, is_admin as isAdmin, phone, create_time as createTime
+        SELECT user_id as id, email as userAccount, password as userPassword, first_name as firstname, last_name as lastname, is_admin as isadmin, phone
         FROM Users
-        WHERE email = #{userAccount}
+        WHERE email = #{useraccount}
     </select>
 
 </mapper>

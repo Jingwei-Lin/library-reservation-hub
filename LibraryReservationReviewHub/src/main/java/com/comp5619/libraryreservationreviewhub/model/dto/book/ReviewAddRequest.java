@@ -26,4 +26,5 @@ public class ReviewAddRequest implements Serializable {
      * 评论内容
      */
     private String content;
+
 }

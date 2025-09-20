@@ -3,7 +3,6 @@ package com.comp5619.libraryreservationreviewhub.model.dto.book;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 
 /**
  * 图书添加请求
@@ -24,24 +23,9 @@ public class BookAddRequest implements Serializable {
     private String author;
 
     /**
-     * 出版社
+     * 图书类别 (genre)
      */
-    private String publisher;
-
-    /**
-     * 出版年份
-     */
-    private Integer publicationYear;
-
-    /**
-     * ISBN
-     */
-    private String isbn;
-
-    /**
-     * 价格
-     */
-    private BigDecimal price;
+    private String genre;
 
     /**
      * 库存数量
@@ -49,17 +33,7 @@ public class BookAddRequest implements Serializable {
     private Integer quantity;
 
     /**
-     * 图书类型名称
+     * 是否可借 (默认 true)
      */
-    private String genreName;
-
-    /**
-     * 封面URL
-     */
-    private String coverUrl;
-
-    /**
-     * 图书描述
-     */
-    private String description;
+    private Boolean available;
 }

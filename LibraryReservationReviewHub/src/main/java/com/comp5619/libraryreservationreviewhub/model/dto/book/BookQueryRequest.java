@@ -15,7 +15,7 @@ public class BookQueryRequest implements Serializable {
     /**
      * 图书ID
      */
-    private Long bookId;
+    private Integer bookId;
 
     /**
      * 书名
@@ -28,27 +28,17 @@ public class BookQueryRequest implements Serializable {
     private String author;
 
     /**
-     * 出版社
+     * 图书类别 (genre)
      */
-    private String publisher;
+    private String genre;
 
     /**
-     * ISBN
+     * 是否可借
      */
-    private String isbn;
+    private Boolean available;
 
     /**
-     * 图书类型ID
-     */
-    private Long genreId;
-
-    /**
-     * 图书状态
-     */
-    private String status;
-
-    /**
-     * 搜索关键词
+     * 搜索关键词 (支持模糊匹配 title / author / genre)
      */
     private String searchText;
 
@@ -68,8 +58,7 @@ public class BookQueryRequest implements Serializable {
     private String sortField;
 
     /**
-     * 排序顺序（升序/降序）
+     * 排序顺序（asc/desc）
      */
     private String sortOrder;
-
 }

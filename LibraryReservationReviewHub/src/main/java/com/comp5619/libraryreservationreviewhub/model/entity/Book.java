@@ -4,23 +4,19 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.Date;
 
 /**
  * 图书实体类
  */
-@TableName(value = "book")
+@TableName(value = "book")  // 数据库表名小写 book
 @Data
 public class Book implements Serializable {
 
-
-
     /**
-     * 图书ID - 主键
+     * 图书ID - 主键 (对应 book_id)
      */
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+    @TableId(value = "book_id", type = IdType.AUTO)
+    private Integer bookId;
 
     /**
      * 书名
@@ -33,34 +29,9 @@ public class Book implements Serializable {
     private String author;
 
     /**
-     * 出版社
+     * 图书类别 (genre)
      */
-    private String publisher;
-
-    /**
-     * 出版年份
-     */
-    private Integer publicationYear;
-
-    /**
-     * ISBN
-     */
-    private String isbn;
-
-    /**
-     * 价格
-     */
-    private BigDecimal price;
-
-    /**
-     * 平均评分
-     */
-    private BigDecimal averageRating;
-
-    /**
-     * 评分数量
-     */
-    private Integer ratingCount;
+    private String genre;
 
     /**
      * 总数量
@@ -68,42 +39,12 @@ public class Book implements Serializable {
     private Integer quantity;
 
     /**
-     * 可借数量
+     * 是否可借 (默认 true)
      */
-    private Integer availableQuantity;
+    private Boolean available;
 
     /**
-     * 类型ID
-     */
-    private Long genreId;
-
-    /**
-     * 封面URL
-     */
-    private String coverUrl;
-
-    /**
-     * 描述
-     */
-    private String description;
-
-    /**
-     * 图书状态：available/unavailable/maintenance/deleted
-     */
-    private String bookStatus;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
-    /**
-     * 是否删除
+     * 逻辑删除标记 (如果你需要软删除，可加上；不需要就去掉)
      */
     @TableLogic
     private Integer isDelete;

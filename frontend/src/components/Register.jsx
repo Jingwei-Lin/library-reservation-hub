@@ -1,18 +1,10 @@
+import './Register.css';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../services/authApi';
 
-interface RegisterFormData {
-    userAccount: string;
-    userPassword: string;
-    checkPassword: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-}
-
-const Register: React.FC = () => {
-    const [formData, setFormData] = useState<RegisterFormData>({
+const Register = () => {
+    const [formData, setFormData] = useState({
         userAccount: '',
         userPassword: '',
         checkPassword: '',
@@ -20,18 +12,26 @@ const Register: React.FC = () => {
         lastName: '',
         phone: '',
     });
-    const [error, setError] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    // map backend messages to English (add more if needed)
+    const errorMessages = {
+        "参数为空": "No empty input allowed",
+        "用户账号过短": "Too short account",
+        "用户密码过短": "Too short password",
+        "两次输入的密码不一致": "Inconsistent password",
+        "账号重复": "Account already exists",
+        "注册失败，数据库错误": "Registration failed caused by database error"
+
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -44,17 +44,18 @@ const Register: React.FC = () => {
 
         try {
             await registerUser(formData);
-            alert('Registration successful! Please log in.'); // Or redirect to login
+            alert('Registration successful! Please log in.');
             navigate('/login');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed');
+        } catch (err) {
+            const backendMessage = err.message;
+            setError(errorMessages[backendMessage] || backendMessage || 'Registration failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="register-container">
+        <div className="page-container register-container">
             <h2>Register</h2>
             <form onSubmit={handleSubmit}>
                 <div>
@@ -129,7 +130,7 @@ const Register: React.FC = () => {
                 </button>
             </form>
             <p>
-                Already have an account? <a href="/login">Login here</a>
+                Already have an account? <Link to="/login">Login here</Link>
             </p>
         </div>
     );

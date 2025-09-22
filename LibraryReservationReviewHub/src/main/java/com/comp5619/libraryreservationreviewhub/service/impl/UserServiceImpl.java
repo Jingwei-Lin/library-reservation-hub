@@ -112,6 +112,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 4. 获取脱敏后的用户信息
         LoginUserVO loginUserVO = getLoginUserVO(user);
+
+        // Set properties for LoginUserVO
+        BeanUtils.copyProperties(user, loginUserVO);
+        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
+        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
+
         // 5. 记录用户的登录态
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
         return loginUserVO;

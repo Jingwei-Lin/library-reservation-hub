@@ -1,47 +1,48 @@
+import './Login.css';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../services/authApi';
 
-interface LoginFormData {
-    userAccount: string;
-    userPassword: string;
-}
-
-const Login: React.FC = () => {
-    const [formData, setFormData] = useState<LoginFormData>({
-        userAccount: '',
-        userPassword: '',
-    });
-    const [error, setError] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
+const Login = ({ setIsAuthenticated, setUser }) => {
+    const [formData, setFormData] = useState({ userAccount: '', userPassword: '' });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    // map backend messages to English (add more if needed)
+    const errorMessages = {
+        "参数为空": "No empty input allowed",
+        "密码错误": "Incorrect password",
+        "用户不存在": "User not found",
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         try {
-            const response = await loginUser(formData);
-            // Store user data in localStorage (adjust based on your LoginUserVO structure)
+            const response = await loginUser(formData); // call backend
+            // console.log("Login response:", response);  // log backend response
             localStorage.setItem('user', JSON.stringify(response));
-            navigate('/dashboard'); // Redirect to a protected route (create if needed)
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed');
+            setUser(response);             // update app-level user state
+            setIsAuthenticated(true);      // update app-level auth state
+            navigate('/dashboard');        // redirect to dashboard
+        } catch (err) {
+            // Axios error message from authApi.js
+            const backendMessage = err.message;
+            setError(errorMessages[backendMessage] || backendMessage || 'Login failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="login-container">
+        <div className="page-container login-container">
             <h2>Login</h2>
             <form onSubmit={handleSubmit}>
                 <div>
@@ -72,7 +73,7 @@ const Login: React.FC = () => {
                 </button>
             </form>
             <p>
-                Don't have an account? <a href="/register">Register here</a>
+                Don&apos;t have an account? <Link to="/register">Register here</Link>
             </p>
         </div>
     );

@@ -10,8 +10,8 @@ public interface BookMapper {
 
     /* ================= 基础 CRUD ================= */
 
-    @Select("SELECT book_id, title, author, genre, quantity, available FROM book WHERE book_id = #{id}")
-    Book selectById(@Param("id") Integer id);
+    @Select("SELECT book_id, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id}")
+    Book selectById(@Param("id") Long id);
 
     /**
      * 若无 ISBN，可用 (title, author, genre) 作为“近似唯一”约束做去重检查
@@ -27,8 +27,8 @@ public interface BookMapper {
                     @Param("genre") String genre);
 
     @Insert("""
-        INSERT INTO book (title, author, genre, quantity, available)
-        VALUES (#{title}, #{author}, #{genre}, #{quantity}, #{available})
+        INSERT INTO book (title, author, genre, quantity, available, path)
+        VALUES (#{title}, #{author}, #{genre}, #{quantity}, #{available}, #{path})
         """)
     @Options(useGeneratedKeys = true, keyProperty = "bookId", keyColumn = "book_id")
     int insertBook(Book b);
@@ -43,6 +43,7 @@ public interface BookMapper {
           <if test="genre    != null">genre    = #{genre},</if>
           <if test="quantity != null">quantity = #{quantity},</if>
           <if test="available!= null">available= #{available},</if>
+          <if test="path!= null">path= #{path},</if>
         </set>
         WHERE book_id = #{bookId}
         </script>
@@ -51,10 +52,10 @@ public interface BookMapper {
 
     /** 逻辑删除：将 available 标记为 false（仅当当前为 true 时才更新） */
     @Update("UPDATE book SET available = FALSE WHERE book_id = #{id} AND available = TRUE")
-    int deleteById(@Param("id") Integer id);
+    int deleteById(@Param("id") Long id);
 
     @Update("UPDATE book SET available = TRUE WHERE book_id = #{id}")
-    int restoreById(@Param("id") Integer id);
+    int restoreById(@Param("id") Long id);
 
     /* ================== 分页 / 搜索 ================== */
 
@@ -83,7 +84,7 @@ public interface BookMapper {
      */
     @Select("""
         <script>
-        SELECT book_id, title, author, genre, quantity, available
+        SELECT book_id, title, author, genre, quantity, available, path
         FROM book
         <where>
           <if test="kw != null and kw != ''">
@@ -106,7 +107,7 @@ public interface BookMapper {
                                         @Param("orderBy") String orderBySql);
 
     @Select("""
-        SELECT book_id, title, author, genre, quantity, available
+        SELECT book_id, title, author, genre, quantity, available, path
         FROM book
         WHERE genre = #{genre}
         ORDER BY book_id DESC

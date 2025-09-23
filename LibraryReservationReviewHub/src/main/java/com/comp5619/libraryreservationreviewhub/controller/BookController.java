@@ -49,7 +49,7 @@ public class BookController {
                                         @RequestBody Book book,
                                         HttpServletRequest request) {
         // 注意：实体为 bookId 而不是 id
-        book.setBookId(id.intValue());
+        book.setBookId(id.longValue());
         User operator = userService.getLoginUser(request);
         return ResultUtils.success(bookService.updateBook(book, operator));
     }

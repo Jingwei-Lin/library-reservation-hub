@@ -3,12 +3,9 @@ package com.comp5619.libraryreservationreviewhub.model.vo;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
 
 /**
- * 图书视图对象
+ * 图书视图对象 - 修正字段映射
  */
 @Data
 public class BookVO implements Serializable {
@@ -16,7 +13,7 @@ public class BookVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 图书ID
+     * 图书ID - 改为Integer以匹配Book实体
      */
     private Long bookId;
 
@@ -31,34 +28,9 @@ public class BookVO implements Serializable {
     private String author;
 
     /**
-     * 出版社
+     * 图书类别 - 改为genre以匹配Book实体
      */
-    private String publisher;
-
-    /**
-     * 出版年份
-     */
-    private Integer publicationYear;
-
-    /**
-     * ISBN
-     */
-    private String isbn;
-
-    /**
-     * 价格
-     */
-    private BigDecimal price;
-
-    /**
-     * 平均评分
-     */
-    private BigDecimal averageRating;
-
-    /**
-     * 评分数量
-     */
-    private Integer ratingCount;
+    private String genre;
 
     /**
      * 总库存
@@ -66,37 +38,27 @@ public class BookVO implements Serializable {
     private Integer quantity;
 
     /**
-     * 可用库存
+     * 是否可用
      */
-    private Integer availableQuantity;
+    private Boolean available;
 
     /**
-     * 图书类型
+     * 封面路径
      */
-    private String genreName;
+    private String path;
 
-    /**
-     * 封面URL
-     */
-    private String coverUrl;
-
-    /**
-     * 图书描述
-     */
-    private String description;
-
-    /**
-     * 图书状态
-     */
-    private String status;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 最新评论列表
-     */
-    private List<ReviewVO> recentReviews;
+    // 移除不必要的字段，除非数据库中有这些数据
+    // private String publisher;
+    // private Integer publicationYear;
+    // private String isbn;
+    // private BigDecimal price;
+    // private BigDecimal averageRating;
+    // private Integer ratingCount;
+    // private Integer availableQuantity;
+    // private String genreName;
+    // private String coverUrl;
+    // private String description;
+    // private String status;
+    // private Date createTime;
+    // private List<ReviewVO> recentReviews;
 }

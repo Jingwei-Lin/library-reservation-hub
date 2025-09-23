@@ -81,10 +81,10 @@ public class BookServiceImpl implements BookService {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
-        Book exist = bookMapper.selectById((int) id);
+        Book exist = bookMapper.selectById((long) id);
         ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
 
-        return bookMapper.deleteById((int) id) > 0;
+        return bookMapper.deleteById((long) id) > 0;
     }
 
     @Override
@@ -102,7 +102,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public Book getBookById(long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        Book b = bookMapper.selectById((int) id);
+        Book b = bookMapper.selectById((Long) id);
         ThrowUtils.throwIf(b == null, ErrorCode.NOT_FOUND_ERROR);
         return b;
     }
@@ -114,7 +114,13 @@ public class BookServiceImpl implements BookService {
         // 建议 BookVO 仅包含：bookId/title/author/genre/quantity/available
         BeanUtils.copyProperties(book, vo);
         // 如果 BookVO 字段名不同，手动映射：
-        // vo.setId(book.getBookId());
+        vo.setBookId(book.getBookId());
+        vo.setTitle(book.getTitle());
+        vo.setAuthor(book.getAuthor());
+        vo.setGenre(book.getGenre());
+        vo.setQuantity(book.getQuantity());
+        vo.setAvailable(book.getAvailable());
+        vo.setPath(book.getPath());
         return vo;
     }
 
@@ -148,7 +154,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public boolean isBookAvailable(Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
-        Book b = bookMapper.selectById(id.intValue());
+        Book b = bookMapper.selectById(id.longValue());
         return b != null && Boolean.TRUE.equals(b.getAvailable())
                 && b.getQuantity() != null && b.getQuantity() > 0;
     }
@@ -158,13 +164,13 @@ public class BookServiceImpl implements BookService {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
-        Book exist = bookMapper.selectById((int) id);
+        Book exist = bookMapper.selectById((long) id);
         ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
 
         // 已经是可用状态则视为幂等成功
         if (Boolean.TRUE.equals(exist.getAvailable())) {
             return true;
         }
-        return bookMapper.restoreById((int) id) > 0;
+        return bookMapper.restoreById((long) id) > 0;
     }
 }

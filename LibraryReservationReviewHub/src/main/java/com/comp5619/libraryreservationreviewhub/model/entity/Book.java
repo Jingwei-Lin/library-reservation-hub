@@ -16,7 +16,7 @@ public class Book implements Serializable {
      * 图书ID - 主键 (对应 book_id)
      */
     @TableId(value = "book_id", type = IdType.AUTO)
-    private Integer bookId;
+    private Long bookId;
 
     /**
      * 书名
@@ -48,6 +48,11 @@ public class Book implements Serializable {
      */
     @TableLogic
     private Integer isDelete;
+
+    /**
+     * 封面路径
+     */
+    private String path;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

@@ -37,12 +37,16 @@ function App() {
                     />
                     <Route
                         path="/dashboard"
-                        element={isAuthenticated ? (
-                            <Dashboard user={user} />
-                        ) : (
-                            <Navigate to="/login" />
-                        )}
+                        element={
+                            <Dashboard
+                                user={user}
+                                setIsAuthenticated={setIsAuthenticated}
+                                isAuthenticated={isAuthenticated}
+                            />
+                        }
                     />
+
+
                     <Route path="/" element={<Navigate to="/login" />} />
                 </Routes>
             </div>

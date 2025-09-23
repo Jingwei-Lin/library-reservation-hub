@@ -10,16 +10,16 @@ import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import java.util.List;
 
 public interface BookService {
-    long addBook(BookAddRequest req, User operator);
-    boolean deleteBook(long id, User operator);
+    Long addBook(BookAddRequest req, User operator);
+    boolean deleteBook(Long id, User operator);
     boolean updateBook(Book book, User operator);
-    Book getBookById(long id);
+    Book getBookById(Long id);
 
     BookVO getBookVO(Book book);
     List<BookVO> getBookVOList(List<Book> books);
 
     PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available);
     List<BookVO> getBooksByGenre(String genre);
-    boolean restoreBook(long id, User operator);
+    boolean restoreBook(Long id, User operator);
     boolean isBookAvailable(Long id);
 }

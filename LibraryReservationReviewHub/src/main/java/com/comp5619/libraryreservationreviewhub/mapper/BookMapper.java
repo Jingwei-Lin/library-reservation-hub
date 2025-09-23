@@ -10,7 +10,7 @@ public interface BookMapper {
 
     /* ================= 基础 CRUD ================= */
 
-    @Select("SELECT book_id, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id}")
+    @Select("SELECT book_id as bookId, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id}")
     Book selectById(@Param("id") Long id);
 
     /**
@@ -84,7 +84,7 @@ public interface BookMapper {
      */
     @Select("""
         <script>
-        SELECT book_id, title, author, genre, quantity, available, path
+        SELECT book_id as bookId, title, author, genre, quantity, available, path
         FROM book
         <where>
           <if test="kw != null and kw != ''">
@@ -107,7 +107,7 @@ public interface BookMapper {
                                         @Param("orderBy") String orderBySql);
 
     @Select("""
-        SELECT book_id, title, author, genre, quantity, available, path
+        SELECT book_id as bookId, title, author, genre, quantity, available, path
         FROM book
         WHERE genre = #{genre}
         ORDER BY book_id DESC

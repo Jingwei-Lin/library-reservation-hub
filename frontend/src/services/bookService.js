@@ -48,5 +48,17 @@ export const bookService = {
             console.error('Error fetching books by genre:', error);
             throw new Error('Failed to fetch books by genre');
         }
-    }
+    },
+
+    // Get book by ID
+    getBookById: async (id) => {
+        try {
+            const response = await api.get(`/book/${id}`);
+            console.log('Get book by ID response:', response); // Debug log
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching book by ID:', error);
+            throw new Error('Failed to fetch book details');
+        }
+    },
 };

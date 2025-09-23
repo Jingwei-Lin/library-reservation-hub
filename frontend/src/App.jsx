@@ -3,14 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState } from 'react';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
-import Dashboard from "./components/Dashboard.jsx";
+import Dashboard from './components/Dashboard.jsx';
 import UserPanel from './components/UserPanel';
+import Book from './components/Book'; // Adjust path based on your structure
 
 function App() {
     // Centralized authentication state
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("user"));
     const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || '{}'));
-
 
     return (
         <Router>
@@ -21,19 +21,23 @@ function App() {
                 <Routes>
                     <Route
                         path="/login"
-                        element={!isAuthenticated ? (
-                            <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
-                        ) : (
-                            <Navigate to="/dashboard" />
-                        )}
+                        element={
+                            !isAuthenticated ? (
+                                <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
+                            ) : (
+                                <Navigate to="/dashboard" />
+                            )
+                        }
                     />
                     <Route
                         path="/register"
-                        element={!isAuthenticated ? (
-                            <Register />
-                        ) : (
-                            <Navigate to="/dashboard" />
-                        )}
+                        element={
+                            !isAuthenticated ? (
+                                <Register />
+                            ) : (
+                                <Navigate to="/dashboard" />
+                            )
+                        }
                     />
                     <Route
                         path="/dashboard"
@@ -45,8 +49,12 @@ function App() {
                             />
                         }
                     />
-
-
+                    <Route
+                        path="/book/:id"
+                        element={
+                            <Book isAuthenticated={isAuthenticated} />
+                        }
+                    />
                     <Route path="/" element={<Navigate to="/login" />} />
                 </Routes>
             </div>

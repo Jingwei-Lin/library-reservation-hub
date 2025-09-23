@@ -15,7 +15,7 @@ public class Book implements Serializable {
     /**
      * 图书ID - 主键 (对应 book_id)
      */
-    @TableId(value = "book_id", type = IdType.AUTO)
+    @TableId(value = "book_id")
     private Long bookId;
 
     /**

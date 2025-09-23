@@ -50,7 +50,7 @@ public class BookServiceImpl implements BookService {
     /* ===================== 图书 ===================== */
 
     @Override
-    public long addBook(BookAddRequest req, User operator) {
+    public Long addBook(BookAddRequest req, User operator) {
         ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
@@ -77,7 +77,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public boolean deleteBook(long id, User operator) {
+    public boolean deleteBook(Long id, User operator) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
@@ -100,7 +100,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Book getBookById(long id) {
+    public Book getBookById(Long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Book b = bookMapper.selectById((Long) id);
         ThrowUtils.throwIf(b == null, ErrorCode.NOT_FOUND_ERROR);
@@ -160,7 +160,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public boolean restoreBook(long id, User operator) {
+    public boolean restoreBook(Long id, User operator) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 

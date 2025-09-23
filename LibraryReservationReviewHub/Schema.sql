@@ -26,7 +26,8 @@ CREATE TABLE Book (
     author VARCHAR(50) NOT NULL,
     genre VARCHAR(50) NOT NULL,
     quantity INT,
-    available BOOLEAN DEFAULT TRUE
+    available BOOLEAN DEFAULT TRUE,
+    path VARCHAR(255)
 );
 
 -- Create Waiting_List Table
@@ -72,7 +73,7 @@ CREATE TABLE Reservation (
 INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES 
 (1, 'jingwei.lin@example.com', '123456789', 'Jingwei', 'Lin', FALSE);
 
-INSERT INTO Book (book_id, title, author, genre, quantity, available, url) VALUES
+INSERT INTO Book (book_id, title, author, genre, quantity, available, path) VALUES
 (1, 'The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 5, TRUE, 'books/Fantasy/The Hobbit.jpg'),
 (2, 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasy', 5, TRUE, 'books/Fantasy/The Lord of the Rings.jpg'),
 (3, 'Harry Potter and the Philosopher’s Stone', 'J.K. Rowling', 'Fantasy', 5, TRUE, 'books/Fantasy/Harry Potter and the Philosopher’s Stone.jpg'),

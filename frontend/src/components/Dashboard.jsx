@@ -193,7 +193,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                                 <div className={`user-panel ${isPanelOpen ? "open" : ""}`}>
                                     <h3>User Panel</h3>
                                     <p>{user?.firstName} {user?.lastName}</p>
-                                    <p>Email: {user?.email}</p>
+                                    <p>Email: {user?.userAccount}</p>
                                     <button onClick={handleLogout}>Logout</button>
                                 </div>
                             </>

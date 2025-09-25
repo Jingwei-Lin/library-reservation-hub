@@ -3,14 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import "./Dashboard.css";
 
-const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
+const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    // const [isDarkMode, setIsDarkMode] = useState(false); // New state for dark mode
+    const booksPerPage = 12;
     const panelRef = useRef(null);
     const navigate = useNavigate();
+
 
     useEffect(() => {
         fetchBooks();
@@ -32,14 +36,13 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     : Array.isArray(response.data)
                         ? response.data
                         : [];
-                // Temporarily relax filter to inspect all books
                 const validBooks = bookList.filter(book => {
                     const bookId = Number(book.bookId);
                     const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
                     if (!isValid) {
                         console.warn('Invalid book detected:', JSON.stringify(book, null, 2));
                     }
-                    return true; // Temporarily include all books for debugging
+                    return true;
                 });
                 setBooks(validBooks);
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
@@ -55,6 +58,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
             setBooks([]);
         } finally {
             setLoading(false);
+            setCurrentPage(1); // Reset to first page on new fetch
         }
     };
 
@@ -79,7 +83,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     if (!isValid) {
                         console.warn('Invalid book detected:', JSON.stringify(book, null, 2));
                     }
-                    return true; // Temporarily include all books for debugging
+                    return true;
                 });
                 setBooks(validBooks);
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
@@ -95,6 +99,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
             setBooks([]);
         } finally {
             setLoading(false);
+            setCurrentPage(1); // Reset to first page on new fetch
         }
     };
 
@@ -137,8 +142,58 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         };
     }, []);
 
+    // Pagination logic
+    const indexOfLastBook = currentPage * booksPerPage;
+    const indexOfFirstBook = indexOfLastBook - booksPerPage;
+    const currentBooks = books.slice(indexOfFirstBook, indexOfLastBook);
+    const totalPages = Math.ceil(books.length / booksPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+
+    // Dynamic pagination buttons
+    const getPaginationButtons = () => {
+        const buttons = [];
+
+        // Always show first page
+        buttons.push(1);
+
+        if (totalPages <= 5) {
+            // Show all pages if small number
+            for (let i = 2; i <= totalPages; i++) {
+                buttons.push(i);
+            }
+        } else {
+            if (currentPage <= 3) {
+                // Near the beginning: 1,2,3,4,...,last
+                buttons.push(2,3,4);
+                buttons.push("...");
+                buttons.push(totalPages);
+            } else if (currentPage >= totalPages - 2) {
+                // Near the end: 1,...,last-3,last-2,last-1,last
+                buttons.push("...");
+                for (let i = totalPages - 3; i <= totalPages; i++) {
+                    buttons.push(i);
+                }
+            } else {
+                // Middle pages: 1,...,current-1,current,current+1,...,last
+                buttons.push("...");
+                buttons.push(currentPage - 1);
+                buttons.push(currentPage);
+                buttons.push(currentPage + 1);
+                buttons.push("...");
+                buttons.push(totalPages);
+            }
+        }
+
+        return buttons;
+    };
+
+
     return (
-        <div className="dashboard">
+        // <div className={`dashboard ${isDarkMode ? "dark-mode" : ""}`}>
+        <div className={`dashboard ${theme === "dark" ? "dark-mode" : ""}`}>
             <nav className="sidebar">
                 <div className="logo">
                     <span className="logo-icon">📚</span>
@@ -185,6 +240,13 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                         {isAuthenticated ? (
                             <>
                                 <div
+                                    className="dark-mode-toggle"
+                                    onClick={toggleTheme}
+                                >
+                                    {theme === "dark" ? "🌞" : "🌙"}
+                                </div>
+
+                                <div
                                     className="user-icon"
                                     onClick={() => setIsPanelOpen(!isPanelOpen)}
                                 >
@@ -213,7 +275,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                         <div className="book-listing">
                             <div className="book-listing-header">
                                 <h2>Book Listing</h2>
-                                <div className="book-count">Showing {books.length} books</div>
+                                <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
                             </div>
                             {loading && <div className="loading">Loading books...</div>}
                             {error && (
@@ -226,9 +288,9 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                             )}
                             {!loading && !error && (
                                 <div className="books-grid">
-                                    {books.map((book) => (
+                                    {currentBooks.map((book) => (
                                         <div
-                                            key={book.bookId || book.title + book.author} // Fallback key for debugging
+                                            key={book.bookId || book.title + book.author}
                                             className="book-card"
                                             onClick={() => book.bookId ? handleBookClick(book.bookId) : setError('Cannot navigate: Book ID is missing')}
                                             style={{ cursor: book.bookId ? 'pointer' : 'not-allowed' }}
@@ -276,6 +338,33 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                             {!loading && !error && books.length === 0 && (
                                 <div className="no-books">
                                     No books found. <button onClick={() => fetchBooks()}>Load all books</button>
+                                </div>
+                            )}
+                            {!loading && !error && books.length > 0 && (
+                                <div className="pagination">
+                                    <button onClick={prevPage} disabled={currentPage === 1}>
+                                        Previous
+                                    </button>
+                                    {getPaginationButtons().map((page, index) => (
+                                        <React.Fragment key={index}>
+                                            {typeof page === "number" ? (
+                                                <button
+                                                    onClick={() => paginate(page)}
+                                                    style={{
+                                                        fontWeight: currentPage === page ? 'bold' : 'normal',
+                                                        backgroundColor: currentPage === page ? '#e0e0e0' : 'white',
+                                                    }}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ) : (
+                                                <span style={{ padding: '8px 12px' }}>...</span>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                    <button onClick={nextPage} disabled={currentPage === totalPages}>
+                                        Next
+                                    </button>
                                 </div>
                             )}
                         </div>

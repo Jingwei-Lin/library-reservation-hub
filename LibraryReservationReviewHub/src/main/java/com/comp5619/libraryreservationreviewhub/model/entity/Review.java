@@ -13,22 +13,22 @@ import java.util.Date;
 @Data
 public class Review implements Serializable {
 
-
-
     /**
      * 评论ID - 主键
      */
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+    @TableId(value = "review_id", type = IdType.AUTO)
+    private Long reviewId;
 
     /**
      * 用户ID
      */
+    @TableField("user_id")
     private Long userId;
 
     /**
      * 图书ID
      */
+    @TableField("book_id")
     private Long bookId;
 
     /**
@@ -42,31 +42,10 @@ public class Review implements Serializable {
     private String comment;
 
     /**
-     * 点赞数
+     * 评论时间
      */
-    private Integer likeCount;
+    @TableField("review_date")
+    private Data reviewDate;
 
-    /**
-     * 评论状态：published/pending/rejected/deleted
-     */
-    private String reviewStatus;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
-    /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
-
-    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

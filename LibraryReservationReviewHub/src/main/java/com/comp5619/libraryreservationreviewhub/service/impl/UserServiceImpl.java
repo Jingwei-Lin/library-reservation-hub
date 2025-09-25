@@ -49,23 +49,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public long userRegister(String userAccount, String userPassword, String checkPassword, String firstName, String lastName, String phone) {
         // 1. 校验参数
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, firstName, lastName)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
         if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "User account is too short");
         }
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Password must be at least 8 characters");
         }
         if (!userPassword.equals(checkPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Passwords do not match");
         }
+
         // 2. 检查用户账号 (email) 是否和数据库中已有的重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         long count = this.baseMapper.selectCount(queryWrapper);
         if (count > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Account already exists");
         }
         // 3. 密码一定要加密
         String encryptPassword = getEncryptPassword(userPassword);
@@ -80,7 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setCreateTime(new Date()); // Set current time
         boolean saveResult = this.save(user);
         if (!saveResult) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Registration failed, database error");
         }
         return user.getId();
     }
@@ -97,18 +98,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
         // 2. 校验密码
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
         if (user == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "User does not exist");
         }
         // 3. 密码校验
         if (!user.getUserPassword().equals(getEncryptPassword(userPassword))) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Incorrect password");
         }
         // 4. 获取脱敏后的用户信息
         LoginUserVO loginUserVO = getLoginUserVO(user);
@@ -203,7 +204,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 判断是否已经登录
         Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         if (userObj == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "Not logged in");
         }
         // 移除登录态
         request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);

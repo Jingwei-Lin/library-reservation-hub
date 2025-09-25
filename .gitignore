@@ -55,3 +55,4 @@ Thumbs.db
 **/.gradle/
 **/build/
 !**/gradle/wrapper/gradle-wrapper.jar
+LibraryReservationReviewHub/src/main/resources/application-dev.yml

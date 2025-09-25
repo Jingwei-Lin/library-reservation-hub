@@ -1,0 +1,82 @@
+package com.comp5619.libraryreservationreviewhub.service;
+
+import java.util.List;
+
+import com.comp5619.libraryreservationreviewhub.model.dto.book.ReviewAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
+import com.comp5619.libraryreservationreviewhub.model.entity.Review;
+import com.comp5619.libraryreservationreviewhub.model.entity.User;
+import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
+
+import cn.hutool.db.PageResult;
+
+public interface ReviewService {
+    /**
+     * 添加review，必须是登录后的
+     * 
+     * @param req
+     * @param loginUser
+     * @return 添加result
+     */
+    long addReview(ReviewAddRequest req, User loginUser);
+
+    /**
+     * 更新review
+     * 
+     * @param req
+     * @param user
+     * @return 更新result
+     */
+    boolean updateReview(ReviewUpdateRequest req, User user);
+
+    /**
+     * 根据id删除review
+     * 
+     * @param id
+     * @return 是否成功
+     */
+    boolean deleteReview(long id);
+
+    /**
+     * 根据id获取review
+     * 
+     * @param id
+     * @return review对象
+     */
+    Review getReviewBtId(long id);
+
+    /**
+     * 分页输出
+     * 
+     * @param req
+     * @return pageResult
+     */
+    PageResult<ReviewVO> listByPage(ReviewQueryRequest req);
+
+    /**
+     * 管理员审核评论功能
+     * 
+     * @param id
+     * @param status
+     * @param operator
+     * @return succ or no
+     */
+    boolean moderate(long id, String status, User operator);
+
+    /**
+     * 将单个review类型转换成VO
+     * 
+     * @param review
+     * @return 转换后VO对象
+     */
+    ReviewVO toVO(Review review);
+
+    /**
+     * 将一组review转换成一组VO
+     * 
+     * @param reviewList
+     * @return 返回list<reviewVO>
+     */
+    List<ReviewVO> toList(List<Review> reviewList);
+}

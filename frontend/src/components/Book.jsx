@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { bookService } from "../services/bookService"; // Adjust path if needed
+import { bookService } from "../services/bookService";
+import { reservationService } from "../services/reservationService";
 import "./Book.css";
 
 const Book = ({ isAuthenticated }) => {
@@ -9,6 +10,8 @@ const Book = ({ isAuthenticated }) => {
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [reserveLoading, setReserveLoading] = useState(false);
+    const [reserveMessage, setReserveMessage] = useState("");
 
     useEffect(() => {
         const fetchBook = async () => {
@@ -17,11 +20,10 @@ const Book = ({ isAuthenticated }) => {
                 setError("");
                 const response = await bookService.getBookById(id);
 
-                // Handle Spring Boot BaseResponse structure
                 if (response && response.code === 0 && response.data) {
-                    setBook(response.data); // Extract BookVO from response.data
+                    setBook(response.data);
                 } else {
-                    setError("Invalid response format");
+                    setError(response?.msg || "Invalid response format");
                 }
             } catch (err) {
                 setError(err.message || "Failed to load book details");
@@ -38,13 +40,35 @@ const Book = ({ isAuthenticated }) => {
         navigate("/dashboard");
     };
 
-    const handleReserve = () => {
+    const handleReserve = async () => {
         if (!isAuthenticated) {
             navigate("/login");
             return;
         }
-        // Placeholder for reservation logic
-        alert("Reservation functionality to be implemented.");
+
+        setReserveLoading(true);
+        setReserveMessage("");
+        setError("");
+
+        try {
+            const response = await reservationService.createReservation(id);
+            if (response && response.code === 0) {
+                setReserveMessage("Reservation successful! Check your reservations.");
+                const updatedBookResponse = await bookService.getBookById(id);
+                if (updatedBookResponse && updatedBookResponse.code === 0 && updatedBookResponse.data) {
+                    setBook(updatedBookResponse.data);
+                }
+            } else {
+                throw new Error(response?.msg || "Invalid response");
+            }
+        } catch (err) {
+            setError(err.message || "Failed to reserve book");
+            if (err.message.includes("not logged in") || err.message.includes("Unauthorized")) {
+                navigate("/login");
+            }
+        } finally {
+            setReserveLoading(false);
+        }
     };
 
     return (
@@ -77,7 +101,7 @@ const Book = ({ isAuthenticated }) => {
                                         imageSrc: `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`,
                                         timestamp: new Date().toISOString(),
                                     });
-                                    e.target.src = '/placeholder-book-cover.jpg'; // Fallback image
+                                    e.target.src = '/placeholder-book-cover.jpg';
                                 }}
                             />
                         ) : (
@@ -99,10 +123,11 @@ const Book = ({ isAuthenticated }) => {
                         <button
                             className="reserve-button"
                             onClick={handleReserve}
-                            disabled={!book.available}
+                            disabled={!book.available || reserveLoading}
                         >
-                            {book.available ? 'Reserve Now' : 'Join Waiting List'}
+                            {reserveLoading ? 'Reserving...' : (book.available ? 'Reserve Now' : 'Join Waiting List')}
                         </button>
+                        {reserveMessage && <p className="success-message">{reserveMessage}</p>}
                     </div>
                 </div>
             )}

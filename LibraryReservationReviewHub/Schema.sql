@@ -60,11 +60,14 @@ CREATE TABLE Reservation (
     reservation_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     book_id INT NOT NULL,
-    reservation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reservation_date TIMESTAMP NULL,
     pickup_date TIMESTAMP NULL,
     due_date TIMESTAMP NULL,
     return_date TIMESTAMP NULL,
     status ENUM('active', 'picked_up', 'returned', 'cancelled') DEFAULT 'active',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NULL,
+    is_delete BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (book_id) REFERENCES Book(book_id)
 );

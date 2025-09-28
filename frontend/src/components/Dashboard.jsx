@@ -203,7 +203,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                     <h3>Navigation</h3>
                     <ul>
                         <li onClick={() => fetchBooks()}>All Books</li>
-                        <li onClick={handleProtectedClick}>My Borrowings</li>
+                        <li onClick={() => navigate("/reservations")}>My Reservations</li>
                     </ul>
                 </div>
                 <div className="category-box">

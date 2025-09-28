@@ -10,10 +10,10 @@ public interface BookMapper {
 
     /* ================= 基础 CRUD ================= */
 
-    @Select("SELECT book_id as bookId, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id}")
+    @Select("SELECT book_id as bookId, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id} ORDER BY title")
     Book selectById(@Param("id") Long id);
 
-    /**
+    /**s
      * 若无 ISBN，可用 (title, author, genre) 作为“近似唯一”约束做去重检查
      * 建议在数据库加唯一索引：UNIQUE idx_book_tag (title, author, genre)
      */
@@ -96,7 +96,7 @@ public interface BookMapper {
             AND available = #{available}
           </if>
         </where>
-        ${orderBy}
+        ORDER BY title ASC
         LIMIT #{limit} OFFSET #{offset}
         </script>
         """)
@@ -110,7 +110,7 @@ public interface BookMapper {
         SELECT book_id as bookId, title, author, genre, quantity, available, path
         FROM book
         WHERE genre = #{genre}
-        ORDER BY book_id DESC
+        ORDER BY title
         """)
     List<Book> selectByGenre(@Param("genre") String genre);
 }

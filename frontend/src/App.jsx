@@ -5,6 +5,7 @@ import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import UserPanel from './components/UserPanel';
+import Reservations from './components/Reservations';
 import Book from './components/Book'; // Adjust path if needed
 
 function App() {
@@ -78,6 +79,11 @@ function App() {
                         element={<Book isAuthenticated={isAuthenticated} />}
                     />
                     <Route path="/" element={<Navigate to="/login" />} />
+
+                    <Route
+                        path="/reservations"
+                        element={<Reservations isAuthenticated={isAuthenticated} />}
+                    />
                 </Routes>
             </div>
         </Router>

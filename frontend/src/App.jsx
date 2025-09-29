@@ -1,29 +1,43 @@
+// App.jsx
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
-import UserPanel from './components/UserPanel';
+
 import Reservations from './components/Reservations';
-import Book from './components/Book'; // Adjust path if needed
+import Book from './components/Book';
+import { validateSession, logoutUser } from './services/authApi'; // Import validateSession
 
 function App() {
-    // Centralized authentication state
-    const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem("user"));
-    const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || '{}'));
+    const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem("user"));
+    const [user, setUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || '{}'));
+    const [theme, setTheme] = useState(() => sessionStorage.getItem("theme") || "light");
 
-    // Theme state (default to light if none saved)
-    const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
-
-    // Apply theme to body whenever it changes
+    // Validate session on mount
     useEffect(() => {
-        document.body.classList.remove("light", "dark"); // clear old classes
-        document.body.classList.add(theme); // apply new class
-        localStorage.setItem("theme", theme); // persist in localStorage
+        const checkSession = async () => {
+            if (sessionStorage.getItem("user")) {
+                try {
+                    await validateSession(); // Check with backend
+                } catch (error) {
+                    console.error('Session validation failed:', error.message);
+                    logoutUser(); // Clear sessionStorage
+                    setIsAuthenticated(false);
+                    setUser({});
+                }
+            }
+        };
+        checkSession();
+    }, []);
+
+    useEffect(() => {
+        document.body.classList.remove("light", "dark");
+        document.body.classList.add(theme);
+        sessionStorage.setItem("theme", theme);
     }, [theme]);
 
-    // Toggle between light/dark themes
     const toggleTheme = () => {
         setTheme(prev => (prev === "light" ? "dark" : "light"));
     };
@@ -31,15 +45,6 @@ function App() {
     return (
         <Router>
             <div className={`App ${theme}`}>
-                {/* Show user panel only when logged in */}
-                {isAuthenticated && (
-                    <UserPanel
-                        user={user}
-                        setIsAuthenticated={setIsAuthenticated}
-                        toggleTheme={toggleTheme}
-                        theme={theme}
-                    />
-                )}
 
                 <Routes>
                     <Route
@@ -75,7 +80,6 @@ function App() {
                         element={<Book isAuthenticated={isAuthenticated} />}
                     />
                     <Route path="/" element={<Navigate to="/login" />} />
-
                     <Route
                         path="/reservations"
                         element={<Reservations isAuthenticated={isAuthenticated} />}

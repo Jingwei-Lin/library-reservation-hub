@@ -1,9 +1,11 @@
+// Reservations.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { reservationService } from "../services/reservationService";
+import { logoutUser } from "../services/authApi"; // Import logoutUser
 import "./Reservations.css";
 
-const Reservations = ({ isAuthenticated }) => {
+const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
     const navigate = useNavigate();
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,14 +29,20 @@ const Reservations = ({ isAuthenticated }) => {
                     setError(response?.msg || "Invalid response format from server");
                 }
             } catch (err) {
-                setError(err.message || "Failed to load reservations");
+                if (err.message.includes("Session expired or user banned")) {
+                    logoutUser();
+                    setIsAuthenticated(false);
+                    navigate("/login");
+                } else {
+                    setError(err.message || "Failed to load reservations");
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         fetchReservations();
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, setIsAuthenticated]);
 
     const handleCancel = async (reservationId) => {
         if (!window.confirm("Are you sure you want to cancel this reservation?")) return;
@@ -48,7 +56,13 @@ const Reservations = ({ isAuthenticated }) => {
                 setError(response?.msg || "Failed to cancel reservation");
             }
         } catch (err) {
-            setError(err.message || "Failed to cancel reservation");
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(err.message || "Failed to cancel reservation");
+            }
         }
     };
 

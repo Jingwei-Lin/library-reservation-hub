@@ -1,3 +1,4 @@
+// Login.jsx
 import './Login.css';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -28,7 +29,7 @@ const Login = ({ setIsAuthenticated, setUser }) => {
         try {
             const response = await loginUser(formData); // call backend
             // console.log("Login response:", response);  // log backend response
-            localStorage.setItem('user', JSON.stringify(response));
+            sessionStorage.setItem('user', JSON.stringify(response));
             setUser(response);             // update app-level user state
             setIsAuthenticated(true);      // update app-level auth state
             navigate('/dashboard');        // redirect to dashboard

@@ -39,7 +39,7 @@ export const loginUser = async (loginData) => {
 // Validate session
 export const validateSession = async () => {
     try {
-        const response = await api.get('/user/validate-session');
+        const response = await api.get('/user/get/login');
         const result = response.data;
         console.log(response)
         if (result.code !== 0) {

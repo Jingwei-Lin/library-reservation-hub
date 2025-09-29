@@ -1,13 +1,15 @@
+// reservationService.js
 import axios from 'axios';
+import { logoutUser } from './authApi'; // Import logoutUser for auth error handling
 
 const api = axios.create({
-    baseURL: '/api',            // use relative path so vite proxy works
-    withCredentials: true,      // important for cookies/session auth
+    baseURL: '/api',
+    withCredentials: true, // important for cookies/session auth
 });
 
 // Helper to add Authorization if token exists
 const getAuthHeader = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}'); // Use sessionStorage
     return user && user.token ? { Authorization: `Bearer ${user.token}` } : {};
 };
 
@@ -20,6 +22,10 @@ export const reservationService = {
             console.log('createReservation response:', response.data);
             return response.data;
         } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser(); // Clear sessionStorage on auth error
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
             console.error('createReservation error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to create reservation');
         }
@@ -33,6 +39,10 @@ export const reservationService = {
             console.log('getUserReservations response:', response.data);
             return response.data;
         } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
             console.error('getUserReservations error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to load reservations');
         }
@@ -46,6 +56,10 @@ export const reservationService = {
             console.log('cancelReservation response:', response.data);
             return response.data;
         } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
             console.error('cancelReservation error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to cancel reservation');
         }

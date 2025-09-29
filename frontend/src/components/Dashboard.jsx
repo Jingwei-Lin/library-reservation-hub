@@ -1,6 +1,8 @@
+// Dashboard.jsx (updated to handle auth errors)
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
+import { logoutUser } from "../services/authApi"; // Import logoutUser
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
@@ -10,13 +12,12 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    // const [isDarkMode, setIsDarkMode] = useState(false); // New state for dark mode
     const booksPerPage = 12;
     const panelRef = useRef(null);
     const navigate = useNavigate();
 
-
     useEffect(() => {
+        console.log(sessionStorage)
         fetchBooks();
     }, []);
 
@@ -53,12 +54,18 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 setBooks([]);
             }
         } catch (err) {
-            setError(err.message || "Failed to load books");
-            console.error("Error fetching books:", err);
-            setBooks([]);
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(err.message || "Failed to load books");
+                console.error("Error fetching books:", err);
+                setBooks([]);
+            }
         } finally {
             setLoading(false);
-            setCurrentPage(1); // Reset to first page on new fetch
+            setCurrentPage(1);
         }
     };
 
@@ -94,20 +101,26 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 setBooks([]);
             }
         } catch (err) {
-            setError(`Failed to load ${genre} books: ${err.message}`);
-            console.error("Error fetching books by genre:", err);
-            setBooks([]);
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(`Failed to load ${genre} books: ${err.message}`);
+                console.error("Error fetching books by genre:", err);
+                setBooks([]);
+            }
         } finally {
             setLoading(false);
-            setCurrentPage(1); // Reset to first page on new fetch
+            setCurrentPage(1);
         }
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        logoutUser();
         setIsAuthenticated(false);
         setIsPanelOpen(false);
+        navigate("/login");
     };
 
     const handleLoginRedirect = () => {
@@ -152,32 +165,24 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
     const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
-    // Dynamic pagination buttons
     const getPaginationButtons = () => {
         const buttons = [];
-
-        // Always show first page
         buttons.push(1);
-
         if (totalPages <= 5) {
-            // Show all pages if small number
             for (let i = 2; i <= totalPages; i++) {
                 buttons.push(i);
             }
         } else {
             if (currentPage <= 3) {
-                // Near the beginning: 1,2,3,4,...,last
-                buttons.push(2,3,4);
+                buttons.push(2, 3, 4);
                 buttons.push("...");
                 buttons.push(totalPages);
             } else if (currentPage >= totalPages - 2) {
-                // Near the end: 1,...,last-3,last-2,last-1,last
                 buttons.push("...");
                 for (let i = totalPages - 3; i <= totalPages; i++) {
                     buttons.push(i);
                 }
             } else {
-                // Middle pages: 1,...,current-1,current,current+1,...,last
                 buttons.push("...");
                 buttons.push(currentPage - 1);
                 buttons.push(currentPage);
@@ -186,13 +191,10 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 buttons.push(totalPages);
             }
         }
-
         return buttons;
     };
 
-
     return (
-        // <div className={`dashboard ${isDarkMode ? "dark-mode" : ""}`}>
         <div className={`dashboard ${theme === "dark" ? "dark-mode" : ""}`}>
             <nav className="sidebar">
                 <div className="logo">
@@ -239,23 +241,18 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                     <div className="user-wrapper" ref={panelRef}>
                         {isAuthenticated ? (
                             <>
-                                <div
-                                    className="dark-mode-toggle"
-                                    onClick={toggleTheme}
-                                >
+                                <div className="dark-mode-toggle" onClick={toggleTheme}>
                                     {theme === "dark" ? "🌞" : "🌙"}
                                 </div>
-
-                                <div
-                                    className="user-icon"
-                                    onClick={() => setIsPanelOpen(!isPanelOpen)}
-                                >
+                                <div className="user-icon" onClick={() => setIsPanelOpen(!isPanelOpen)}>
                                     👤
                                 </div>
                                 <div className={`user-panel ${isPanelOpen ? "open" : ""}`}>
                                     <h3>User Panel</h3>
                                     <p>{user?.firstName} {user?.lastName}</p>
                                     <p>Email: {user?.userAccount}</p>
+                                    <p>UserID: {user?.id}</p>
+
                                     <button onClick={handleLogout}>Logout</button>
                                 </div>
                             </>

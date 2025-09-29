@@ -61,17 +61,13 @@ function App() {
                     <Route
                         path="/dashboard"
                         element={
-                            isAuthenticated ? (
-                                <Dashboard
-                                    user={user}
-                                    setIsAuthenticated={setIsAuthenticated}
-                                    isAuthenticated={isAuthenticated}
-                                    theme={theme}
-                                    toggleTheme={toggleTheme}
-                                />
-                            ) : (
-                                <Navigate to="/login" />
-                            )
+                            <Dashboard
+                                user={user}
+                                setIsAuthenticated={setIsAuthenticated}
+                                isAuthenticated={isAuthenticated}
+                                theme={theme}
+                                toggleTheme={toggleTheme}
+                            />
                         }
                     />
                     <Route

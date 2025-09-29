@@ -76,6 +76,10 @@ CREATE TABLE Reservation (
 INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES 
 (1, 'jingwei.lin@example.com', '123456789', 'Jingwei', 'Lin', FALSE);
 
+INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES
+    (2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE);
+
+
 INSERT INTO Book (book_id, title, author, genre, quantity, available, `path`) VALUES
 (1, 'The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 5, TRUE, 'The_Hobbit.jpg'),
 (2, 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasy', 5, TRUE, 'The_Lord_of_the_Rings.jpg'),

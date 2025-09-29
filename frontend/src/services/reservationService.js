@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8432/api';
+const api = axios.create({
+    baseURL: '/api',            // use relative path so vite proxy works
+    withCredentials: true,      // important for cookies/session auth
+});
 
+// Helper to add Authorization if token exists
 const getAuthHeader = () => {
     const user = JSON.parse(localStorage.getItem('user'));
     return user && user.token ? { Authorization: `Bearer ${user.token}` } : {};
@@ -10,10 +14,10 @@ const getAuthHeader = () => {
 export const reservationService = {
     createReservation: async (bookId) => {
         try {
-            const response = await axios.post(`${API_BASE}/reservation/create/${bookId}`, {}, {
+            const response = await api.post(`/reservation/create/${bookId}`, {}, {
                 headers: getAuthHeader(),
             });
-            console.log('createReservation response:', JSON.stringify(response.data, null, 2));
+            console.log('createReservation response:', response.data);
             return response.data;
         } catch (error) {
             console.error('createReservation error:', error.response?.data, error.message);
@@ -23,10 +27,10 @@ export const reservationService = {
 
     getUserReservations: async () => {
         try {
-            const response = await axios.get(`${API_BASE}/reservation/user`, {
+            const response = await api.get(`/reservation/user`, {
                 headers: getAuthHeader(),
             });
-            console.log('getUserReservations response:', JSON.stringify(response.data, null, 2));
+            console.log('getUserReservations response:', response.data);
             return response.data;
         } catch (error) {
             console.error('getUserReservations error:', error.response?.data, error.message);
@@ -36,10 +40,10 @@ export const reservationService = {
 
     cancelReservation: async (reservationId) => {
         try {
-            const response = await axios.delete(`${API_BASE}/reservation/cancel/${reservationId}`, {
+            const response = await api.delete(`/reservation/cancel/${reservationId}`, {
                 headers: getAuthHeader(),
             });
-            console.log('cancelReservation response:', JSON.stringify(response.data, null, 2));
+            console.log('cancelReservation response:', response.data);
             return response.data;
         } catch (error) {
             console.error('cancelReservation error:', error.response?.data, error.message);

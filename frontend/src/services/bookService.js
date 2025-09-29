@@ -1,12 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8432/api'; // Adjust to your backend URL
+// const API_BASE_URL = 'http://localhost:8432/api'; // Adjust to your backend URL
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // important for session cookies
 });
 
 export const bookService = {

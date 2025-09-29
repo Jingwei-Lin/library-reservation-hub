@@ -60,11 +60,14 @@ CREATE TABLE Reservation (
     reservation_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     book_id INT NOT NULL,
-    reservation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reservation_date TIMESTAMP NULL,
     pickup_date TIMESTAMP NULL,
     due_date TIMESTAMP NULL,
     return_date TIMESTAMP NULL,
     status ENUM('active', 'picked_up', 'returned', 'cancelled') DEFAULT 'active',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NULL,
+    is_delete BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (book_id) REFERENCES Book(book_id)
 );
@@ -72,6 +75,10 @@ CREATE TABLE Reservation (
 -- Insert Sample Data
 INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES 
 (1, 'jingwei.lin@example.com', '123456789', 'Jingwei', 'Lin', FALSE);
+
+INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES
+    (2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE);
+
 
 INSERT INTO Book (book_id, title, author, genre, quantity, available, `path`) VALUES
 (1, 'The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 5, TRUE, 'The_Hobbit.jpg'),

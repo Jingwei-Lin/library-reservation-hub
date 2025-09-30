@@ -14,5 +14,5 @@ import java.util.List;
  */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
-    User selectByUserAccount(@Param("email") String userAccount);
+//    User selectByUserAccount(@Param("email") String userAccount);
 }

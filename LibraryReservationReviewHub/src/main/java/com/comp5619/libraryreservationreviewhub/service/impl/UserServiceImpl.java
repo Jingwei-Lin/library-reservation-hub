@@ -48,7 +48,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword, String firstName, String lastName, String phone) {
         // 1. 校验参数
-        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, firstName, lastName)) {
+        if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, firstName, lastName,phone)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
         if (userAccount.length() < 4) {
@@ -78,7 +78,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setLastName(lastName);
         user.setPhone(phone);
         user.setIsAdmin(false); // Default non-admin
-        user.setCreateTime(new Date()); // Set current time
+//        user.setCreateTime(new Date()); // Set current time
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Registration failed, database error");
@@ -100,10 +100,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StrUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
-        // 2. 校验密码
+
+        
+        // 2. 查询数据库中的用户是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
+        // 不存在，抛异常
         if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "User does not exist");
         }
@@ -138,12 +141,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (currentUser == null || currentUser.getId() == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 从数据库中查询（追求性能的话可以注释，直接返回上述结果）
+        // 从数据库中查询
         Long userId = currentUser.getId();
         currentUser = this.getById(userId);
+        // user is not exist
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
+        // user is banned
+        if (currentUser.getStatus().equals(0)) {
+            throw new BusinessException(ErrorCode.USER_BANNED);
+        }
+
+
         return currentUser;
     }
 
@@ -155,13 +165,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
-//        if (user == null) {
-//            return null;
-//        }
+        if (user == null) {
+            return null;
+        }
         LoginUserVO loginUserVO = new LoginUserVO();
-//        BeanUtil.copyProperties(user, loginUserVO);
-//        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
-//        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
+        BeanUtil.copyProperties(user, loginUserVO);
+        loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
+        loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return loginUserVO;
     }
 
@@ -173,13 +183,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public UserVO getUserVO(User user) {
-//        if (user == null) {
-//            return null;
-//        }
+        if (user == null) {
+            return null;
+        }
         UserVO userVO = new UserVO();
-//        BeanUtil.copyProperties(user, userVO);
-//        userVO.setUserName(user.getFirstName() + " " + user.getLastName());
-//        userVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
+        BeanUtil.copyProperties(user, userVO);
+        userVO.setUserName(user.getFirstName() + " " + user.getLastName());
+        userVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
         return userVO;
     }
 
@@ -213,34 +223,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
-//        if (userQueryRequest == null) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
-//        }
-//        Long id = userQueryRequest.getId();
-//        String userAccount = userQueryRequest.getUserAccount(); // email
-//        String firstName = userQueryRequest.getFirstName();
-//        String lastName = userQueryRequest.getLastName();
-//        String phone = userQueryRequest.getPhone();
-//        Boolean isAdmin = userQueryRequest.getIsAdmin();
-//        String sortField = userQueryRequest.getSortField();
-//        String sortOrder = userQueryRequest.getSortOrder();
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "empty params");
+        }
+        Long id = userQueryRequest.getId();
+        String userAccount = userQueryRequest.getUserAccount(); // email
+        String firstName = userQueryRequest.getFirstName();
+        String lastName = userQueryRequest.getLastName();
+        String phone = userQueryRequest.getPhone();
+        Boolean isAdmin = userQueryRequest.getIsAdmin();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-//        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
-//        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
-//        queryWrapper.like(StrUtil.isNotBlank(userAccount), "email", userAccount);
-//        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
-//        // Search across firstName or lastName if either is provided
-//        if (StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName)) {
-//            queryWrapper.and(wrapper ->
-//                    wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
-//                            .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
-//        }
-//        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
+        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
+        queryWrapper.like(StrUtil.isNotBlank(userAccount), "email", userAccount);
+        queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
+        // Search across firstName or lastName if either is provided
+        if (StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName)) {
+            queryWrapper.and(wrapper ->
+                    wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
+                            .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
+        }
+        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
     }
 
     @Override
     public boolean isAdmin(User user) {
-        return user != null && user.isAdmin();
+        return user != null && Boolean.TRUE.equals(user.getIsAdmin());
     }
 }

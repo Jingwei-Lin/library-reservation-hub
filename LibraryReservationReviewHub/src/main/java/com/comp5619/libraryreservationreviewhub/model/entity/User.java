@@ -3,6 +3,7 @@ package com.comp5619.libraryreservationreviewhub.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 import lombok.Data;
 
@@ -49,71 +50,33 @@ public class User implements Serializable {
     @TableField("is_admin")
     private Boolean isAdmin;
 
+    
     /**
      * phone
      */
     @TableField("phone")
     private String phone;
 
+    /**
+     * 1表示可用 0表示禁用
+     */
+    private Integer status;
+
+    /**
+     * create time
+     */
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+
+    /**
+     * update
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-    public void setUserPassword(String userPassword) {
-        this.userPassword = userPassword;
-    }
 
-    public String getUserPassword() {
-        return userPassword;
-    }
-
-    public void setIsAdmin(boolean isAdmin) {
-        this.isAdmin = isAdmin;
-    }
-
-    public boolean isAdmin() {
-        return isAdmin;
-    }
-
-    public void setCreateTime(Date date) {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setUserAccount(String userAccount) {
-        this.userAccount = userAccount;
-    }
-
-    public String getUserAccount() {
-        return userAccount;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
 }

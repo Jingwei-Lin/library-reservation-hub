@@ -50,7 +50,7 @@ knife4j:
 mybatis-plus:
   configuration:
     # MyBatis configuration
-    map-underscore-to-camel-case: false
+    map-underscore-to-camel-case: true
     # print log info
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:

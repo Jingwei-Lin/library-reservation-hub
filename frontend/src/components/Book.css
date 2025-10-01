@@ -1,3 +1,4 @@
+/* Book.css */
 /* src/pages/BookDetail.css */
 .book-detail-container {
     max-width: 800px;
@@ -123,6 +124,15 @@
     cursor: not-allowed;
 }
 
+.success-message {
+    color: #155724;
+    background-color: #d4edda;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
 .loading, .error, .no-book {
     text-align: center;
     padding: 40px;
@@ -139,10 +149,107 @@
     border-radius: 4px;
 }
 
+.retry-btn {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.retry-btn:hover {
+    background-color: #0056b3;
+}
+
 .no-book {
     color: #666;
     background: #f5f5f5;
     border-radius: 4px;
+}
+
+.no-book button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.no-book button:hover {
+    background-color: #0056b3;
+}
+
+/* Reviews Section Styles */
+.reviews-section {
+    margin-top: 40px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.reviews-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.review-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #007bff;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.review-user {
+    font-weight: bold;
+    color: #333;
+    font-size: 1rem;
+}
+
+.review-rating {
+    color: #f39c12;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.review-comment {
+    margin: 0 0 8px 0;
+    color: #555;
+    line-height: 1.5;
+}
+
+.review-date {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0;
+}
+
+.no-reviews {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px dashed #ccc;
 }
 
 /* Responsive adjustments */
@@ -163,5 +270,15 @@
 
     .book-status {
         justify-content: center;
+    }
+
+    .review-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .reviews-section {
+        padding: 15px;
     }
 }

@@ -9,5 +9,5 @@ public class ReviewAddRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long bookId;
     private Integer rating;
-    private String commnet;
+    private String comment;
 }

@@ -70,7 +70,7 @@ public interface ReviewService {
      * @param review
      * @return 转换后VO对象
      */
-    ReviewVO toVO(Review review);
+    ReviewVO getReviewVO(Review review);
 
     /**
      * 将一组review转换成一组VO
@@ -78,5 +78,13 @@ public interface ReviewService {
      * @param reviewList
      * @return 返回list<reviewVO>
      */
-    List<ReviewVO> toList(List<Review> reviewList);
+    List<ReviewVO> getReviewVOList(List<Review> reviewList);
+
+    /**
+     * 根据BookId返还一组reviews
+     *
+     * @param bookId
+     * @return 返回list<reviewVO>
+     */
+    List<ReviewVO> getReviewsByBookId(long bookId);
 }

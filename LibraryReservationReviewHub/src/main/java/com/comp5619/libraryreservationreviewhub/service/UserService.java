@@ -103,4 +103,5 @@ public interface UserService extends IService<User> {
      */
     boolean isAdmin(User user);
 
+    String getUserNameById(Long userId);
 }

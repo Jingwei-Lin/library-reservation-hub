@@ -45,7 +45,7 @@ public class Review implements Serializable {
      * 评论时间
      */
     @TableField("review_date")
-    private Data reviewDate;
+    private Date reviewDate;
 
     private static final long serialVersionUID = 1L;
 }

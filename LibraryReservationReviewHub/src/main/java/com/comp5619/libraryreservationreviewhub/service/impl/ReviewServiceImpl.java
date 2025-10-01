@@ -1,15 +1,21 @@
 package com.comp5619.libraryreservationreviewhub.service.impl;
 
+import java.sql.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import com.comp5619.libraryreservationreviewhub.service.UserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.ReviewMapper;
-import com.comp5619.libraryreservationreviewhub.mapper.UserMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
@@ -17,16 +23,18 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
-import com.comp5619.libraryreservationreviewhub.service.UserService;
 
 import cn.hutool.db.PageResult;
 import jakarta.annotation.Resource;
 
 @Service
-public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> implements ReviewService {
+@Slf4j
+@RequiredArgsConstructor
+public class ReviewServiceImpl implements ReviewService {
+
     @Resource
+    private ReviewMapper reviewMapper;
     private UserService userService;
-    private UserMapper userMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 回滚所有异常
@@ -65,11 +73,36 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
         return true;
     }
 
-    public ReviewVO toVO(Review review) {
-        return new ReviewVO();
+    @Override
+    public ReviewVO getReviewVO(Review review) {
+        if (review == null) return null;
+        ReviewVO vo = new ReviewVO();
+        BeanUtils.copyProperties(review, vo);
+        // 如果 ReviewVO 字段名不同，手动映射：
+        vo.setBookId(review.getBookId());
+        vo.setReviewId(review.getReviewId());
+        vo.setReviewDate(new java.sql.Date(review.getReviewDate().getTime()));
+        vo.setUserId(review.getUserId());
+        vo.setComment(review.getComment());
+        vo.setRating(review.getRating());
+        // System.out.println(userService.getById(review.getUserId()));
+        // vo.setUserName(userService.getUserNameById(review.getUserId()));
+
+        return vo;
     }
 
-    public List<ReviewVO> toList(List<Review> reviewList) {
-        return null;
+
+    @Override
+    public List<ReviewVO> getReviewVOList(List<Review> reviews) {
+        if (CollUtil.isEmpty(reviews)) return CollUtil.newArrayList();
+        return reviews.stream().map(this::getReviewVO).collect(Collectors.toList());
     }
+
+    @Override
+    public List<ReviewVO> getReviewsByBookId(long bookId) {
+        List<Review> list = reviewMapper.selectByBookId(bookId);
+        return getReviewVOList(list);
+    }
+
+
 }

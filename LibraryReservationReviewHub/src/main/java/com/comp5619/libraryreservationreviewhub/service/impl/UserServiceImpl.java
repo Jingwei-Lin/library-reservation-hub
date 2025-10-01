@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -204,6 +203,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (CollUtil.isEmpty(userList)) {
             return new ArrayList<>();
         }
+
         return userList.stream()
                 .map(this::getUserVO)
                 .collect(Collectors.toList());
@@ -253,4 +253,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public boolean isAdmin(User user) {
         return user != null && Boolean.TRUE.equals(user.getIsAdmin());
     }
+
+    @Override
+    public String getUserNameById(Long userId) {
+        User u = this.getById(userId);
+        return u.getFirstName()+ " " + u.getLastName();
+    }
+
 }

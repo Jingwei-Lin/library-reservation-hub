@@ -6,6 +6,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReservationVO;
@@ -26,9 +27,11 @@ public class ReservationController {
     private final UserService userService;
 
     @PostMapping("/create/{bookId}")
-    public BaseResponse<Long> createReservation(@PathVariable Long bookId, HttpServletRequest request) {
+    public BaseResponse<Long> createReservation(@PathVariable Long bookId,
+                                                @RequestBody ReservationAddRequest req,
+                                                HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-        return ResultUtils.success(reservationService.createReservation(bookId, user));
+        return ResultUtils.success(reservationService.createReservation(bookId, req, user));
     }
 
     @DeleteMapping("/cancel/{reservationId}")

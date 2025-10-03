@@ -1,4 +1,3 @@
-// Book.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
@@ -6,15 +5,13 @@ import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
 import "./Book.css";
 
-const Book = ({ isAuthenticated }) => {
+const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [reserveLoading, setReserveLoading] = useState(false);
-    const [reserveMessage, setReserveMessage] = useState("");
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -22,7 +19,6 @@ const Book = ({ isAuthenticated }) => {
                 setLoading(true);
                 setError("");
 
-                // Fetch book details
                 const bookResponse = await bookService.getBookById(id);
                 if (bookResponse && bookResponse.code === 0 && bookResponse.data) {
                     setBook(bookResponse.data);
@@ -31,7 +27,6 @@ const Book = ({ isAuthenticated }) => {
                     return;
                 }
 
-                // Fetch reviews
                 const reviewResponse = await reviewService.getReviewsByBookId(id);
                 if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                     setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
@@ -41,77 +36,33 @@ const Book = ({ isAuthenticated }) => {
                 }
             } catch (err) {
                 if (err.message.includes("Session expired or user banned")) {
-                    logoutUser(); // Assuming logoutUser is imported if needed
+                    localStorage.removeItem('user');
+                    setIsAuthenticated(false);
                     navigate("/login");
                     return;
                 }
                 setError(err.message || "Failed to load book details or reviews");
                 console.error("Error fetching book or reviews:", err);
-                setReviews([]); // Set empty reviews on error
+                setReviews([]);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchBookAndReviews();
-    }, [id, navigate]);
+    }, [id, navigate, setIsAuthenticated]);
 
     const handleBack = () => {
         navigate("/dashboard");
     };
 
-    const handleReserve = async () => {
+    const handleReserve = () => {
         if (!isAuthenticated) {
             navigate("/login");
             return;
         }
-
-        setReserveLoading(true);
-        setReserveMessage("");
-        setError("");
-
-        try {
-            const response = await reservationService.createReservation(id);
-            if (response && response.code === 0) {
-                setReserveMessage("Reservation successful! Check your reservations.");
-                // Refresh book details after successful reservation
-                const updatedBookResponse = await bookService.getBookById(id);
-                if (updatedBookResponse && updatedBookResponse.code === 0 && updatedBookResponse.data) {
-                    setBook(updatedBookResponse.data);
-                }
-            } else {
-                throw new Error(response?.msg || "Invalid response");
-            }
-        } catch (err) {
-            setError(err.message || "Failed to reserve book");
-            if (err.message.includes("Session expired or user banned") || err.message.includes("not logged in") || err.message.includes("Unauthorized")) {
-                navigate("/login");
-            }
-        } finally {
-            setReserveLoading(false);
-        }
+        navigate(`/reservation/form/${id}`);
     };
-
-    if (loading) {
-        return (
-            <div className="book-detail-container">
-                <div className="loading">Loading book details...</div>
-            </div>
-        );
-    }
-
-    if (error && !book) {
-        return (
-            <div className="book-detail-container">
-                <div className="error">
-                    {error}
-                    <button onClick={() => window.location.reload()} className="retry-btn">
-                        Retry
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="book-detail-container">
@@ -119,6 +70,7 @@ const Book = ({ isAuthenticated }) => {
                 ← Back to Dashboard
             </button>
 
+            {loading && <div className="loading">Loading book details...</div>}
             {error && (
                 <div className="error">
                     {error}
@@ -128,18 +80,18 @@ const Book = ({ isAuthenticated }) => {
                 </div>
             )}
 
-            {book && (
+            {!loading && !error && book && (
                 <div className="book-detail-card">
                     <div className="book-detail-cover">
                         {book.path ? (
                             <img
-                                src={`http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`}
+                                src={`/api/images/books/${encodeURIComponent(book.path)}`}
                                 alt={book.title}
                                 onError={(e) => {
                                     console.error('Image failed to load:', {
                                         bookTitle: book.title,
                                         databasePath: book.path,
-                                        imageSrc: `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`,
+                                        imageSrc: `/api/images/books/${encodeURIComponent(book.path)}`,
                                         timestamp: new Date().toISOString(),
                                     });
                                     e.target.src = '/placeholder-book-cover.jpg';
@@ -164,16 +116,14 @@ const Book = ({ isAuthenticated }) => {
                         <button
                             className="reserve-button"
                             onClick={handleReserve}
-                            disabled={!book.available || reserveLoading}
+                            disabled={!book.available}
                         >
-                            {reserveLoading ? 'Reserving...' : (book.available ? 'Reserve Now' : 'Join Waiting List')}
+                            {book.available ? 'Reserve Now' : 'Join Waiting List'}
                         </button>
-                        {reserveMessage && <p className="success-message">{reserveMessage}</p>}
                     </div>
                 </div>
             )}
 
-            {/* Reviews Section */}
             {book && (
                 <div className="reviews-section">
                     <h2>Reviews ({reviews.length})</h2>
@@ -200,7 +150,7 @@ const Book = ({ isAuthenticated }) => {
                 </div>
             )}
 
-            {!book && (
+            {!loading && !error && !book && (
                 <div className="no-book">
                     Book not found.
                     <button onClick={handleBack}>Back to Dashboard</button>

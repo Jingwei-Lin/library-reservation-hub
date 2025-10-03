@@ -1,32 +1,34 @@
-// reservationService.js
 import axios from 'axios';
-import { logoutUser } from './authApi'; // Import logoutUser for auth error handling
+import { logoutUser } from './authApi';
 
 const api = axios.create({
     baseURL: '/api',
-    withCredentials: true, // important for cookies/session auth
+    withCredentials: true,
 });
 
-// Helper to add Authorization if token exists
 const getAuthHeader = () => {
-    const user = JSON.parse(sessionStorage.getItem('user') || '{}'); // Use sessionStorage
-    return user && user.token ? { Authorization: `Bearer ${user.token}` } : {};
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user || !user.token) {
+        console.warn('No valid user or token found in localStorage:', user);
+        return {};
+    }
+    return { Authorization: `Bearer ${user.token}` };
 };
 
 export const reservationService = {
-    createReservation: async (bookId) => {
+    createReservation: async (bookId, formData) => {
         try {
-            const response = await api.post(`/reservation/create/${bookId}`, {}, {
+            const response = await api.post(`/reservation/create/${bookId}`, formData, {
                 headers: getAuthHeader(),
             });
             console.log('createReservation response:', response.data);
             return response.data;
         } catch (error) {
+            console.error('createReservation error:', error.response?.data, error.message);
             if (error.response && [401, 403].includes(error.response.status)) {
-                logoutUser(); // Clear sessionStorage on auth error
+                logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            console.error('createReservation error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to create reservation');
         }
     },
@@ -39,11 +41,11 @@ export const reservationService = {
             console.log('getUserReservations response:', response.data);
             return response.data;
         } catch (error) {
+            console.error('getUserReservations error:', error.response?.data, error.message);
             if (error.response && [401, 403].includes(error.response.status)) {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            console.error('getUserReservations error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to load reservations');
         }
     },
@@ -56,12 +58,29 @@ export const reservationService = {
             console.log('cancelReservation response:', response.data);
             return response.data;
         } catch (error) {
+            console.error('cancelReservation error:', error.response?.data, error.message);
             if (error.response && [401, 403].includes(error.response.status)) {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            console.error('cancelReservation error:', error.response?.data, error.message);
             throw new Error(error.response?.data?.msg || error.message || 'Failed to cancel reservation');
+        }
+    },
+
+    hasActiveReservation: async (bookId) => {
+        try {
+            const response = await api.get(`/reservation/check/${bookId}`, {
+                headers: getAuthHeader(),
+            });
+            console.log('hasActiveReservation response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('hasActiveReservation error:', error.response?.data, error.message);
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.msg || error.message || 'Failed to check reservation status');
         }
     },
 };

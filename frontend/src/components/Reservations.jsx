@@ -1,8 +1,7 @@
-// Reservations.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { reservationService } from "../services/reservationService";
-import { logoutUser } from "../services/authApi"; // Import logoutUser
+import { logoutUser } from "../services/authApi";
 import "./Reservations.css";
 
 const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
@@ -10,6 +9,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+    const [cancelling, setCancelling] = useState(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -22,6 +23,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 setLoading(true);
                 setError("");
                 const response = await reservationService.getUserReservations();
+                console.log("getUserReservations response:", response);
 
                 if (response && response.code === 0 && response.data) {
                     setReservations(Array.isArray(response.data) ? response.data : []);
@@ -29,6 +31,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                     setError(response?.msg || "Invalid response format from server");
                 }
             } catch (err) {
+                console.error("fetchReservations error:", err);
                 if (err.message.includes("Session expired or user banned")) {
                     logoutUser();
                     setIsAuthenticated(false);
@@ -49,13 +52,22 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
 
         try {
             setError("");
+            setSuccessMessage("");
+            setCancelling(reservationId);
             const response = await reservationService.cancelReservation(reservationId);
+            console.log("cancelReservation response:", response);
             if (response && response.code === 0) {
-                setReservations(reservations.filter(r => r.reservationId !== reservationId));
+                // Update reservation status to 'cancelled' in the UI
+                setReservations(reservations.map(r =>
+                    r.reservationId === reservationId ? { ...r, reservationStatus: "cancelled" } : r
+                ));
+                setSuccessMessage("Reservation cancelled successfully!");
+                setTimeout(() => setSuccessMessage(""), 3000);
             } else {
                 setError(response?.msg || "Failed to cancel reservation");
             }
         } catch (err) {
+            console.error("cancelReservation error:", err);
             if (err.message.includes("Session expired or user banned")) {
                 logoutUser();
                 setIsAuthenticated(false);
@@ -63,7 +75,15 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
             } else {
                 setError(err.message || "Failed to cancel reservation");
             }
+        } finally {
+            setCancelling(null);
         }
+    };
+
+    // Helper to format status
+    const formatStatus = (status) => {
+        if (!status) return 'Unknown';
+        return status.charAt(0).toUpperCase() + status.slice(1);
     };
 
     return (
@@ -82,6 +102,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                     </button>
                 </div>
             )}
+            {successMessage && <div className="success">{successMessage}</div>}
 
             {!loading && !error && reservations.length > 0 && (
                 <table className="reservations-table">
@@ -102,11 +123,15 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                             <td>{res.reservationTime ? new Date(res.reservationTime).toLocaleDateString() : 'N/A'}</td>
                             <td>{res.pickupTime ? new Date(res.pickupTime).toLocaleDateString() : 'N/A'}</td>
                             <td>{res.dueTime ? new Date(res.dueTime).toLocaleDateString() : 'N/A'}</td>
-                            <td>{res.reservationStatus}</td>
+                            <td>{formatStatus(res.reservationStatus)}</td>
                             <td>
                                 {["reserved", "borrowed"].includes(res.reservationStatus) && (
-                                    <button onClick={() => handleCancel(res.reservationId)} className="cancel-btn">
-                                        Cancel
+                                    <button
+                                        onClick={() => handleCancel(res.reservationId)}
+                                        className="cancel-btn"
+                                        disabled={cancelling === res.reservationId}
+                                    >
+                                        {cancelling === res.reservationId ? "Cancelling..." : "Cancel"}
                                     </button>
                                 )}
                             </td>

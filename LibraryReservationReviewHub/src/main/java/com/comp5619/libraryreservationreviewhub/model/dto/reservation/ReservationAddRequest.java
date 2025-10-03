@@ -8,6 +8,7 @@ import java.util.Date;
 @Data
 public class ReservationAddRequest implements Serializable {
     private Long bookId;
-    private Date pickupTime; // Optional: user may specify desired pickup time
+    private Date pickupTime;
+    private Date dueTime;
     private static final long serialVersionUID = 1L;
 }

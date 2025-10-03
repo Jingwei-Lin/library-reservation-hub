@@ -6,9 +6,10 @@ import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
 
-import Reservations from './components/Reservations';
+import Reservations from './components/Reservations.jsx';
 import Book from './components/Book';
-import { validateSession, logoutUser } from './services/authApi'; // Import validateSession
+import { validateSession, logoutUser } from './services/authApi';
+import ReservationForm from "./components/ReservationForm.jsx"; // Import validateSession
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem("user"));
@@ -48,6 +49,18 @@ function App() {
 
                 <Routes>
                     <Route
+                        path="/dashboard"
+                        element={
+                            <Dashboard
+                                user={user}
+                                setIsAuthenticated={setIsAuthenticated}
+                                isAuthenticated={isAuthenticated}
+                                theme={theme}
+                                toggleTheme={toggleTheme}
+                            />
+                        }
+                    />
+                    <Route
                         path="/login"
                         element={
                             !isAuthenticated ? (
@@ -64,26 +77,15 @@ function App() {
                         }
                     />
                     <Route
-                        path="/dashboard"
-                        element={
-                            <Dashboard
-                                user={user}
-                                setIsAuthenticated={setIsAuthenticated}
-                                isAuthenticated={isAuthenticated}
-                                theme={theme}
-                                toggleTheme={toggleTheme}
-                            />
-                        }
-                    />
-                    <Route
                         path="/book/:id"
                         element={<Book isAuthenticated={isAuthenticated} />}
                     />
-                    <Route path="/" element={<Navigate to="/login" />} />
+                    <Route path="/" element={<Navigate to="/dashboard" />} />
                     <Route
                         path="/reservations"
                         element={<Reservations isAuthenticated={isAuthenticated} />}
                     />
+                    <Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
                 </Routes>
             </div>
         </Router>

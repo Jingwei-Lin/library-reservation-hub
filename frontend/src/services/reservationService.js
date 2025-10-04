@@ -7,9 +7,9 @@ const api = axios.create({
 });
 
 const getAuthHeader = () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     if (!user || !user.token) {
-        console.warn('No valid user or token found in localStorage:', user);
+        console.warn('No valid user or token found in sessionStorage:', user);
         return {};
     }
     return { Authorization: `Bearer ${user.token}` };

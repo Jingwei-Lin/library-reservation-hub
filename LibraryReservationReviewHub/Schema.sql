@@ -197,17 +197,14 @@ INSERT INTO Waiting_list (wait_id, user_id, book_id, join_date, status) VALUES
     (1, 1, 1, CURRENT_TIMESTAMP, 'waiting');
 
 INSERT INTO Review (review_id, user_id, book_id, rating, comment, review_date) VALUES
-    (1, 1, 1, 4, 'Great book!', CURRENT_TIMESTAMP);
+   (1, 1, 1, 4, 'Great book!', CURRENT_TIMESTAMP),
+   (2, 1, 1, 5, 'An epic adventure with rich world-building!', CURRENT_TIMESTAMP),
+   (3, 2, 1, 3, 'Good story, but a bit slow in the middle.', CURRENT_TIMESTAMP),
+   (4, 1, 2, 4, 'A classic fantasy masterpiece.', CURRENT_TIMESTAMP),
+   (5, 2, 2, 5, 'Loved the depth of the characters and plot!', CURRENT_TIMESTAMP),
+   (6, 1, 3, 4, 'Magical and engaging, great for all ages.', CURRENT_TIMESTAMP),
+   (7, 2, 4, 2, 'Too complex for my taste.', CURRENT_TIMESTAMP),
+   (8, 1, 5, 5, 'Kvothe’s story is captivating!', CURRENT_TIMESTAMP);
 
 INSERT INTO Reservation (reservation_id, user_id, book_id, reservation_date, status) VALUES
     (1, 1, 1, CURRENT_TIMESTAMP, 'active');
-
--- Insert additional sample reviews for testing
-INSERT INTO Review (review_id, user_id, book_id, rating, comment, review_date) VALUES
-	(2, 1, 1, 5, 'An epic adventure with rich world-building!', CURRENT_TIMESTAMP),
-	(3, 2, 1, 3, 'Good story, but a bit slow in the middle.', CURRENT_TIMESTAMP),
-	(4, 1, 2, 4, 'A classic fantasy masterpiece.', CURRENT_TIMESTAMP),
-	(5, 2, 2, 5, 'Loved the depth of the characters and plot!', CURRENT_TIMESTAMP),
-	(6, 1, 3, 4, 'Magical and engaging, great for all ages.', CURRENT_TIMESTAMP),
-	(7, 2, 4, 2, 'Too complex for my taste.', CURRENT_TIMESTAMP),
-	(8, 1, 5, 5, 'Kvothe’s story is captivating!', CURRENT_TIMESTAMP);

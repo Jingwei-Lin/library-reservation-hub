@@ -2,7 +2,8 @@ package com.comp5619.libraryreservationreviewhub.service;
 
 import java.util.List;
 
-import com.comp5619.libraryreservationreviewhub.model.dto.book.ReviewAddRequest;
+// import com.comp5619.libraryreservationreviewhub.model.dto.book.ReviewAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Review;
@@ -14,12 +15,13 @@ import cn.hutool.db.PageResult;
 public interface ReviewService {
     /**
      * 添加review，必须是登录后的
-     * 
+     *
+     * @param bookId
      * @param req
-     * @param loginUser
+     * @param user
      * @return 添加result
      */
-    long addReview(ReviewAddRequest req, User loginUser);
+    long addReview(Long bookId, ReviewAddRequest req, User user);
 
     /**
      * 更新review
@@ -33,18 +35,18 @@ public interface ReviewService {
     /**
      * 根据id删除review
      * 
-     * @param id
+     * @param reviewId
      * @return 是否成功
      */
-    boolean deleteReview(long id);
+    boolean deleteReview(Long reviewId, User user);
 
     /**
      * 根据id获取review
      * 
-     * @param id
+     * @param reviewId
      * @return review对象
      */
-    Review getReviewBtId(long id);
+    Review getReviewById(long reviewId);
 
     /**
      * 分页输出
@@ -87,4 +89,6 @@ public interface ReviewService {
      * @return 返回list<reviewVO>
      */
     List<ReviewVO> getReviewsByBookId(long bookId);
+
+    String getUserNameByReviewId(long reviewId);
 }

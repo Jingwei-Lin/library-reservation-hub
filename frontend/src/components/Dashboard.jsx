@@ -29,7 +29,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 ? await bookService.searchBooks(keyword)
                 : await bookService.getAllBooks();
 
-            console.log('API Response (fetchBooks):', JSON.stringify(response, null, 2));
+            // console.log('API Response (fetchBooks):', JSON.stringify(response, null, 2));
 
             if (response && response.code === 0 && response.data) {
                 const bookList = response.data.records

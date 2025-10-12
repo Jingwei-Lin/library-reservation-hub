@@ -60,7 +60,7 @@ public class BookServiceImpl implements BookService {
 
         ThrowUtils.throwIf(StrUtil.hasBlank(title, author, genre), ErrorCode.PARAMS_ERROR, "图书信息不能为空");
 
-        // 若无 ISBN，用 (title, author, genre) 做“近似唯一”去重（建议库里加唯一索引）
+        // 若无 ISBN，用 (title, author, genre)
         long cnt = bookMapper.countByTag(title, author, genre);
         ThrowUtils.throwIf(cnt > 0, ErrorCode.PARAMS_ERROR, "该书已存在");
 

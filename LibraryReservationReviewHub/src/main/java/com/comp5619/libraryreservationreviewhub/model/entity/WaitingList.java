@@ -1,76 +1,46 @@
 package com.comp5619.libraryreservationreviewhub.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
- * 等待列表实体类
+ * 对应表：Waiting_list
  */
-@TableName(value = "waiting_list")
+@TableName("waiting_list")
 @Data
 public class WaitingList implements Serializable {
 
+    /** wait_id INT PK AUTO_INCREMENT */
+    @TableId(value = "wait_id", type = IdType.AUTO)
+    private Long waitId;
 
-
-    /**
-     * 等待ID - 主键
-     */
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
-
-    /**
-     * 用户ID
-     */
+    /** user_id INT NOT NULL */
+    @TableField("user_id")
     private Long userId;
 
-    /**
-     * 图书ID
-     */
+    /** book_id INT NOT NULL */
+    @TableField("book_id")
     private Long bookId;
 
-    /**
-     * 加入等待列表时间
-     */
-    private Date joinTime;
+    /** join_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP */
+    @TableField("join_date")
+    private LocalDateTime joinDate;
 
-    /**
-     * 通知时间
-     */
-    private Date notificationTime;
+    /** notification_date TIMESTAMP NULL */
+    @TableField("notification_date")
+    private LocalDateTime notificationDate;
 
-    /**
-     * 是否已通知
-     */
-    private Integer isNotified;
+    /** is_notified BOOLEAN DEFAULT FALSE */
+    @TableField("is_notified")
+    private Boolean isNotified;
 
-    /**
-     * 等待状态：waiting/notified/expired/cancelled
-     */
-    private String waitingStatus;
-
-    /**
-     * 优先级
-     */
-    private Integer priority;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
-    /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** status ENUM('waiting','notified','cancelled','fulfilled') DEFAULT 'waiting' */
+    @TableField("status")
+    private WaitingStatusEnum status;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

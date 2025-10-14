@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
+import { waitingListService } from "../services/waitingListService"; // New import
+import { logoutUser } from "../services/authApi"; // Import logoutUser
 import "./Book.css";
 
-const Book = ({ isAuthenticated, setIsAuthenticated}) => {
+const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
@@ -13,9 +15,11 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+    const [isOnWaitingList, setIsOnWaitingList] = useState(false); // New state
+    const [isNotified, setIsNotified] = useState(false); // New state
+    const [waitingStatus, setWaitingStatus] = useState(null); // New state
 
     useEffect(() => {
-        //console.log(review.userId);
         console.log(sessionStorage.getItem("user"));
 
         const fetchBookAndReviews = async () => {
@@ -38,9 +42,24 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
                     console.warn(reviewResponse?.msg || "No reviews found");
                     setReviews([]);
                 }
+
+                // New: Fetch waiting list status if authenticated
+                if (isAuthenticated) {
+                    await waitingListService.getEligibility(); // Update notifications
+                    const waitResponse = await waitingListService.getMyWaitingList();
+                    if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
+                        const waitItem = waitResponse.data.find((item) => item.bookId === parseInt(id));
+                        if (waitItem) {
+                            setIsOnWaitingList(true);
+                            setIsNotified(waitItem.status === "notified");
+                            setWaitingStatus(waitItem.status);
+                        }
+                    }
+                }
             } catch (err) {
                 if (err.message.includes("Session expired or user banned")) {
                     localStorage.removeItem('user');
+                    sessionStorage.removeItem('user'); // Align with logoutUser
                     setIsAuthenticated(false);
                     navigate("/login");
                     return;
@@ -54,7 +73,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
         };
 
         fetchBookAndReviews();
-    }, [id, navigate, setIsAuthenticated]);
+    }, [id, navigate, setIsAuthenticated, isAuthenticated]);
 
     const handleBack = () => {
         navigate("/dashboard");
@@ -66,6 +85,49 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
             return;
         }
         navigate(`/reservation/form/${id}`);
+    };
+
+    // New: Handle joining the waiting list
+    const handleJoinWaiting = async () => {
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
+        try {
+            const response = await waitingListService.addToWaitingList(parseInt(id));
+            if (response && response.code === 0) {
+                window.alert("Successfully added to waiting list!");
+                setIsOnWaitingList(true);
+                setIsNotified(false);
+                setWaitingStatus("waiting");
+            } else {
+                window.alert(response?.msg || "Failed to add to waiting list");
+            }
+        } catch (err) {
+            window.alert(err.message || "Failed to add to waiting list");
+        }
+    };
+
+    // New: Handle canceling the waiting list entry
+    const handleCancelWaiting = async () => {
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
+        if (!window.confirm("Are you sure you want to cancel your waiting list entry?")) return;
+        try {
+            const response = await waitingListService.cancelWaiting(parseInt(id));
+            if (response && response.code === 0) {
+                window.alert("Waiting list entry cancelled successfully!");
+                setIsOnWaitingList(false);
+                setIsNotified(false);
+                setWaitingStatus(null);
+            } else {
+                window.alert(response?.msg || "Failed to cancel waiting list entry");
+            }
+        } catch (err) {
+            window.alert(err.message || "Failed to cancel waiting list entry");
+        }
     };
 
     const handleAddReview = async (e) => {
@@ -89,10 +151,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
         setNewReview({ rating: 0, comment: "" });
 
         window.location.reload();
-
-        // Refresh reviews
-        // const reviewResponse = await reviewService.getReviewsByBookId(id);
-        // setReviews(Array.isArray(reviewResponse.data) ? reviewResponse : []);
     };
 
     const handleDeleteReview = async (reviewId) => {
@@ -106,16 +164,11 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
 
         await reviewService.deleteReview(reviewId);
         window.location.reload();
-
-        // window.alert("Review deleted successfully!");
-        // const reviewResponse = await reviewService.getReviewsByBookId(id);
-        // setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
     };
-
 
     return (
         <div className="book-detail-container">
-            <button className="back-button" onClick={handleBack}>
+            <button className="book-back-button" onClick={handleBack}>
                 ← Back to Dashboard
             </button>
 
@@ -162,13 +215,46 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
                                 <span className="quantity">Quantity: {book.quantity}</span>
                             )}
                         </div>
-                        <button
-                            className="reserve-button"
-                            onClick={handleReserve}
-                            disabled={!book.available}
-                        >
-                            {book.available ? 'Reserve Now' : 'Join Waiting List'}
-                        </button>
+                        {/* Modified: Conditional buttons for reservation and waiting list */}
+                        {book.available && book.quantity > 0 ? (
+                            <button
+                                className="reserve-button"
+                                onClick={handleReserve}
+                            >
+                                Reserve Now
+                            </button>
+                        ) : (
+                            <>
+                                {isOnWaitingList ? (
+                                    <>
+                                        <p className="waiting-status">
+                                            You are on the waiting list. Status: {waitingStatus?.charAt(0).toUpperCase() + waitingStatus?.slice(1)}
+                                        </p>
+                                        {isNotified && (
+                                            <button
+                                                className="reserve-button"
+                                                onClick={handleReserve}
+                                            >
+                                                Reserve Now
+                                            </button>
+                                        )}
+                                        <button
+                                            className="cancel-waiting-button"
+                                            onClick={handleCancelWaiting}
+                                        >
+                                            Cancel Waiting
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        className="join-waiting-button"
+                                        onClick={handleJoinWaiting}
+                                    >
+                                        Join Waiting List
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -220,8 +306,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated}) => {
                                     <p className="review-date">
                                         Posted on: {new Date(review.reviewDate).toLocaleDateString()}
                                     </p>
-                                    {isAuthenticated && (review.userId === JSON.parse(sessionStorage.getItem("user")).id || JSON.parse(sessionStorage.getItem("user")).userRole === "admin"
-                                        ) && (
+                                    {isAuthenticated && (review.userId === JSON.parse(sessionStorage.getItem("user"))?.id || JSON.parse(sessionStorage.getItem("user"))?.userRole === "admin") && (
                                         <div className="review-actions">
                                             <button
                                                 className="delete-review-button"

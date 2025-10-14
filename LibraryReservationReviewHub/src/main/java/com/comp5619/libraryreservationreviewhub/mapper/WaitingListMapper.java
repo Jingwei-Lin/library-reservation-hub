@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
+import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,7 +15,7 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
 
     // 直接用内置 CRUD
     // 也可以定义自定义 SQL
-    List<WaitingList> listByUser(@Param("userId") Long userId);
+    List<WaitingListVO> listByUser(@Param("userId") Long userId);
 
     int updateStatus(@Param("waitId") Long waitId,
                      @Param("status") WaitingStatusEnum status);

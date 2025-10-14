@@ -35,7 +35,7 @@ public class BookServiceImpl implements BookService {
 
     private PageCalc calc(PageRequest pr, Set<String> sortWhitelist) {
         int current = Math.max(1, pr.getCurrent());
-        int size = Math.min(Math.max(1, pr.getPageSize()), 100);
+        int size = Math.min(Math.max(1, pr.getPageSize()), 101);
         long offset = (long) (current - 1) * size;
 
         // 默认按主键倒序

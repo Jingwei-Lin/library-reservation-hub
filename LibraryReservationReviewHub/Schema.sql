@@ -191,7 +191,8 @@ INSERT INTO Book (book_id, title, author, genre, quantity, available, `path`) VA
 	(97, 'Songs of Innocence and Experience', 'William Blake', 'Poetry Classic', 5, TRUE, 'Songs_of_Innocence_and_Experience.jpg'),
 	(98, 'The Canterbury Tales', 'Geoffrey Chaucer', 'Poetry Classic', 5, TRUE, 'The_Canterbury_Tales.jpg'),
 	(99, 'Ariel', 'Sylvia Plath', 'Poetry Classic', 5, TRUE, 'Ariel.jpg'),
-	(100, 'The Raven and Other Poems', 'Edgar Allan Poe', 'Poetry Classic', 5, TRUE, 'The_Raven_and_Other_Poems.jpg');
+	(100, 'The Raven and Other Poems', 'Edgar Allan Poe', 'Poetry Classic', 5, TRUE, 'The_Raven_and_Other_Poems.jpg'),
+    (101, 'Waiting List test', 'Test', 'Fantasy', 0, False, 'The_Raven_and_Other_Poems.jpg');
 
 INSERT INTO Waiting_list (wait_id, user_id, book_id, join_date, status) VALUES
     (1, 1, 1, CURRENT_TIMESTAMP, 'waiting');
@@ -205,6 +206,3 @@ INSERT INTO Review (review_id, user_id, book_id, rating, comment, review_date) V
    (6, 1, 3, 4, 'Magical and engaging, great for all ages.', CURRENT_TIMESTAMP),
    (7, 2, 4, 2, 'Too complex for my taste.', CURRENT_TIMESTAMP),
    (8, 1, 5, 5, 'Kvothe’s story is captivating!', CURRENT_TIMESTAMP);
-
-INSERT INTO Reservation (reservation_id, user_id, book_id, reservation_date, status) VALUES
-    (1, 1, 1, CURRENT_TIMESTAMP, 'active');

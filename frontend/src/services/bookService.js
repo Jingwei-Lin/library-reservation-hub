@@ -11,7 +11,7 @@ const api = axios.create({
 });
 
 export const bookService = {
-    getAllBooks: async (page = 1, size = 100) => {
+    getAllBooks: async (page = 1, size = 101) => {
         try {
             const response = await api.get(`/book/search?current=${page}&pageSize=${size}`);
             console.log('Get all books response:', response);
@@ -26,7 +26,7 @@ export const bookService = {
         }
     },
 
-    searchBooks: async (keyword, page = 1, size = 100) => {
+    searchBooks: async (keyword, page = 1, size = 101) => {
         try {
             const url = keyword
                 ? `/book/search?keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`

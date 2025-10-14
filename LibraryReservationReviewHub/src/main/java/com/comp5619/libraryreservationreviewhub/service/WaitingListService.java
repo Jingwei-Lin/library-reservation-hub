@@ -29,6 +29,8 @@ public interface WaitingListService extends IService<WaitingList> {
     /** 条件查询列表 */
     List<WaitingListVO> listByQuery(WaitingListQueryDTO dto);
 
+    List<WaitingListVO> listByUserWithDetails(Long userId);
+
     /**分页**/
     PageResult<WaitingListVO> pageByQuery(WaitingListQueryDTO query, PageRequest pageReq);
 

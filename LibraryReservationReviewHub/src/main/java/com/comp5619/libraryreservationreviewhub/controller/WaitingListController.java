@@ -49,7 +49,7 @@ public class WaitingListController {
         WaitingListQueryDTO query = new WaitingListQueryDTO();
         query.setUserId(current.getId());
 
-        List<WaitingListVO> list = waitingListService.listByQuery(query);
+        List<WaitingListVO> list = waitingListService.listByUserWithDetails(current.getId());
 
         // 普通用户过滤 CANCELLED
         if (!userService.isAdmin(current)) {

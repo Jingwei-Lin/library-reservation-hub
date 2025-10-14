@@ -47,7 +47,7 @@ public class WaitingListServiceImpl
     /** 计算分页与排序参数（默认 wait_id DESC） */
     private PageCalc calc(PageRequest pr) {
         int current = Math.max(1, pr.getCurrent());
-        int size = Math.min(Math.max(1, pr.getPageSize()), 100);
+        int size = Math.min(Math.max(1, pr.getPageSize()), 101);
 
         String sortField = "wait_id";
         boolean asc = false; // 默认 DESC
@@ -136,6 +136,16 @@ public class WaitingListServiceImpl
         if (CollUtil.isEmpty(list)) return Collections.emptyList();
 
         return list.stream().map(this::toVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<WaitingListVO> listByUserWithDetails(Long userId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        List<WaitingListVO> list = baseMapper.listByUser(userId);
+        if (CollUtil.isEmpty(list)) {
+            return Collections.emptyList();
+        }
+        return list.stream().collect(Collectors.toList());
     }
 
     /**

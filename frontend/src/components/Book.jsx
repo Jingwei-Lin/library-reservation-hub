@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
-import { waitingListService } from "../services/waitingListService"; // New import
-import { logoutUser } from "../services/authApi"; // Import logoutUser
+import { waitingListService } from "../services/waitingListService";
+import { logoutUser } from "../services/authApi";
 import "./Book.css";
 
 const Book = ({ isAuthenticated, setIsAuthenticated }) => {
@@ -15,18 +15,17 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
-    const [isOnWaitingList, setIsOnWaitingList] = useState(false); // New state
-    const [isNotified, setIsNotified] = useState(false); // New state
-    const [waitingStatus, setWaitingStatus] = useState(null); // New state
+    const [isOnWaitingList, setIsOnWaitingList] = useState(false);
+    const [isNotified, setIsNotified] = useState(false);
+    const [waitingStatus, setWaitingStatus] = useState(null);
 
     useEffect(() => {
-        console.log(sessionStorage.getItem("user"));
-
         const fetchBookAndReviews = async () => {
             try {
                 setLoading(true);
                 setError("");
 
+                // Fetch book details
                 const bookResponse = await bookService.getBookById(id);
                 if (bookResponse && bookResponse.code === 0 && bookResponse.data) {
                     setBook(bookResponse.data);
@@ -35,6 +34,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                     return;
                 }
 
+                // Fetch all reviews (accessible to all users)
                 const reviewResponse = await reviewService.getReviewsByBookId(id);
                 if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                     setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
@@ -43,9 +43,9 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                     setReviews([]);
                 }
 
-                // New: Fetch waiting list status if authenticated
+                // Fetch waiting list status if authenticated
                 if (isAuthenticated) {
-                    await waitingListService.getEligibility(); // Update notifications
+                    await waitingListService.getEligibility();
                     const waitResponse = await waitingListService.getMyWaitingList();
                     if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
                         const waitItem = waitResponse.data.find((item) => item.bookId === parseInt(id));
@@ -57,9 +57,10 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                     }
                 }
             } catch (err) {
-                if (err.message.includes("Session expired or user banned")) {
+                if (err.message.includes("Session expired or user banned") && isAuthenticated) {
                     localStorage.removeItem('user');
-                    sessionStorage.removeItem('user'); // Align with logoutUser
+                    sessionStorage.removeItem('user');
+                    logoutUser();
                     setIsAuthenticated(false);
                     navigate("/login");
                     return;
@@ -87,7 +88,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
         navigate(`/reservation/form/${id}`);
     };
 
-    // New: Handle joining the waiting list
     const handleJoinWaiting = async () => {
         if (!isAuthenticated) {
             navigate("/login");
@@ -108,7 +108,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
         }
     };
 
-    // New: Handle canceling the waiting list entry
     const handleCancelWaiting = async () => {
         if (!isAuthenticated) {
             navigate("/login");
@@ -145,12 +144,17 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             return;
         }
 
-        const reviewData = { rating: newReview.rating, comment: newReview.comment };
-        await reviewService.addReview(parseInt(id), reviewData);
-
-        setNewReview({ rating: 0, comment: "" });
-
-        window.location.reload();
+        try {
+            setError("");
+            const reviewData = { rating: newReview.rating, comment: newReview.comment };
+            await reviewService.addReview(parseInt(id), reviewData);
+            window.alert("Review added successfully!");
+            setNewReview({ rating: 0, comment: "" });
+            window.location.reload();
+        } catch (err) {
+            window.alert(err.message || "Failed to add review");
+            console.error("Error adding review:", err);
+        }
     };
 
     const handleDeleteReview = async (reviewId) => {
@@ -162,13 +166,30 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             return;
         }
 
-        await reviewService.deleteReview(reviewId);
-        window.location.reload();
+        try {
+            setError("");
+            await reviewService.deleteReview(reviewId);
+            window.alert("Review deleted successfully!");
+            const reviewResponse = await reviewService.getReviewsByBookId(id);
+            if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
+                setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
+            } else {
+                console.warn(reviewResponse?.msg || "No reviews found after deletion");
+                setReviews([]);
+            }
+        } catch (err) {
+            window.alert(err.message || "Failed to delete review");
+            console.error("Error deleting review:", err);
+        }
+    };
+
+    const handleStarClick = (rating) => {
+        setNewReview({ ...newReview, rating });
     };
 
     return (
         <div className="book-detail-container">
-            <button className="book-back-button" onClick={handleBack}>
+            <button className="book-back-button" onClick={handleBack} aria-label="Back to dashboard">
                 ← Back to Dashboard
             </button>
 
@@ -176,7 +197,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             {error && (
                 <div className="error">
                     {error}
-                    <button onClick={() => window.location.reload()} className="retry-btn">
+                    <button onClick={() => window.location.reload()} className="retry-btn" aria-label="Retry loading">
                         Retry
                     </button>
                 </div>
@@ -215,11 +236,11 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                 <span className="quantity">Quantity: {book.quantity}</span>
                             )}
                         </div>
-                        {/* Modified: Conditional buttons for reservation and waiting list */}
                         {book.available && book.quantity > 0 ? (
                             <button
                                 className="reserve-button"
                                 onClick={handleReserve}
+                                aria-label="Reserve book"
                             >
                                 Reserve Now
                             </button>
@@ -234,6 +255,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                             <button
                                                 className="reserve-button"
                                                 onClick={handleReserve}
+                                                aria-label="Reserve book after notification"
                                             >
                                                 Reserve Now
                                             </button>
@@ -241,6 +263,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                         <button
                                             className="cancel-waiting-button"
                                             onClick={handleCancelWaiting}
+                                            aria-label="Cancel waiting list entry"
                                         >
                                             Cancel Waiting
                                         </button>
@@ -249,6 +272,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                     <button
                                         className="join-waiting-button"
                                         onClick={handleJoinWaiting}
+                                        aria-label="Join waiting list"
                                     >
                                         Join Waiting List
                                     </button>
@@ -268,17 +292,27 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                             <h3>Write a Review</h3>
                             <div className="form-group">
                                 <label htmlFor="rating">Rating:</label>
-                                <select
-                                    id="rating"
-                                    value={newReview.rating}
-                                    onChange={(e) => setNewReview({ ...newReview, rating: parseInt(e.target.value) })}
-                                    required
-                                >
-                                    <option value="0">Select rating</option>
+                                <div className="star-rating" role="radiogroup" aria-label="Select review rating">
                                     {[1, 2, 3, 4, 5].map((num) => (
-                                        <option key={num} value={num}>{num} Star{num > 1 ? 's' : ''}</option>
+                                        <span
+                                            key={num}
+                                            className={`star ${newReview.rating >= num ? 'filled' : ''}`}
+                                            onClick={() => handleStarClick(num)}
+                                            role="radio"
+                                            aria-checked={newReview.rating === num}
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    handleStarClick(num);
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            aria-label={`${num} star${num > 1 ? 's' : ''}`}
+                                        >
+                                            ★
+                                        </span>
                                     ))}
-                                </select>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="comment">Comment:</label>
@@ -288,9 +322,16 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                     onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                                     required
                                     placeholder="Write your review here..."
+                                    aria-label="Write your review"
                                 />
                             </div>
-                            <button type="submit" className="submit-review-button">Submit Review</button>
+                            <button
+                                type="submit"
+                                className="submit-review-button"
+                                aria-label="Submit review"
+                            >
+                                Submit Review
+                            </button>
                         </form>
                     )}
 
@@ -299,23 +340,36 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                             {reviews.map((review) => (
                                 <div key={review.reviewId} className="review-card">
                                     <div className="review-header">
-                                        <span className="review-user">User ID {review.userId}</span>
-                                        <span className="review-rating">⭐ {review.rating}/5</span>
+                                        <span className="review-user">User ID: {review.userId}</span>
+                                        <div className="review-rating" aria-label={`Rating ${review.rating} out of 5 stars`}>
+                                            {[1, 2, 3, 4, 5].map((num) => (
+                                                <span
+                                                    key={num}
+                                                    className={`star ${review.rating >= num ? 'filled' : ''}`}
+                                                    aria-hidden="true"
+                                                >
+                                                    ★
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                     {review.comment && <p className="review-comment">{review.comment}</p>}
                                     <p className="review-date">
                                         Posted on: {new Date(review.reviewDate).toLocaleDateString()}
                                     </p>
-                                    {isAuthenticated && (review.userId === JSON.parse(sessionStorage.getItem("user"))?.id || JSON.parse(sessionStorage.getItem("user"))?.userRole === "admin") && (
-                                        <div className="review-actions">
-                                            <button
-                                                className="delete-review-button"
-                                                onClick={() => handleDeleteReview(review.reviewId)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    )}
+                                    {isAuthenticated &&
+                                        (review.userId === JSON.parse(sessionStorage.getItem("user"))?.id ||
+                                            JSON.parse(sessionStorage.getItem("user"))?.userRole === "admin") && (
+                                            <div className="review-actions">
+                                                <button
+                                                    className="delete-review-button"
+                                                    onClick={() => handleDeleteReview(review.reviewId)}
+                                                    aria-label={`Delete review by user ${review.userId}`}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
                                 </div>
                             ))}
                         </div>
@@ -330,7 +384,12 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             {!loading && !error && !book && (
                 <div className="no-book">
                     Book not found.
-                    <button onClick={handleBack}>Back to Dashboard</button>
+                    <button
+                        onClick={handleBack}
+                        aria-label="Back to dashboard"
+                    >
+                        Back to Dashboard
+                    </button>
                 </div>
             )}
         </div>

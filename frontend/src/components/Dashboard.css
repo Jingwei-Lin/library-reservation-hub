@@ -1,15 +1,15 @@
+/* Dashboard.css */
 .dashboard {
     display: flex;
-    flex-direction: row;      /* keep sidebar + main content layout */
-    height: auto;             /* let it expand with content */
-    background-color: inherit; /* support dark/light mode */
+    flex-direction: row;
+    height: auto;
+    background-color: inherit;
 }
-
 
 /* Sidebar */
 .sidebar {
     width: 250px;
-    padding: 10px;
+    padding: 20px;
     background-color: #f7f7f7;
     display: flex;
     flex-direction: column;
@@ -22,121 +22,76 @@
     box-shadow: 1px 0 5px rgba(0, 0, 0, 0.1);
 }
 
+/* Navigation box */
+.nav-box {
+    margin-bottom: 20px;
+}
+
+.nav-box h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.nav-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-box li {
+    padding: 8px 0;
+    font-size: 1rem;
+    color: #333;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nav-box li:hover {
+    color: #007bff;
+}
+
+/* Category box */
+.category-box {
+    margin-bottom: 20px;
+}
+
+.category-box h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.category-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.category-box li {
+    padding: 8px 0;
+    font-size: 1rem;
+    color: #333;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.category-box li:hover {
+    color: #007bff;
+}
+
 /* Main content */
 .main-content {
-    margin-left: 250px; /* sidebar width */
+    margin-left: 250px;
     flex: 1;
     padding: 20px;
 }
 
-/* Header */
-.header {
-    position: fixed;
-    top: 0;
-    left: 300px; /* account for sidebar */
-    right: 0;
-    height: 60px; /* give it a fixed height */
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-    z-index: 1000;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-}
-
-/* Search bar */
-.search-bar {
-    display: flex;
-    align-items: center;
-}
-
-.search-bar input {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px 0 0 4px;
-    min-width: 300px;
-    max-width: 600px;
-}
-
-.search-bar button {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-left: none;
-    border-radius: 0 4px 4px 0;
-    background-color: #007bff;
-    color: #fff;
-    cursor: pointer;
-}
-
-/* Logo */
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-
-.logo-icon {
-    font-size: 1.8rem;
-}
-
-/* User panel */
-.user-wrapper {
-    display: flex;
-    align-items: center; /* vertical alignment */
-    gap: 10px; /* spacing between toggle and user icon */
-    position: relative;
-}
-
-.user-panel {
-    position: absolute;
-    right: 0;
-    top: 40px;
-    width: 200px;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 10px;
-    transform: translateX(100%);
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    z-index: 100;
-    pointer-events: none;
-}
-
-.user-panel.open {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.user-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #f0f0f0;
-    color: #333;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.user-icon:hover {
-    background-color: #007bff;
-    color: #fff;
-}
-
-/* Content wrapper: central + right panel */
+/* Content wrapper */
 .content-wrapper {
     display: flex;
-    margin-top: 60px; /* Account for fixed header */
-    height: calc(100vh - 60px); /* Full height minus header */
+    margin-top: 60px;
+    height: calc(100vh - 60px);
     gap: 20px;
 }
 
@@ -145,15 +100,15 @@
     flex: 1;
     min-height: 100vh;
     width: 100%;
-    padding-right: 270px; /* Account for right panel (250px) + gap (20px) */
+    padding-right: 270px;
     box-sizing: border-box;
-
 }
+
 /* Right panel */
 .right-panel {
     position: fixed;
     top: 80px;
-    right: 20px; /* gap from edge */
+    right: 20px;
     width: 250px;
     display: flex;
     flex-direction: column;
@@ -162,14 +117,16 @@
 }
 
 /* Stats & recommendation boxes */
-.stats-box, .recommend-box {
+.stats-box,
+.recommend-box {
     background-color: #fff;
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.stats-box h3, .recommend-box h3 {
+.stats-box h3,
+.recommend-box h3 {
     margin-bottom: 10px;
     font-size: 1.1rem;
 }
@@ -202,8 +159,7 @@
 
 .book-cover {
     width: 100%;
-    height: 300px; /* Increased height for full image visibility */
-    background: #f5f5f5;
+    height: 300px;
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 10px;
@@ -212,7 +168,7 @@
 .book-cover img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Changed to contain to show full image */
+    object-fit: contain;
     display: block;
     transition: transform 0.3s ease;
 }
@@ -229,9 +185,9 @@
     justify-content: center;
     font-size: 3rem;
     color: #666;
+    background: #f5f5f5;
 }
 
-/* Pagination */
 /* Pagination */
 .pagination {
     display: flex;
@@ -247,16 +203,15 @@
     border-radius: 4px;
     background-color: white;
     cursor: pointer;
-    color: black; /* Changed text color to black */
+    color: black;
     margin-bottom: 50px;
 }
 
 .pagination button:disabled {
     background-color: #f0f0f0;
     cursor: not-allowed;
-    color: black; /* Ensure disabled state text is also black */
+    color: black;
 }
-
 
 /* Book info */
 .book-info h3 {
@@ -313,7 +268,9 @@
 }
 
 /* Loading and Error States */
-.loading, .error, .no-books {
+.loading,
+.error,
+.no-books {
     text-align: center;
     padding: 40px;
     font-size: 1.1rem;
@@ -335,71 +292,99 @@
     border-radius: 4px;
 }
 
-/* Category clickable */
-.category-box li {
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.category-box li:hover {
-    color: #007bff;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .sidebar {
         width: 200px;
     }
+
     .main-content {
         margin-left: 200px;
     }
+
     .books-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
+
     .book-cover {
-        height: 240px; /* Reduced height for mobile */
+        height: 240px;
     }
+
     .book-card {
         padding: 10px;
     }
+
     .right-panel {
         width: 200px;
     }
-    .search-bar input {
-        width: 200px;
-    }
 }
-
 
 /* Dark Mode Overrides */
-.dark-mode-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    margin-right: 10px; /* space between toggle and user icon */
-    border-radius: 50%;
-    background-color: #f0f0f0;
-    color: #333;
-    cursor: pointer;
-    font-size: 1.2rem;
-    transition: background-color 0.3s ease, color 0.3s ease;
+.dashboard.dark-mode {
+    background-color: #121212;
 }
 
-.dark-mode-toggle:hover {
-    background-color: #007bff;
-    color: #fff;
+.dashboard.dark-mode .sidebar {
+    background-color: #1e1e1e;
 }
 
-/* Dark mode toggle in dark mode */
-.dashboard.dark-mode .dark-mode-toggle {
+.dashboard.dark-mode .nav-box h3,
+.dashboard.dark-mode .category-box h3 {
+    color: #e0e0e0;
+}
+
+.dashboard.dark-mode .nav-box li,
+.dashboard.dark-mode .category-box li {
+    color: #e0e0e0;
+}
+
+.dashboard.dark-mode .nav-box li:hover,
+.dashboard.dark-mode .category-box li:hover {
+    color: #90caf9;
+}
+
+.dashboard.dark-mode .book-card {
+    background-color: #2c2c2c;
+    border-color: #444;
+}
+
+.dashboard.dark-mode .book-info h3 {
+    color: #e0e0e0;
+}
+
+.dashboard.dark-mode .book-author {
+    color: #b0b0b0;
+}
+
+.dashboard.dark-mode .book-genre {
+    color: #888;
+}
+
+.dashboard.dark-mode .book-cover {
+    background: none;
+}
+
+.dashboard.dark-mode .book-cover-placeholder {
+    background: #333;
+}
+
+.dashboard.dark-mode .stats-box,
+.dashboard.dark-mode .recommend-box {
     background-color: #2c2c2c;
     color: #e0e0e0;
 }
 
-.dashboard.dark-mode .dark-mode-toggle:hover {
-    background-color: #90caf9;
-    color: #000;
+.dashboard.dark-mode .stats-box h3,
+.dashboard.dark-mode .recommend-box h3 {
+    color: #e0e0e0;
 }
 
+.dashboard.dark-mode .error {
+    background: #3d1c1c;
+    color: #ff6b6b;
+}
+
+.dashboard.dark-mode .no-books {
+    background: #333;
+    color: #b0b0b0;
+}

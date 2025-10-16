@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.comp5619.libraryreservationreviewhub.model.dto.user.UserQueryRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.user.UserUpdateRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
@@ -104,4 +105,6 @@ public interface UserService extends IService<User> {
     boolean isAdmin(User user);
 
     String getUserNameById(Long userId);
+
+    boolean updateUserProfile(UserUpdateRequest req, User user);
 }

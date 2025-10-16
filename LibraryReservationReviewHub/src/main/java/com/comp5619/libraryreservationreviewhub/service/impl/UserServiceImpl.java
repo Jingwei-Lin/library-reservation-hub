@@ -10,8 +10,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.UserMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.user.UserQueryRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.user.UserUpdateRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
@@ -152,7 +154,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.USER_BANNED);
         }
 
-
         return currentUser;
     }
 
@@ -258,6 +259,47 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public String getUserNameById(Long userId) {
         User u = this.getById(userId);
         return u.getFirstName()+ " " + u.getLastName();
+    }
+
+    /**
+     * Update user profile
+     */
+    @Override
+    public boolean updateUserProfile(UserUpdateRequest req, User user) {
+        // 1. Validate input
+        ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Request cannot be null");
+        ThrowUtils.throwIf(StrUtil.isBlank(req.getFirstName()), ErrorCode.PARAMS_ERROR, "First name cannot be blank");
+        ThrowUtils.throwIf(StrUtil.isBlank(req.getLastName()), ErrorCode.PARAMS_ERROR, "Last name cannot be blank");
+        ThrowUtils.throwIf(StrUtil.isBlank(req.getEmail()), ErrorCode.PARAMS_ERROR, "Email cannot be blank");
+        if (StrUtil.isNotBlank(req.getPassword())) {
+            ThrowUtils.throwIf(req.getPassword().length() < 8, ErrorCode.PARAMS_ERROR, "Password must be at least 8 characters");
+            ThrowUtils.throwIf(!req.getPassword().equals(req.getConfirmPassword()), ErrorCode.PARAMS_ERROR, "Passwords do not match");
+        }
+
+        // 2. Check if email is already in use by another user
+        if (!req.getEmail().equals(user.getUserAccount())) {
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("email", req.getEmail());
+            long count = this.baseMapper.selectCount(queryWrapper);
+            ThrowUtils.throwIf(count > 0, ErrorCode.PARAMS_ERROR, "Email already in use");
+        }
+
+        // 3. Prepare updated user object
+        User updatedUser = new User();
+        updatedUser.setId(user.getId());
+        updatedUser.setFirstName(req.getFirstName());
+        updatedUser.setLastName(req.getLastName());
+        updatedUser.setUserAccount(req.getEmail());
+        updatedUser.setPhone(req.getPhone());
+        if (StrUtil.isNotBlank(req.getPassword())) {
+            updatedUser.setUserPassword(getEncryptPassword(req.getPassword()));
+        }
+
+        // 4. Update in database
+        boolean updateResult = this.updateById(updatedUser);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.SYSTEM_ERROR, "Failed to update profile");
+
+        return true;
     }
 
 }

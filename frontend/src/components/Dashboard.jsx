@@ -1,23 +1,23 @@
-// Dashboard.jsx (updated to handle auth errors)
-import React, { useState, useRef, useEffect } from "react";
+// Dashboard.jsx
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
-import { logoutUser } from "../services/authApi"; // Import logoutUser
+import { logoutUser } from "../services/authApi";
+import Header from "./Header";
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
-    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const booksPerPage = 12;
-    const panelRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        console.log(sessionStorage)
+        console.log(sessionStorage);
         fetchBooks();
     }, []);
 
@@ -28,8 +28,6 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
             const response = keyword
                 ? await bookService.searchBooks(keyword)
                 : await bookService.getAllBooks();
-
-            // console.log('API Response (fetchBooks):', JSON.stringify(response, null, 2));
 
             if (response && response.code === 0 && response.data) {
                 const bookList = response.data.records
@@ -116,23 +114,6 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
         }
     };
 
-    const handleLogout = () => {
-        logoutUser();
-        setIsAuthenticated(false);
-        setIsPanelOpen(false);
-        navigate("/login");
-    };
-
-    const handleLoginRedirect = () => {
-        navigate("/login");
-    };
-
-    const handleProtectedClick = () => {
-        if (!isAuthenticated) {
-            navigate("/login");
-        }
-    };
-
     const handleBookClick = (bookId) => {
         const id = Number(bookId);
         if (!bookId || isNaN(id) || id <= 0) {
@@ -142,18 +123,6 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
         }
         navigate(`/book/${id}`);
     };
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (panelRef.current && !panelRef.current.contains(event.target)) {
-                setIsPanelOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
 
     // Pagination logic
     const indexOfLastBook = currentPage * booksPerPage;
@@ -226,44 +195,16 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 </div>
             </nav>
             <div className="main-content">
-                <header className="header">
-                    <form className="search-bar" onSubmit={handleSearch}>
-                        <input
-                            type="text"
-                            placeholder="Search books, authors, categories..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <button type="submit">Search</button>
-                        <button type="button" onClick={() => { setSearchTerm(""); fetchBooks(); }} className="clear-btn">
-                            Clear
-                        </button>
-                    </form>
-                    <div className="user-wrapper" ref={panelRef}>
-                        {isAuthenticated ? (
-                            <>
-                                <div className="dark-mode-toggle" onClick={toggleTheme}>
-                                    {theme === "dark" ? "🌞" : "🌙"}
-                                </div>
-                                <div className="user-icon" onClick={() => setIsPanelOpen(!isPanelOpen)}>
-                                    👤
-                                </div>
-                                <div className={`user-panel ${isPanelOpen ? "open" : ""}`}>
-                                    <h3>User Panel</h3>
-                                    <p>{user?.firstName} {user?.lastName}</p>
-                                    <p>Email: {user?.userAccount}</p>
-                                    <p>UserID: {user?.id}</p>
-
-                                    <button onClick={handleLogout}>Logout</button>
-                                </div>
-                            </>
-                        ) : (
-                            <button className="login-button" onClick={handleLoginRedirect}>
-                                Login
-                            </button>
-                        )}
-                    </div>
-                </header>
+                <Header
+                    user={user}
+                    setIsAuthenticated={setIsAuthenticated}
+                    isAuthenticated={isAuthenticated}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    handleSearch={handleSearch}
+                />
                 <div className="content-wrapper">
                     <div className="central-content">
                         <div className="welcome">

@@ -11,6 +11,7 @@ import Book from './components/Book';
 import { validateSession, logoutUser } from './services/authApi';
 import ReservationForm from "./components/ReservationForm.jsx";
 import WaitingList from "./components/WaitingList.jsx";
+import Profile from "./components/Profile.jsx";
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem("user"));
@@ -88,6 +89,7 @@ function App() {
                     />
                     <Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+                    <Route path="/profile" element={<Profile user={user} setIsAuthenticated={setIsAuthenticated} theme={theme} />} />
                 </Routes>
             </div>
         </Router>

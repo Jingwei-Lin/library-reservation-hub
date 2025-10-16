@@ -97,6 +97,18 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    @GetMapping("/getProfile")
+    public BaseResponse<UserVO> getUserProfile(HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        return ResultUtils.success(userService.getUserVO(user));
+    }
+
+    @PutMapping("/updateProfile")
+    public BaseResponse<Boolean> updateUserProfile(@RequestBody UserUpdateRequest req, HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        return ResultUtils.success(userService.updateUserProfile(req, user));
+    }
+
 //    /**
 //     * 创建用户
 //     */

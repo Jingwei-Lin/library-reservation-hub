@@ -18,6 +18,11 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme,
         navigate("/login");
     };
 
+    const handleProfileRedirect = () => {
+        navigate("/profile");
+        setIsPanelOpen(false);
+    };
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (panelRef.current && !panelRef.current.contains(event.target)) {
@@ -58,6 +63,7 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme,
                             <p>{user?.firstName} {user?.lastName}</p>
                             <p>Email: {user?.userAccount}</p>
                             <p>UserID: {user?.id}</p>
+                            <button onClick={handleProfileRedirect}>Profile</button>
                             <button onClick={handleLogout}>Logout</button>
                         </div>
                     </>

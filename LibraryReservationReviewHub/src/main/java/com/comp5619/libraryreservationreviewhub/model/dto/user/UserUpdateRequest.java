@@ -1,44 +1,66 @@
 package com.comp5619.libraryreservationreviewhub.model.dto.user;
 
 import lombok.Data;
-
-import java.io.Serializable;
+import java.util.Date;
 
 /**
- * 更新用户请求
+ * User Update Request DTO
+ * Used for updating user profile information (firstName, lastName, email, phone, password)
  */
 @Data
-public class UserUpdateRequest implements Serializable {
-
+public class UserUpdateRequest {
     /**
-     * id
+     * User ID (required for identifying which user to update)
      */
     private Long id;
 
     /**
-     * email (used as userAccount)
-     */
-    private String userAccount;
-
-    /**
-     * first_name
+     * First name (required)
      */
     private String firstName;
 
     /**
-     * last_name
+     * Last name (required)
      */
     private String lastName;
 
     /**
-     * phone
+     * Email address (userAccount, required, must be unique)
+     */
+    private String email;
+
+    /**
+     * Phone number (optional)
      */
     private String phone;
 
     /**
-     * is_admin (maps to userRole: true = "admin", false = "user")
+     * New password (optional, leave blank to keep current password)
+     */
+    private String password;
+
+    /**
+     * Confirm password (required if password is provided)
+     */
+    private String confirmPassword;
+
+    /**
+     * Admin status (optional, typically only updatable by super admins)
      */
     private Boolean isAdmin;
 
-    private static final long serialVersionUID = 1L;
+    /**
+     * User status (1 = active, 0 = inactive, typically admin-only)
+     */
+    private Integer status;
+
+    /**
+     * Creation time (read-only, typically not updatable)
+     */
+    private Date createTime;
+
+    /**
+     * Last update time (automatically managed by database)
+     */
+    private Date updateTime;
 }

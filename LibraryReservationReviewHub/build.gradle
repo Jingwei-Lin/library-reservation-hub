@@ -101,6 +101,15 @@ dependencies {
     implementation 'com.github.victools:jsonschema-generator:4.38.0'
     // 支持文件会话记忆持久化的序列化
     implementation 'com.esotericsoftware:kryo:5.6.2'
+    // 谷歌搜索引擎
+    implementation 'com.google.apis:google-api-services-customsearch:v1-rev20240821-2.0.0'
+    // jsoup HTML 解析库
+    implementation 'org.jsoup:jsoup:1.19.1'
+    // PDF 生成库
+    implementation 'com.itextpdf:itext-core:9.1.0'
+    // Asian fonts (仅测试使用)
+    testImplementation 'com.itextpdf:font-asian:9.1.0'
+
 
 }
 

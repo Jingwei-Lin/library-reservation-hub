@@ -9,7 +9,13 @@ spring:
     name: LibraryReservationReviewHub
 
 
-
+  ai:
+    dashscope:
+      api-key: REMOVED_API_KEY
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -63,6 +69,7 @@ logging:
   level:
     org.springframework.web: DEBUG
     org.springframework.web.servlet.resource: DEBUG
+    com.comp5619.libraryreservationreviewhub.app: DEBUG
 
 
 

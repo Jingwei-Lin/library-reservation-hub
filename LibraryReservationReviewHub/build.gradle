@@ -22,6 +22,32 @@ configurations {
 
 repositories {
     mavenCentral()
+    // Spring Snapshots 仓库
+    maven {
+        name = "spring-snapshots"
+        url = uri("https://repo.spring.io/snapshot")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+
+    // Central Portal Snapshots 仓库
+    maven {
+        name = "central-portal-snapshots"
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+}
+
+dependencyManagement {
+    imports {
+        // Alibaba AI BOM
+        mavenBom "com.alibaba.cloud.ai:spring-ai-alibaba-bom:1.0.0.2"
+        // Spring AI BOM
+        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0"
+    }
 }
 
 dependencies {
@@ -60,9 +86,33 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
 
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
-// https://mvnrepository.com/artifact/org.postgresql/postgresql
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation("org.postgresql:postgresql:42.7.7")
+
+    // 添加 Alibaba AI Starter
+    implementation "com.alibaba.cloud.ai:spring-ai-alibaba-starter-dashscope"
+    // ====== Spring AI 依赖（升级正式版，由 BOM 管理） ======
+    implementation "org.springframework.ai:spring-ai-starter-model-ollama"
+    implementation "org.springframework.ai:spring-ai-markdown-document-reader"
+    implementation "org.springframework.ai:spring-ai-pgvector-store"
+    implementation "org.springframework.ai:spring-ai-starter-mcp-client"
+    implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"
+    // JSON schema生成依赖
+    implementation 'com.github.victools:jsonschema-generator:4.38.0'
+    // 支持文件会话记忆持久化的序列化
+    implementation 'com.esotericsoftware:kryo:5.6.2'
+    // 谷歌搜索引擎
+    implementation 'com.google.apis:google-api-services-customsearch:v1-rev20240821-2.0.0'
+    // jsoup HTML 解析库
+    implementation 'org.jsoup:jsoup:1.19.1'
+    // PDF 生成库
+    implementation 'com.itextpdf:itext-core:9.1.0'
+    // Asian fonts (仅测试使用)
+    testImplementation 'com.itextpdf:font-asian:9.1.0'
+
+
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()

@@ -9,13 +9,19 @@ spring:
     name: LibraryReservationReviewHub
 
 
-
+  ai:
+    dashscope:
+      api-key: REMOVED_API_KEY
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/library_reservation
     username: root
-    password: 123456789 
+    password: REMOVED_DB_PASSWORD
 #    datasource:
 #      url: jdbc:postgresql://localhost:5433/library_reservation
 #      username: postgres
@@ -63,6 +69,10 @@ logging:
   level:
     org.springframework.web: DEBUG
     org.springframework.web.servlet.resource: DEBUG
+    com.comp5619.libraryreservationreviewhub.app: DEBUG
 
 
+search-api:
+  api-key: REMOVED_API_KEY   # 你的 Google API Key
+  search-engine-id: 56c01db6fa7934c90       # 你的 Custom Search Engine ID
 

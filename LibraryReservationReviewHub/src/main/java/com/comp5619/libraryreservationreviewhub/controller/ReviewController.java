@@ -13,6 +13,8 @@ import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
+import com.comp5619.libraryreservationreviewhub.annotation.AuthCheck;
+import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -85,5 +87,9 @@ public class ReviewController {
         return ResultUtils.success(reviewService.getUserNameByReviewId(reviewId));
     }
 
-
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @GetMapping("/all")
+    public BaseResponse<PageResult<ReviewVO>> listAll(ReviewQueryRequest req) {
+        return ResultUtils.success(reviewService.listByPage(req));
+    }
 }

@@ -63,5 +63,29 @@ export const reviewService = {
             throw new Error(response.data.message || 'Failed to update review');
         }
         return response.data.data;
+    },
+
+    // 获取全站评论（分页，可选过滤）
+    getAllReviews: async ({ current = 1, pageSize = 20, bookId, userId, minRating, maxRating } = {}) => {
+        try {
+            const params = new URLSearchParams();
+            params.set('current', current);
+            params.set('pageSize', pageSize);
+            if (bookId != null) params.set('bookId', bookId);
+            if (userId != null) params.set('userId', userId);
+            if (minRating != null) params.set('minRating', minRating);
+            if (maxRating != null) params.set('maxRating', maxRating);
+
+            const response = await api.get(`/review/all?${params.toString()}`);
+            console.log('getAllReviews response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error fetching reviews:', error);
+            throw new Error(error.response?.data?.message || 'Failed to fetch reviews');
+        }
     }
 };

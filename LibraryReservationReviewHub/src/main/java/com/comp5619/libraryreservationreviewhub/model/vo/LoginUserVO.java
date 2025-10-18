@@ -37,7 +37,12 @@ public class LoginUserVO implements Serializable {
     private String userName;
 
     /**
-     * is_admin (derived userRole)
+     * is_admin boolean (true/false)
+     */
+    private Boolean isAdmin;
+
+    /**
+     * derived userRole
      */
     private String userRole;
 

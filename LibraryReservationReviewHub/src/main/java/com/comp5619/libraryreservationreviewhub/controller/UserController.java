@@ -41,8 +41,8 @@ public class UserController {
     @Resource
     private UserService userService;
 
-
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
     /**
      * 用户注册
      */
@@ -69,7 +69,8 @@ public class UserController {
      * 用户登录
      */
     @PostMapping("/login")
-    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
+            HttpServletRequest request) {
         log.info("Login request: {}", userLoginRequest);
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount(); // email
@@ -109,26 +110,27 @@ public class UserController {
         return ResultUtils.success(userService.updateUserProfile(req, user));
     }
 
-//    /**
-//     * 创建用户
-//     */
-//    @PostMapping("/add")
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-//    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
-//        ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
-//        User user = new User();
-//        BeanUtil.copyProperties(userAddRequest, user);
-//        // 默认密码
-//        final String DEFAULT_PASSWORD = "12345678";
-//        String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
-//        user.setUserPassword(encryptPassword);
-//        user.setAdmin(false); // Default false
-//        user.setCreateTime(new Date()); // Use imported Date class
-//        // 插入数据库
-//        boolean result = userService.save(user);
-//        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-//        return ResultUtils.success(user.getId());
-//    }
+    // /**
+    // * 创建用户
+    // */
+    // @PostMapping("/add")
+    // @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    // public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest)
+    // {
+    // ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
+    // User user = new User();
+    // BeanUtil.copyProperties(userAddRequest, user);
+    // // 默认密码
+    // final String DEFAULT_PASSWORD = "12345678";
+    // String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
+    // user.setUserPassword(encryptPassword);
+    // user.setAdmin(false); // Default false
+    // user.setCreateTime(new Date()); // Use imported Date class
+    // // 插入数据库
+    // boolean result = userService.save(user);
+    // ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+    // return ResultUtils.success(user.getId());
+    // }
 
     /**
      * 根据 id 获取用户（仅管理员）
@@ -142,62 +144,65 @@ public class UserController {
         return ResultUtils.success(user);
     }
 
-//    /**
-//     * 根据 id 获取包装类
-//     */
-//    @GetMapping("/get/vo")
-//    public BaseResponse<UserVO> getUserVOById(long id) {
-//        BaseResponse<User> response = getUserById(id);
-//        User user = response.getData();
-//        return ResultUtils.success(userService.getUserVO(user));
-//    }
+    // /**
+    // * 根据 id 获取包装类
+    // */
+    // @GetMapping("/get/vo")
+    // public BaseResponse<UserVO> getUserVOById(long id) {
+    // BaseResponse<User> response = getUserById(id);
+    // User user = response.getData();
+    // return ResultUtils.success(userService.getUserVO(user));
+    // }
 
-//    /**
-//     * 删除用户
-//     */
-//    @PostMapping("/delete")
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-//    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
-//        if (deleteRequest == null || deleteRequest.getId() <= 0) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        boolean b = userService.removeById(deleteRequest.getId());
-//        return ResultUtils.success(b);
-//    }
-//
-//    /**
-//     * 更新用户
-//     */
-//    @PostMapping("/update")
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-//    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
-//        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        User user = new User();
-//        BeanUtils.copyProperties(userUpdateRequest, user);
-//        user.setCreateTime(user.getCreateTime()); // Preserve if updating
-//        boolean result = userService.updateById(user);
-//        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-//        return ResultUtils.success(true);
-//    }
-//
-//    /**
-//     * 分页获取用户封装列表（仅管理员）
-//     *
-//     * @param userQueryRequest 查询请求参数
-//     */
-//    @PostMapping("/list/page/vo")
-//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-//    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
-//        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
-//        long current = userQueryRequest.getCurrent();
-//        long pageSize = userQueryRequest.getPageSize();
-//        Page<User> userPage = userService.page(new Page<>(current, pageSize),
-//                userService.getQueryWrapper(userQueryRequest));
-//        Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
-//        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
-//        userVOPage.setRecords(userVOList);
-//        return ResultUtils.success(userVOPage);
-//    }
+    // /**
+    // * 删除用户
+    // */
+    // @PostMapping("/delete")
+    // @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    // public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest
+    // deleteRequest) {
+    // if (deleteRequest == null || deleteRequest.getId() <= 0) {
+    // throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    // }
+    // boolean b = userService.removeById(deleteRequest.getId());
+    // return ResultUtils.success(b);
+    // }
+    //
+    /**
+     * 更新用户
+     */
+    @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateRequest, user);
+        user.setCreateTime(user.getCreateTime()); // Preserve if updating
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    //
+    /**
+     * 分页获取用户封装列表（仅管理员）
+     *
+     * @param userQueryRequest 查询请求参数
+     */
+    @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        // 防止空参数
+        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long current = userQueryRequest.getCurrent();
+        long pageSize = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(new Page<>(current, pageSize),
+                userService.getQueryWrapper(userQueryRequest));
+        Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
+        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
+        userVOPage.setRecords(userVOList);
+        return ResultUtils.success(userVOPage);
+    }
 }

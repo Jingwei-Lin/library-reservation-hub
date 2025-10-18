@@ -119,6 +119,14 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    public List<ReviewVO> getReviewsByUserId(Long userId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "Invalid user ID");
+
+        List<Review> reviews = reviewMapper.selectByUserId(userId);
+        return getReviewVOList(reviews);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateReview(ReviewUpdateRequest req, User user) {
         log.info("Attempting to update reviewId: {} for userId: {}", req.getReviewId(), user.getId());

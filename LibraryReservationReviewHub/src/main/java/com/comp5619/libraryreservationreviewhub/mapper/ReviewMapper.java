@@ -33,6 +33,13 @@ public interface ReviewMapper {
     Review selectById(@Param("reviewId") Long reviewId);
 
     /**
+     * 根据用户ID获取该用户的所有评论（按时间倒序）
+     */
+    @Select("SELECT review_id AS reviewId, user_id AS userId, book_id AS bookId, rating, comment, review_date AS reviewDate " +
+            "FROM Review WHERE user_id = #{userId} ORDER BY review_date DESC")
+    List<Review> selectByUserId(@Param("userId") Long userId);
+
+    /**
      * Update an existing review's rating and comment
      */
     @Update("UPDATE Review SET rating = #{rating}, comment = #{comment}, review_date = #{reviewDate} " +

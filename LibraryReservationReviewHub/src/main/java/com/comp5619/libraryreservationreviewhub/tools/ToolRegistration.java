@@ -18,14 +18,21 @@ public class ToolRegistration {
     private String searchEngineId;
 
     @Bean
-    public ToolCallback[] allTools() {
+    public UserInfoTool userInfoTool() {
+        return new UserInfoTool(); // 单独交给spring管理，里面的 @Autowired 会生效
+    }
+
+    @Bean
+    public ToolCallback[] allTools(UserInfoTool userInfoTool) {
         FileOperationTool fileOperationTool = new FileOperationTool();
-        WebSearchTool webSearchTool = new WebSearchTool(searchApiKey,searchEngineId);
+        WebSearchTool webSearchTool = new WebSearchTool(searchApiKey, searchEngineId);
         WebScrapingTool webScrapingTool = new WebScrapingTool();
         ResourceDownloadTool resourceDownloadTool = new ResourceDownloadTool();
         TerminalOperationTool terminalOperationTool = new TerminalOperationTool();
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();
+
+        // 传入 Spring 管理的 userInfoTool
         return ToolCallbacks.from(
                 fileOperationTool,
                 webSearchTool,
@@ -33,7 +40,8 @@ public class ToolRegistration {
                 resourceDownloadTool,
                 terminalOperationTool,
                 pdfGenerationTool,
-                terminateTool
+                terminateTool,
+                userInfoTool
         );
     }
 }

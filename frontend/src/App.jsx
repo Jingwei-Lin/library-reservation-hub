@@ -68,7 +68,11 @@ function App() {
                         path="/login"
                         element={
                             !isAuthenticated ? (
-                                <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
+                                <Login
+                                    setIsAuthenticated={setIsAuthenticated}
+                                    setUser={setUser}
+                                    theme={theme}
+                                />
                             ) : (
                                 <Navigate to="/dashboard" />
                             )
@@ -77,7 +81,13 @@ function App() {
                     <Route
                         path="/register"
                         element={
-                            !isAuthenticated ? <Register /> : <Navigate to="/dashboard" />
+                            !isAuthenticated ? (
+                                <Register
+                                    theme={theme}
+                                />
+                            ) : (
+                                <Navigate to="/dashboard" />
+                            )
                         }
                     />
                     <Route

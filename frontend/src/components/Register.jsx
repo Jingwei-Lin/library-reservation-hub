@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../services/authApi';
 
-const Register = () => {
+const Register = (theme) => {
     const [formData, setFormData] = useState({
         userAccount: '',
         userPassword: '',
@@ -55,7 +55,7 @@ const Register = () => {
     };
 
     return (
-        <div className="page-container register-container">
+        <div className={`page-container register-container ${theme === "dark" ? "dark-mode" : ""}`}>
             <h2>Register</h2>
             <form onSubmit={handleSubmit}>
                 <div>

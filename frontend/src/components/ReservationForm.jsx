@@ -52,9 +52,9 @@ const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
                 setTimeout(() => navigate("/reservations"), 2000);
             } else if (response && response.code === 50001) {
                 // Handle OPERATION_ERROR specifically
-                setError(response.msg || "You have already reserved this book");
+                setError(response.message);
             } else {
-                setError(response?.msg || "Invalid response from server");
+                setError(response?.message);
             }
         } catch (err) {
             console.error("createReservation error:", err);

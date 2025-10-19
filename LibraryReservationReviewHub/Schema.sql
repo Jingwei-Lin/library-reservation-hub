@@ -79,7 +79,8 @@ CREATE TABLE Reservation (
 -- Insert Sample Data
 INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES
     (1, 'jingwei.lin2@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Jingwei', 'Lin', FALSE),
-    (2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE);
+    (2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE),
+    (3, 'admin@admin.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'admin', 'admin', TRUE);
 
 
 INSERT INTO Book (book_id, title, author, genre, quantity, available, `path`) VALUES

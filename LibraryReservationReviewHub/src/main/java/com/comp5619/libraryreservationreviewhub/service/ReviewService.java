@@ -10,7 +10,7 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
 
-import cn.hutool.db.PageResult;
+import com.comp5619.libraryreservationreviewhub.common.PageResult;
 
 public interface ReviewService {
     /**
@@ -47,6 +47,16 @@ public interface ReviewService {
      * @return review对象
      */
     Review getReviewById(long reviewId);
+
+    /**
+     * 根据用户ID获取该用户的所有评论
+     *
+     * @param userId 用户ID
+     * @return 评论VO列表
+     */
+    List<ReviewVO> getReviewsByUserId(Long userId);
+
+
 
     /**
      * 分页输出

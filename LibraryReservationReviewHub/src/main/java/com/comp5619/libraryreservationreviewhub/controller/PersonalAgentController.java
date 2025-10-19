@@ -42,7 +42,7 @@ public class PersonalAgentController {
      * @return
      */
     @GetMapping(value = "/personal_agent/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> doChatWithLoveAppSSE(String message, String chatId) {
+    public Flux<String> doChatWithPersonalAppSSE(String message, String chatId) {
         return personalAgent.doChatByStream(message, chatId);
     }
 
@@ -54,7 +54,7 @@ public class PersonalAgentController {
      * @return
      */
     @GetMapping(value = "/personal_agent/chat/server_sent_event")
-    public Flux<ServerSentEvent<String>> doChatWithLoveAppServerSentEvent(String message, String chatId) {
+    public Flux<ServerSentEvent<String>> doChatWithPersonalAppServerSentEvent(String message, String chatId) {
         return personalAgent.doChatByStream(message, chatId)
                 .map(chunk -> ServerSentEvent.<String>builder()
                         .data(chunk)

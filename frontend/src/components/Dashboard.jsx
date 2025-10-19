@@ -289,15 +289,12 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                                             {typeof page === "number" ? (
                                                 <button
                                                     onClick={() => paginate(page)}
-                                                    style={{
-                                                        fontWeight: currentPage === page ? 'bold' : 'normal',
-                                                        backgroundColor: currentPage === page ? '#e0e0e0' : 'white',
-                                                    }}
+                                                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
                                                 >
                                                     {page}
                                                 </button>
                                             ) : (
-                                                <span style={{ padding: '8px 12px' }}>...</span>
+                                                <span className="pagination-ellipsis">...</span>
                                             )}
                                         </React.Fragment>
                                     ))}

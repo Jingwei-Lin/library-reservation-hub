@@ -73,4 +73,49 @@ export const bookService = {
             throw new Error('Failed to fetch book details');
         }
     },
+
+    updateBook: async (id, bookPayload) => {
+        try {
+            const response = await api.put(`/book/${id}`, bookPayload);
+            console.log('Update book response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error updating book:', error);
+            throw new Error(error.response?.data?.message || 'Failed to update book');
+        }
+    },
+
+    deleteBook: async (id) => {
+        try {
+            const response = await api.delete(`/book/${id}`);
+            console.log('Delete book response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error deleting book:', error);
+            throw new Error(error.response?.data?.message || 'Failed to delete book');
+        }
+    },
+
+    restoreBook: async (id) => {
+        try {
+            const response = await api.put(`/book/${id}/restore`);
+            console.log('Restore book response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error restoring book:', error);
+            throw new Error(error.response?.data?.message || 'Failed to restore book');
+        }
+    },
 };

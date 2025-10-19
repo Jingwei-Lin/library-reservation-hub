@@ -18,6 +18,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const [isOnWaitingList, setIsOnWaitingList] = useState(false);
     const [isNotified, setIsNotified] = useState(false);
     const [waitingStatus, setWaitingStatus] = useState(null);
+    const [hasActiveReservation, setHasActiveReservation] = useState(false);
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -30,7 +31,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (bookResponse && bookResponse.code === 0 && bookResponse.data) {
                     setBook(bookResponse.data);
                 } else {
-                    setError(bookResponse?.msg || "Invalid response format");
+                    setError(bookResponse.message || "Invalid response format");
                     return;
                 }
 
@@ -39,12 +40,19 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                     setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
                 } else {
-                    console.warn(reviewResponse?.msg || "No reviews found");
+                    console.warn(reviewResponse.message || "No reviews found");
                     setReviews([]);
                 }
 
-                // Fetch waiting list status if authenticated
+                // Fetch waiting list and reservation status if authenticated
                 if (isAuthenticated) {
+                    // Check reservation status
+                    const reservationResponse = await reservationService.hasActiveReservation(id);
+                    if (reservationResponse && reservationResponse.code === 0) {
+                        setHasActiveReservation(reservationResponse.data.hasActive);
+                    }
+
+                    // Fetch waiting list status
                     await waitingListService.getEligibility();
                     const waitResponse = await waitingListService.getMyWaitingList();
                     if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
@@ -101,7 +109,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus("waiting");
             } else {
-                window.alert(response?.msg || "Failed to add to waiting list");
+                window.alert(response.message || "Failed to add to waiting list");
             }
         } catch (err) {
             window.alert(err.message || "Failed to add to waiting list");
@@ -122,7 +130,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus(null);
             } else {
-                window.alert(response?.msg || "Failed to cancel waiting list entry");
+                window.alert(response.message || "Failed to cancel waiting list entry");
             }
         } catch (err) {
             window.alert(err.message || "Failed to cancel waiting list entry");
@@ -236,11 +244,14 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                 <span className="quantity">Quantity: {book.quantity}</span>
                             )}
                         </div>
-                        {book.available && book.quantity > 0 ? (
+                        {hasActiveReservation ? (
+                            <p className="reservation-status">You have already reserved this book.</p>
+                        ) : book.available && book.quantity > 0 ? (
                             <button
                                 className="reserve-button"
                                 onClick={handleReserve}
                                 aria-label="Reserve book"
+                                disabled={hasActiveReservation}
                             >
                                 Reserve Now
                             </button>

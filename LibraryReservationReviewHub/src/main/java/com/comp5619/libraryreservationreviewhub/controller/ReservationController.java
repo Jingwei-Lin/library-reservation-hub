@@ -68,4 +68,10 @@ public class ReservationController {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(reservationService.getAllReservations(pageRequest, user));
     }
+
+    @GetMapping("/check/{bookId}")
+    public BaseResponse<Boolean> hasActiveReservation(@PathVariable Long bookId, HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        return ResultUtils.success(reservationService.hasActiveReservation(user.getId(), bookId));
+    }
 }

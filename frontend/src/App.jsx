@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import AdminLogin from './components/AdminLogin.jsx';
+import AdminDashboard from './components/AdminDashboard.jsx';
 
 import Reservations from './components/Reservations.jsx';
 import Book from './components/Book';
@@ -66,7 +68,11 @@ function App() {
                         path="/login"
                         element={
                             !isAuthenticated ? (
-                                <Login setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
+                                <Login
+                                    setIsAuthenticated={setIsAuthenticated}
+                                    setUser={setUser}
+                                    theme={theme}
+                                />
                             ) : (
                                 <Navigate to="/dashboard" />
                             )
@@ -75,7 +81,13 @@ function App() {
                     <Route
                         path="/register"
                         element={
-                            !isAuthenticated ? <Register /> : <Navigate to="/dashboard" />
+                            !isAuthenticated ? (
+                                <Register
+                                    theme={theme}
+                                />
+                            ) : (
+                                <Navigate to="/dashboard" />
+                            )
                         }
                     />
                     <Route
@@ -90,6 +102,9 @@ function App() {
                     <Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/profile" element={<Profile user={user} setIsAuthenticated={setIsAuthenticated} theme={theme} />} />
+                    <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />
+                    <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+                    <Route path="/admin" element={<Navigate to="/admin/login" />} />
                 </Routes>
             </div>
         </Router>

@@ -4,6 +4,7 @@ package com.comp5619.libraryreservationreviewhub.app;
 import com.comp5619.libraryreservationreviewhub.advisor.MyLoggerAdvisor;
 import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -12,6 +13,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -34,7 +36,9 @@ public class PersonalAgent {
                     "Your tone should be friendly, professional, and knowledgeable — just like a helpful librarian guiding readers to their next favorite book.";
 
 
-
+    // AI 调用工具能力
+    @Resource
+    private ToolCallback[] allTools;
 
 
 
@@ -60,7 +64,8 @@ public class PersonalAgent {
 
 
         /**
-         * AI 基础对话（支持多轮对话记忆）
+         * AI 基础对话
+         * 支持多轮对话记忆，工具调用
          * @param message
          * @param chatId
          * @return
@@ -70,6 +75,7 @@ public class PersonalAgent {
                     .prompt()
                     .user(message)
                     .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                    .toolCallbacks(allTools)
                     .call()
                     .chatResponse();
             String content = chatResponse.getResult().getOutput().getText();
@@ -77,7 +83,8 @@ public class PersonalAgent {
             return content;
         }
         /**
-         * AI 基础对话（支持多轮对话记忆，SSE 流式传输）
+         * AI 基础对话
+         * 支持多轮对话记忆，SSE 流式传输，工具调用
          *
          * @param message
          * @param chatId
@@ -88,6 +95,7 @@ public class PersonalAgent {
                     .prompt()
                     .user(message)
                     .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                    .toolCallbacks(allTools)
                     .stream()
                     .content();
         }
@@ -98,6 +106,28 @@ public class PersonalAgent {
 
 
 
+
+//    /**
+//     * AI 使用工具 聊天
+//     *
+//     * @param message
+//     * @param chatId
+//     * @return
+//     */
+//    public String doChatWithTools(String message, String chatId) {
+//        ChatResponse chatResponse = chatClient
+//                .prompt()
+//                .user(message)
+//                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+//                // 开启日志，便于观察效果
+//                .advisors(new MyLoggerAdvisor())
+//                .toolCallbacks(allTools)
+//                .call()
+//                .chatResponse();
+//        String content = chatResponse.getResult().getOutput().getText();
+//        log.info("content: {}", content);
+//        return content;
+//    }
 
 
 

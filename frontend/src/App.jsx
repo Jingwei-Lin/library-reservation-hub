@@ -90,16 +90,16 @@ function App() {
                             )
                         }
                     />
-                    <Route
-                        path="/book/:id"
-                        element={<Book isAuthenticated={isAuthenticated} />}
-                    />
+                    {/*<Route*/}
+                    {/*    path="/book/:id"*/}
+                    {/*    element={<Book isAuthenticated={isAuthenticated} />}*/}
+                    {/*/>*/}
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                     <Route
                         path="/reservations"
                         element={<Reservations isAuthenticated={isAuthenticated} />}
                     />
-                    <Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+                    {/*<Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />*/}
                     <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/profile" element={<Profile user={user} setIsAuthenticated={setIsAuthenticated} theme={theme} />} />
                     <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />

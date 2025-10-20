@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
 import { waitingListService } from "../services/waitingListService";
 import { logoutUser } from "../services/authApi";
+import Portal from './Portal';
 import "./Book.css";
 
-const Book = ({ isAuthenticated, setIsAuthenticated }) => {
-    const { id } = useParams();
+const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
+    // const { id } = useParams();
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [reviews, setReviews] = useState([]);
@@ -19,6 +20,16 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const [isNotified, setIsNotified] = useState(false);
     const [waitingStatus, setWaitingStatus] = useState(null);
     const [hasActiveReservation, setHasActiveReservation] = useState(false);
+
+    //State for reservation popup
+    const [showReservationPopup, setShowReservationPopup] = useState(false);
+    const [reservationForm, setReservationForm] = useState({
+        pickupTime: "",
+        dueTime: ""
+    });
+    const [reservationLoading, setReservationLoading] = useState(false);
+    const [reservationError, setReservationError] = useState("");
+    const [reservationSuccess, setReservationSuccess] = useState("");
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -82,10 +93,26 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
         };
 
         fetchBookAndReviews();
-    }, [id, navigate, setIsAuthenticated, isAuthenticated]);
+    }, [id, setIsAuthenticated, isAuthenticated]);
+
+    useEffect(() => {
+        if (showReservationPopup) {
+            document.body.classList.add('popup-open');
+        } else {
+            document.body.classList.remove('popup-open');
+        }
+
+        return () => {
+            document.body.classList.remove('popup-open');
+        };
+    }, [showReservationPopup]);
 
     const handleBack = () => {
-        navigate("/dashboard");
+        if (onBack) {
+            onBack(); // Call onBack if provided
+        } else {
+            navigate('/dashboard'); // Fallback to dashboard
+        }
     };
 
     const handleReserve = () => {
@@ -93,7 +120,82 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             navigate("/login");
             return;
         }
-        navigate(`/reservation/form/${id}`);
+        setShowReservationPopup(true);
+        // navigate(`/reservation/form/${id}?fromBook=${id}`);
+    };
+
+    const handleReservationSubmit = async (e) => {
+        e.preventDefault();
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
+
+        setReservationLoading(true);
+        setReservationError("");
+        setReservationSuccess("");
+
+        try {
+            const pickupDate = new Date(reservationForm.pickupTime);
+            const dueDate = new Date(reservationForm.dueTime);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (pickupDate < today) {
+                throw new Error("Pickup date cannot be in the past");
+            }
+            if (dueDate <= pickupDate) {
+                throw new Error("Due date must be after pickup date");
+            }
+
+            // Calculate maximum allowed due date (7 days from pickup)
+            const maxDueDate = new Date(pickupDate);
+            maxDueDate.setDate(pickupDate.getDate() + 30);
+
+            if (dueDate > maxDueDate) {
+                throw new Error("Reservation period cannot exceed 30 days");
+            }
+
+            const response = await reservationService.createReservation(id, {
+                pickupTime: reservationForm.pickupTime,
+                dueTime: reservationForm.dueTime
+            });
+
+            if (response && response.code === 0) {
+                setReservationSuccess("Reservation created successfully!");
+                setHasActiveReservation(true);
+                setTimeout(() => {
+                    setShowReservationPopup(false);
+                    setReservationForm({ pickupTime: "", dueTime: "" });
+                }, 2000);
+            } else if (response && response.code === 50001) {
+                setReservationError(response.message);
+            } else {
+                setReservationError(response?.message || "Failed to create reservation");
+            }
+        } catch (err) {
+            console.error("createReservation error:", err);
+            if (err.message.includes("Session expired") || err.message.includes("Please log in")) {
+                localStorage.removeItem('user');
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setReservationError(err.message || "Failed to create reservation");
+            }
+        } finally {
+            setReservationLoading(false);
+        }
+    };
+
+    const handleReservationFormChange = (e) => {
+        setReservationForm({ ...reservationForm, [e.target.name]: e.target.value });
+    };
+
+    const handleCloseReservationPopup = () => {
+        setShowReservationPopup(false);
+        setReservationForm({ pickupTime: "", dueTime: "" });
+        setReservationError("");
+        setReservationSuccess("");
     };
 
     const handleJoinWaiting = async () => {
@@ -197,6 +299,95 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
 
     return (
         <div className="book-detail-container">
+            {/* Reservation Popup */}
+            {showReservationPopup && (
+                <Portal>
+                    <div className="popup-overlay">
+                        <div className="reservation-popup">
+                            <div className="popup-header">
+                                <h3>Reserve "{book?.title}"</h3>
+                                <button
+                                    className="close-popup"
+                                    onClick={handleCloseReservationPopup}
+                                    aria-label="Close reservation popup"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <form onSubmit={handleReservationSubmit} className="reservation-form">
+                                <div className="form-group">
+                                    <label htmlFor="pickupTime">Pickup Date:</label>
+                                    <input
+                                        type="date"
+                                        id="pickupTime"
+                                        name="pickupTime"
+                                        value={reservationForm.pickupTime}
+                                        onChange={handleReservationFormChange}
+                                        required
+                                        min={new Date().toISOString().split("T")[0]}
+                                        max={(() => {
+                                            const maxDate = new Date();
+                                            maxDate.setDate(maxDate.getDate() + 7);
+                                            return maxDate.toISOString().split("T")[0];
+                                        })()}
+                                    />
+                                    <small className="date-hint">Select a date within the next 7 days</small>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="dueTime">Due Date:</label>
+                                    <input
+                                        type="date"
+                                        id="dueTime"
+                                        name="dueTime"
+                                        value={reservationForm.dueTime}
+                                        onChange={handleReservationFormChange}
+                                        required
+                                        min={reservationForm.pickupTime || new Date().toISOString().split("T")[0]}
+                                        max={(() => {
+                                            if (reservationForm.pickupTime) {
+                                                const maxDueDate = new Date(reservationForm.pickupTime);
+                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
+                                                return maxDueDate.toISOString().split("T")[0];
+                                            }
+                                            const maxDate = new Date();
+                                            maxDate.setDate(maxDate.getDate() + 30);
+                                            return maxDate.toISOString().split("T")[0];
+                                        })()}
+                                    />
+                                    <small className="date-hint">
+                                        {reservationForm.pickupTime
+                                            ? `Due date must be within 30 days of pickup (max: ${(() => {
+                                                const maxDueDate = new Date(reservationForm.pickupTime);
+                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
+                                                return maxDueDate.toISOString().split("T")[0];
+                                            })()})`
+                                            : "Select pickup date first"
+                                        }
+                                    </small>
+                                </div>
+                                {reservationError && <p className="error">{reservationError}</p>}
+                                {reservationSuccess && <p className="success">{reservationSuccess}</p>}
+                                <div className="popup-actions">
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseReservationPopup}
+                                        className="cancel-btn"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={reservationLoading}
+                                        className="confirm-btn"
+                                    >
+                                        {reservationLoading ? "Reserving..." : "Confirm Reservation"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </Portal>
+            )}
             <button className="book-back-button" onClick={handleBack} aria-label="Back to dashboard">
                 ← Back to Dashboard
             </button>

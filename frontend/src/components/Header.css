@@ -1,7 +1,7 @@
 .header {
     position: fixed;
     top: 0;
-    left: 280px; /* Match sidebar width */
+    left: 300px; /* Match sidebar width */
     right: 0;
     height: 80px;
     background: var(--surface);

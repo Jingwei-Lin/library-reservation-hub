@@ -1,10 +1,11 @@
 // Dashboard.jsx
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { logoutUser } from "../services/authApi";
 import Header from "./Header";
+import Book from './Book';
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
@@ -13,13 +14,39 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedBookId, setSelectedBookId] = useState(null);
+    const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const booksPerPage = 12;
     const navigate = useNavigate();
+    const location = useLocation();
 
+    // Initial data fetch
     useEffect(() => {
-        console.log(sessionStorage);
-        fetchBooks();
+        const initializeDashboard = async () => {
+            console.log(sessionStorage);
+            await fetchBooks();
+            setInitialLoadComplete(true);
+        };
+
+        initializeDashboard();
     }, []);
+
+    // Sync URL with selected book state
+    useEffect(() => {
+        if (!initialLoadComplete) return; // Wait for initial data load
+        const params = new URLSearchParams(location.search);
+        const bookIdFromUrl = params.get('book');
+        if (bookIdFromUrl) {
+            const id = Number(bookIdFromUrl);
+            if (!isNaN(id) && id > 0) {
+                setSelectedBookId(id);
+            } else {
+                navigate('/dashboard', { replace: true });
+            }
+        } else {
+            setSelectedBookId(null);
+        }
+    }, [location.search], initialLoadComplete, navigate);
 
     const fetchBooks = async (keyword = "") => {
         try {
@@ -70,6 +97,8 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
     const handleSearch = (e) => {
         e.preventDefault();
         fetchBooks(searchTerm);
+        setSelectedBookId(null);
+        navigate('/dashboard', { replace: true });
     };
 
     const handleGenreClick = async (genre) => {
@@ -111,6 +140,8 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
         } finally {
             setLoading(false);
             setCurrentPage(1);
+            setSelectedBookId(null);
+            navigate('/dashboard', { replace: true });
         }
     };
 
@@ -121,7 +152,13 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
             setError('Cannot navigate to book with invalid ID');
             return;
         }
-        navigate(`/book/${id}`);
+        setSelectedBookId(id);
+        navigate(`/dashboard?book=${id}`, { replace: true });
+    };
+
+    const handleBackFromBook = () => {
+        setSelectedBookId(null);
+        navigate('/dashboard', { replace: true });
     };
 
     // Pagination logic
@@ -173,7 +210,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 <div className="nav-box">
                     <h3>Navigation</h3>
                     <ul>
-                        <li onClick={() => fetchBooks()}>All Books</li>
+                        <li onClick={() => navigate("/dashboard")}>All Books</li>
                         <li onClick={() => navigate("/reservations")}>My Reservations</li>
                         <li onClick={() => navigate("/waitinglist")}>My Waiting List</li>
                     </ul>
@@ -207,103 +244,114 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                 />
                 <div className="content-wrapper">
                     <div className="central-content">
-                        <div className="welcome">
-                            <h1>Welcome to our digital library</h1>
-                            <p>Explore our collection of {books.length} books</p>
-                        </div>
-                        <div className="book-listing">
-                            <div className="book-listing-header">
-                                <h2>Book Listing</h2>
-                                <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
-                            </div>
-                            {loading && <div className="loading">Loading books...</div>}
-                            {error && (
-                                <div className="error">
-                                    {error}
-                                    <button onClick={() => fetchBooks()} className="retry-btn">
-                                        Retry
-                                    </button>
+                        {selectedBookId ? (
+                            <Book
+                                isAuthenticated={isAuthenticated}
+                                setIsAuthenticated={setIsAuthenticated}
+                                id={selectedBookId}
+                                onBack={handleBackFromBook} // Use the new handler
+                            />
+                        ) : (
+                            <>
+                                <div className="welcome">
+                                    <h1>Welcome to our digital library</h1>
+                                    <p>Explore our collection of {books.length} books</p>
                                 </div>
-                            )}
-                            {!loading && !error && (
-                                <div className="books-grid">
-                                    {currentBooks.map((book) => (
-                                        <div
-                                            key={book.bookId || book.title + book.author}
-                                            className="book-card"
-                                            onClick={() => book.bookId ? handleBookClick(book.bookId) : setError('Cannot navigate: Book ID is missing')}
-                                            style={{ cursor: book.bookId ? 'pointer' : 'not-allowed' }}
-                                        >
-                                            <div className="book-cover">
-                                                {book.path ? (
-                                                    <img
-                                                        src={`http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`}
-                                                        alt={book.title}
-                                                        onError={(e) => {
-                                                            console.error('Image failed to load:', {
-                                                                bookTitle: book.title,
-                                                                databasePath: book.path,
-                                                                imageSrc: `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`,
-                                                                timestamp: new Date().toISOString(),
-                                                            });
-                                                            e.target.src = '/placeholder-book-cover.jpg';
-                                                        }}
-                                                        onLoad={() => console.log('Image loaded successfully:', `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`)}
-                                                    />
-                                                ) : (
-                                                    <div className="book-cover-placeholder">📖</div>
-                                                )}
-                                            </div>
-                                            <div className="book-info">
-                                                <h3>{book.title || 'Untitled'}</h3>
-                                                <p className="book-author">by {book.author || 'Unknown'}</p>
-                                                <p className="book-genre">{book.genre || 'Unknown'}</p>
-                                                <div className="book-status">
-                                                    <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
-                                                        {book.available ? 'Available' : 'Unavailable'}
-                                                    </span>
-                                                    {book.quantity !== undefined && (
-                                                        <span className="quantity">Qty: {book.quantity}</span>
-                                                    )}
-                                                    {!book.bookId && (
-                                                        <span className="error-text">Missing Book ID</span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                <div className="book-listing">
+                                    <div className="book-listing-header">
+                                        <h2>Book Listing</h2>
+                                        <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
+                                    </div>
+                                    {loading && <div className="loading">Loading books...</div>}
+                                    {error && (
+                                        <div className="error">
+                                            {error}
+                                            <button onClick={() => fetchBooks()} className="retry-btn">
+                                                Retry
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                            {!loading && !error && books.length === 0 && (
-                                <div className="no-books">
-                                    No books found. <button onClick={() => fetchBooks()}>Load all books</button>
-                                </div>
-                            )}
-                            {!loading && !error && books.length > 0 && (
-                                <div className="pagination">
-                                    <button onClick={prevPage} disabled={currentPage === 1}>
-                                        Previous
-                                    </button>
-                                    {getPaginationButtons().map((page, index) => (
-                                        <React.Fragment key={index}>
-                                            {typeof page === "number" ? (
-                                                <button
-                                                    onClick={() => paginate(page)}
-                                                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                                    )}
+                                    {!loading && !error && (
+                                        <div className="books-grid">
+                                            {currentBooks.map((book) => (
+                                                <div
+                                                    key={book.bookId || book.title + book.author}
+                                                    className="book-card"
+                                                    onClick={() => book.bookId ? handleBookClick(book.bookId) : setError('Cannot navigate: Book ID is missing')}
+                                                    style={{ cursor: book.bookId ? 'pointer' : 'not-allowed' }}
                                                 >
-                                                    {page}
-                                                </button>
-                                            ) : (
-                                                <span className="pagination-ellipsis">...</span>
-                                            )}
-                                        </React.Fragment>
-                                    ))}
-                                    <button onClick={nextPage} disabled={currentPage === totalPages}>
-                                        Next
-                                    </button>
+                                                    <div className="book-cover">
+                                                        {book.path ? (
+                                                            <img
+                                                                src={`http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`}
+                                                                alt={book.title}
+                                                                onError={(e) => {
+                                                                    console.error('Image failed to load:', {
+                                                                        bookTitle: book.title,
+                                                                        databasePath: book.path,
+                                                                        imageSrc: `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`,
+                                                                        timestamp: new Date().toISOString(),
+                                                                    });
+                                                                    e.target.src = '/placeholder-book-cover.jpg';
+                                                                }}
+                                                                onLoad={() => console.log('Image loaded successfully:', `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`)}
+                                                            />
+                                                        ) : (
+                                                            <div className="book-cover-placeholder">📖</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="book-info">
+                                                        <h3>{book.title || 'Untitled'}</h3>
+                                                        <p className="books-author">by {book.author || 'Unknown'}</p>
+                                                        <p className="books-genre">{book.genre || 'Unknown'}</p>
+                                                        <div className="book-status">
+                                                            <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
+                                                                {book.available ? 'Available' : 'Unavailable'}
+                                                            </span>
+                                                            {book.quantity !== undefined && (
+                                                                <span className="quantity">Qty: {book.quantity}</span>
+                                                            )}
+                                                            {!book.bookId && (
+                                                                <span className="error-text">Missing Book ID</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {!loading && !error && books.length === 0 && (
+                                        <div className="no-books">
+                                            No books found. <button onClick={() => fetchBooks()}>Load all books</button>
+                                        </div>
+                                    )}
+                                    {!loading && !error && books.length > 0 && (
+                                        <div className="pagination">
+                                            <button onClick={prevPage} disabled={currentPage === 1}>
+                                                Previous
+                                            </button>
+                                            {getPaginationButtons().map((page, index) => (
+                                                <React.Fragment key={index}>
+                                                    {typeof page === "number" ? (
+                                                        <button
+                                                            onClick={() => paginate(page)}
+                                                            className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                                                        >
+                                                            {page}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="pagination-ellipsis">...</span>
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
+                                            <button onClick={nextPage} disabled={currentPage === totalPages}>
+                                                Next
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                     </div>
                     <div className="right-panel">
                         <div className="stats-box">

@@ -25,7 +25,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
 
-    //State for reservation popup
+    // State for reservation popup
     const [showReservationPopup, setShowReservationPopup] = useState(false);
     const [reservationForm, setReservationForm] = useState({
         pickupTime: "",
@@ -34,6 +34,10 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [reservationLoading, setReservationLoading] = useState(false);
     const [reservationError, setReservationError] = useState("");
     const [reservationSuccess, setReservationSuccess] = useState("");
+
+    // Review submission feedback
+    const [reviewSuccess, setReviewSuccess] = useState("");
+    const [reviewError, setReviewError] = useState("");
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -245,16 +249,19 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
 
     const handleAddReview = async (e) => {
         e.preventDefault();
+        setReviewSuccess("");
+        setReviewError("");
+
         if (!isAuthenticated) {
             navigate("/login");
             return;
         }
         if (newReview.rating < 1 || newReview.rating > 5) {
-            window.alert("Rating must be between 1 and 5");
+            setReviewError("Rating must be between 1 and 5.");
             return;
         }
         if (!newReview.comment.trim()) {
-            window.alert("Comment cannot be empty");
+            setReviewError("Comment cannot be empty.");
             return;
         }
 
@@ -263,7 +270,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             const reviewData = { rating: newReview.rating, comment: newReview.comment };
             await reviewService.addReview(parseInt(id), reviewData);
 
-            window.alert("Review added successfully!");
+            setReviewSuccess("✅ Review submitted successfully!");
+
             setNewReview({ rating: 0, comment: "" });
 
             // Update reviews immediately
@@ -286,25 +294,33 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             navigate("/login");
             return;
         }
-        if (!window.confirm("Are you sure you want to delete this review?")) {
-            return;
-        }
+        // open confirmation popup
+        setReviewToDelete(reviewId);
+        setShowDeletePopup(true);
+    };
 
+    const confirmDeleteReview = async () => {
         try {
             setError("");
-            await reviewService.deleteReview(reviewId);
-            window.alert("Review deleted successfully!");
+            await reviewService.deleteReview(reviewToDelete);
+            setShowDeletePopup(false);
+            setReviewToDelete(null);
+
+            // Refresh the reviews after deletion
             const reviewResponse = await reviewService.getReviewsByBookId(id);
-            if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
-                setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
-            } else {
-                console.warn(reviewResponse?.msg || "No reviews found after deletion");
-                setReviews([]);
+            if (reviewResponse && reviewResponse.code === 0 && Array.isArray(reviewResponse.data)) {
+                setReviews(reviewResponse.data);
             }
         } catch (err) {
-            window.alert(err.message || "Failed to delete review");
             console.error("Error deleting review:", err);
+            setShowDeletePopup(false);
+            setReviewToDelete(null);
         }
+    };
+
+    const cancelDeleteReview = () => {
+        setShowDeletePopup(false);
+        setReviewToDelete(null);
     };
 
     const handleStarClick = (rating) => {
@@ -313,6 +329,43 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
 
     return (
         <div className="book-detail-container">
+            {/* Delete Review Popup */}
+            {showDeletePopup && (
+                <Portal>
+                    <div className="popup-overlay">
+                        <div className="delete-popup">
+                            <div className="popup-header">
+                                <h3>Delete Review</h3>
+                                <button
+                                    className="close-popup"
+                                    onClick={cancelDeleteReview}
+                                    aria-label="Close delete popup"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div className="popup-body">
+                                <p>Are you sure you want to delete this review <strong>permanently</strong>?</p>
+                            </div>
+                            <div className="popup-actions">
+                                <button
+                                    className="cancel-btn"
+                                    onClick={cancelDeleteReview}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="confirm-btn"
+                                    onClick={confirmDeleteReview}
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
+
             {/* Reservation Popup */}
             {showReservationPopup && (
                 <Portal>
@@ -548,6 +601,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                             >
                                 Submit Review
                             </button>
+                            {reviewSuccess && <p className="review-success">{reviewSuccess}</p>}
+                            {reviewError && <p className="review-error">{reviewError}</p>}
                         </form>
                     )}
 

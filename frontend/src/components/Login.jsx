@@ -44,6 +44,10 @@ const Login = ({ setIsAuthenticated, setUser, theme }) => {
 
     return (
         <div className={`page-container login-container ${theme === "dark" ? "dark-mode" : ""}`}>
+            <button onClick={() => navigate("/dashboard")} className="back-button">
+                ← Back to Dashboard
+            </button>
+
             <h2>Login</h2>
             <form onSubmit={handleSubmit}>
                 <div>

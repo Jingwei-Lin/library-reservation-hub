@@ -454,16 +454,22 @@
     color: #ccc;
     transition: all 0.2s ease;
 }
-
 .star.filled {
     color: #f39c12;
 }
 
-.star:hover,
-.star.filled:hover {
+
+/* Interactive stars ONLY inside the review form */
+.review-form .star-rating {
+    cursor: pointer;
+}
+
+.review-form .star:hover,
+.review-form .star.filled:hover {
     color: #e67e22;
     transform: scale(1.2);
 }
+
 
 .submit-review-button {
     padding: 12px 24px;
@@ -533,7 +539,32 @@
     font-weight: 500;
 }
 
-/* Popup Overlay - Match your theme */
+/* Inline review feedback messages */
+.review-success {
+    margin-top: 1rem;
+    color: var(--success);
+    background: rgba(76, 201, 240, 0.1);
+    border: 1px solid rgba(76, 201, 240, 0.3);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.review-error {
+    margin-top: 1rem;
+    color: var(--error);
+    background: rgba(230, 57, 70, 0.1);
+    border: 1px solid rgba(230, 57, 70, 0.3);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Popup Overlay*/
 .popup-overlay {
     position: fixed;
     top: 0;
@@ -548,7 +579,48 @@
     backdrop-filter: blur(5px);
 }
 
-/* Reservation Popup - Match your design system */
+/* Delete Review Popup */
+.delete-popup {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 0;
+    width: 95%;                  /* increased from 90% for better fit */
+    max-width: 520px;            /* slightly wider to align with top decoration */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    position: relative;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Red top accent line */
+.delete-popup::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;                 /* slightly thicker for better visual weight */
+    background: linear-gradient(135deg, var(--error) 0%, #c62828 100%);
+    border-radius: 20px 20px 0 0;
+}
+
+
+.delete-popup .popup-header {
+    padding: 24px 28px 0;
+}
+
+.delete-popup .popup-body {
+    padding: 0 28px 24px;
+    line-height: 1.5;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Reservation Popup*/
 .reservation-popup {
     background: var(--surface);
     border-radius: 20px;

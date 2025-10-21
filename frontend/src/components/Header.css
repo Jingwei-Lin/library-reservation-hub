@@ -90,11 +90,15 @@
 }
 
 /* User panel */
+/* Fix alignment and prevent squishing between toggle and login button */
 .user-wrapper {
     display: flex;
     align-items: center;
-    gap: 15px;
+    justify-content: flex-end;
+    gap: 20px;
     position: relative;
+    flex-shrink: 0;
+    min-width: 120px; /* ensures toggle + login have room */
 }
 
 /* Dark Mode Toggle */
@@ -112,6 +116,7 @@
     transition: all 0.3s ease;
     border: 2px solid transparent;
     box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    flex-shrink: 0; /* Ensure the dark-mode toggle never shrinks */
 }
 
 .dark-mode-toggle:hover {
@@ -227,6 +232,11 @@
     overflow: hidden;
 }
 
+.login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
+}
+
 .login-button::before {
     content: '';
     position: absolute;
@@ -240,11 +250,6 @@
 
 .login-button:hover::before {
     left: 100%;
-}
-
-.login-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
 }
 
 /* Dark Mode Overrides */
@@ -319,6 +324,7 @@
 
     .user-wrapper {
         order: 1;
+        gap: 15px; /* Reduced gap for smaller screens */
     }
 
     .user-panel {
@@ -348,7 +354,7 @@
     }
 
     .user-wrapper {
-        gap: 10px;
+        gap: 12px; /* Further reduced gap for very small screens */
     }
 
     .dark-mode-toggle,
@@ -356,6 +362,12 @@
         width: 40px;
         height: 40px;
         font-size: 1.1rem;
+    }
+
+    .login-button {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 1rem;
     }
 }
 

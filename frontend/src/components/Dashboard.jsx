@@ -1,14 +1,14 @@
 // Dashboard.jsx
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { logoutUser } from "../services/authApi";
 import Header from "./Header";
 import Book from './Book';
+import { getTheme } from "../themeUtils";
 import "./Dashboard.css";
 
-const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
+const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -16,9 +16,38 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedBookId, setSelectedBookId] = useState(null);
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+    const [theme, setTheme] = useState(getTheme());
     const booksPerPage = 12;
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Apply theme from localStorage
+    useEffect(() => {
+        document.body.classList.remove("light", "dark");
+        document.body.classList.add(theme);
+    }, [theme]);
+
+    // Listen for custom themeChange event (in-page sync)
+    useEffect(() => {
+        const handleThemeChange = (event) => {
+            setTheme(event.detail.theme);
+        };
+        window.addEventListener("themeChange", handleThemeChange);
+        return () => {
+            window.removeEventListener("themeChange", handleThemeChange);
+        };
+    }, []);
+
+    // Poll localStorage for theme changes (cross-tab sync)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            setTheme(getTheme());
+        };
+        window.addEventListener("storage", handleStorageChange);
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+        };
+    }, []);
 
     // Initial data fetch
     useEffect(() => {
@@ -236,8 +265,6 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                     user={user}
                     setIsAuthenticated={setIsAuthenticated}
                     isAuthenticated={isAuthenticated}
-                    theme={theme}
-                    toggleTheme={toggleTheme}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     handleSearch={handleSearch}

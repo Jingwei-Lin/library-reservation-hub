@@ -454,16 +454,22 @@
     color: #ccc;
     transition: all 0.2s ease;
 }
-
 .star.filled {
     color: #f39c12;
 }
 
-.star:hover,
-.star.filled:hover {
+
+/* Interactive stars ONLY inside the review form */
+.review-form .star-rating {
+    cursor: pointer;
+}
+
+.review-form .star:hover,
+.review-form .star.filled:hover {
     color: #e67e22;
     transform: scale(1.2);
 }
+
 
 .submit-review-button {
     padding: 12px 24px;

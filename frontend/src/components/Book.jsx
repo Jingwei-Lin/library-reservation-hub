@@ -21,6 +21,10 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [waitingStatus, setWaitingStatus] = useState(null);
     const [hasActiveReservation, setHasActiveReservation] = useState(false);
 
+    // State for delete review popup
+    const [showDeletePopup, setShowDeletePopup] = useState(false);
+    const [reviewToDelete, setReviewToDelete] = useState(null);
+
     //State for reservation popup
     const [showReservationPopup, setShowReservationPopup] = useState(false);
     const [reservationForm, setReservationForm] = useState({
@@ -258,14 +262,24 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             setError("");
             const reviewData = { rating: newReview.rating, comment: newReview.comment };
             await reviewService.addReview(parseInt(id), reviewData);
+
             window.alert("Review added successfully!");
             setNewReview({ rating: 0, comment: "" });
-            window.location.reload();
+
+            // Update reviews immediately
+            const updatedReviews = await reviewService.getReviewsByBookId(id);
+            if (updatedReviews && updatedReviews.code === 0 && Array.isArray(updatedReviews.data)) {
+                setReviews(updatedReviews.data);
+            } else {
+                console.warn("No updated reviews found");
+            }
+
         } catch (err) {
             window.alert(err.message || "Failed to add review");
             console.error("Error adding review:", err);
         }
     };
+
 
     const handleDeleteReview = async (reviewId) => {
         if (!isAuthenticated) {

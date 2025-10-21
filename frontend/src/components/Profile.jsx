@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../services/userService";
 import { logoutUser } from "../services/authApi";
+import { getTheme } from "../themeUtils";
 import "./Profile.css";
 
-const Profile = ({ user, setIsAuthenticated, theme }) => {
+const Profile = ({ user, setIsAuthenticated }) => {
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState({
         firstName: "",
@@ -17,6 +18,7 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [theme, setTheme] = useState(getTheme());
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -79,10 +81,10 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
                 const updatedUser = { ...user, ...profileData };
                 sessionStorage.setItem("user", JSON.stringify(updatedUser));
             } else {
-                setError(response?.message || "Failed to update profile");
+                setError(response?.message || "Failed to update profile.");
             }
         } catch (err) {
-            setError(err.message || "Failed to update profile");
+            setError(err.response?.data?.message || err.message || "Failed to update profile.");
             console.error("Error updating profile:", err);
         }
     };

@@ -1,12 +1,27 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutUser } from "../services/authApi";
+import { getTheme, toggleTheme } from "../themeUtils";
 import "./Header.css";
 
-const Header = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme, searchTerm, setSearchTerm, handleSearch }) => {
+const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSearchTerm, handleSearch }) => {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [theme, setTheme] = useState(getTheme());
     const panelRef = useRef(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Apply theme class to header's parent or body
+        document.body.classList.remove("light", "dark");
+        document.body.classList.add(theme);
+    }, [theme]);
+
+    const handleToggleTheme = () => {
+        const newTheme = toggleTheme();
+        setTheme(newTheme);
+        // Dispatch custom event for in-page sync
+        window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme: newTheme } }));
+    };
 
     const handleLogout = () => {
         logoutUser();
@@ -50,7 +65,7 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme,
                 </button>
             </form>
             <div className="user-wrapper" ref={panelRef}>
-                <div className="dark-mode-toggle" onClick={toggleTheme}>
+                <div className="dark-mode-toggle" onClick={handleToggleTheme}>
                     {theme === "dark" ? "🌞" : "🌙"}
                 </div>
                 {isAuthenticated ? (

@@ -50,11 +50,11 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme,
                 </button>
             </form>
             <div className="user-wrapper" ref={panelRef}>
+                <div className="dark-mode-toggle" onClick={toggleTheme}>
+                    {theme === "dark" ? "🌞" : "🌙"}
+                </div>
                 {isAuthenticated ? (
                     <>
-                        <div className="dark-mode-toggle" onClick={toggleTheme}>
-                            {theme === "dark" ? "🌞" : "🌙"}
-                        </div>
                         <div className="user-icon" onClick={() => setIsPanelOpen(!isPanelOpen)}>
                             👤
                         </div>

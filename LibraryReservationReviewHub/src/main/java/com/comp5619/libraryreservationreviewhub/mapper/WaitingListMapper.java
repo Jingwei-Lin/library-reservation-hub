@@ -27,5 +27,7 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
     int batchNotifyByBooks(@Param("userId") Long userId,
                            @Param("bookIds") List<Long> bookIds);
 
+    /** 将超过 7 天仍为 waiting 的记录置为 cancelled，返回受影响行数 */
+    int cancelStaleWaiting();
 }
 

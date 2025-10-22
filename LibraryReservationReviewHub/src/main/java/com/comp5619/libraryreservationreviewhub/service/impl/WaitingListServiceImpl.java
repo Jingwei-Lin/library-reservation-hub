@@ -242,5 +242,11 @@ public class WaitingListServiceImpl
         return rows;
     }
 
+    @Override
+    public int cancelStaleWaiting() {
+        int rows = baseMapper.cancelStaleWaiting();
+        log.info("Cancelled {} stale waiting-list records (>7 days).", rows);
+        return rows;
+    }
 
 }

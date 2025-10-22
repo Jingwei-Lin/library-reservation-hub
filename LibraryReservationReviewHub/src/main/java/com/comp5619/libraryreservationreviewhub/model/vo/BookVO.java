@@ -47,18 +47,9 @@ public class BookVO implements Serializable {
      */
     private String path;
 
-    // 移除不必要的字段，除非数据库中有这些数据
-    // private String publisher;
-    // private Integer publicationYear;
-    // private String isbn;
-    // private BigDecimal price;
-    // private BigDecimal averageRating;
-    // private Integer ratingCount;
-    // private Integer availableQuantity;
-    // private String genreName;
-    // private String coverUrl;
-    // private String description;
-    // private String status;
-    // private Date createTime;
-    // private List<ReviewVO> recentReviews;
+    /**
+     * description
+     */
+    private String description;
+
 }

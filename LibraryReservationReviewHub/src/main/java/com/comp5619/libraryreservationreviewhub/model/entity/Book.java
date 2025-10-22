@@ -54,6 +54,12 @@ public class Book implements Serializable {
      */
     private String path;
 
+    /**
+     * description
+     */
+    private String description;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
 }

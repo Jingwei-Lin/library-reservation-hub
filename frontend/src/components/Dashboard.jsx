@@ -4,8 +4,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { logoutUser } from "../services/authApi";
 import Header from "./Header";
+
+import ChatPanel from "./ChatPanel";
+
 import Book from './Book';
 import { getTheme } from "../themeUtils";
+
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
@@ -398,6 +402,8 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     </div>
                 </div>
             </div>
+            {/* AI Assistant Chat Panel */}
+            <ChatPanel />
         </div>
     );
 };

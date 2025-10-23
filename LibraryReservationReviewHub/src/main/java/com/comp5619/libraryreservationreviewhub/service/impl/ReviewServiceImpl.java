@@ -1,23 +1,12 @@
 package com.comp5619.libraryreservationreviewhub.service.impl;
 
-import java.sql.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
-import com.comp5619.libraryreservationreviewhub.model.entity.Book;
-import com.comp5619.libraryreservationreviewhub.service.UserService;
-import com.comp5619.libraryreservationreviewhub.service.BookService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.comp5619.libraryreservationreviewhub.common.PageRequest;
+import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
+import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.comp5619.libraryreservationreviewhub.mapper.ReviewMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
@@ -25,10 +14,18 @@ import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateReq
 import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
+import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
-
-import cn.hutool.db.PageResult;
+import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -38,13 +35,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Resource
     private ReviewMapper reviewMapper;
     private final BookMapper bookMapper;
-    private UserService userService;
+    private final UserService userService; // ensure injection via constructor
     private final BookService bookService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public long addReview(Long bookId, ReviewAddRequest req, User user) {
-        log.info("Adding review for bookId: {}, userId: {}", bookId, user.getId());
+        log.info("Adding review for bookId: {}, userId: {}", bookId, (user != null ? user.getId() : null));
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Reservation details are required");
@@ -71,14 +68,15 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteReview(Long reviewId, User user) {
-        log.info("Attempting to cancel reviewId: {} for userId: {}", reviewId, user.getId());
+        log.info("Attempting to cancel reviewId: {} for userId: {}", reviewId, (user != null ? user.getId() : null));
         ThrowUtils.throwIf(reviewId == null || reviewId <= 0, ErrorCode.PARAMS_ERROR, "Invalid review ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
 
         Review review = reviewMapper.selectById(reviewId);
         log.info("Fetched review: {}", review);
         ThrowUtils.throwIf(review == null, ErrorCode.NOT_FOUND_ERROR, "Review not found");
-        ThrowUtils.throwIf(!review.getUserId().equals(user.getId()) && !userService.isAdmin(user),
+        Long reviewUserId = review.getUserId();
+        ThrowUtils.throwIf(reviewUserId == null || (!reviewUserId.equals(user.getId()) && !userService.isAdmin(user)),
                 ErrorCode.NO_AUTH_ERROR, "Not authorized to cancel this review");
 
         int rows = reviewMapper.deleteById(reviewId);
@@ -95,7 +93,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         vo.setBookId(review.getBookId());
         vo.setReviewId(review.getReviewId());
-        vo.setReviewDate(new java.sql.Date(review.getReviewDate().getTime()));
+        vo.setReviewDate(review.getReviewDate() != null ? new java.sql.Date(review.getReviewDate().getTime()) : null);
         vo.setUserId(review.getUserId());
         vo.setComment(review.getComment());
         vo.setRating(review.getRating());
@@ -129,7 +127,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateReview(ReviewUpdateRequest req, User user) {
-        log.info("Attempting to update reviewId: {} for userId: {}", req.getReviewId(), user.getId());
+        log.info("Attempting to update reviewId: {} for userId: {}", req.getReviewId(), (user != null ? user.getId() : null));
         ThrowUtils.throwIf(req == null || req.getReviewId() <= 0, ErrorCode.PARAMS_ERROR, "Invalid review ID");
         ThrowUtils.throwIf(user == null || user.getId() == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         ThrowUtils.throwIf(req.getRating() == null || req.getRating() < 1 || req.getRating() > 5, ErrorCode.PARAMS_ERROR, "Rating must be between 1 and 5");
@@ -137,7 +135,8 @@ public class ReviewServiceImpl implements ReviewService {
 
         Review existing = reviewMapper.selectById(req.getReviewId());
         ThrowUtils.throwIf(existing == null, ErrorCode.NOT_FOUND_ERROR, "Review not found");
-        ThrowUtils.throwIf(!existing.getUserId().equals(user.getId()) && !userService.isAdmin(user), ErrorCode.NO_AUTH_ERROR, "Not authorized to update this review");
+        Long existingUserId = existing.getUserId();
+        ThrowUtils.throwIf(existingUserId == null || (!existingUserId.equals(user.getId()) && !userService.isAdmin(user)), ErrorCode.NO_AUTH_ERROR, "Not authorized to update this review");
 
         Review review = new Review();
         review.setReviewId(req.getReviewId());
@@ -159,13 +158,31 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     public PageResult<ReviewVO> listByPage(ReviewQueryRequest req) {
-        return new PageResult<>();
+        int current = (req != null && req.getCurrent() > 0) ? (int) req.getCurrent() : 1;
+        int pageSize = (req != null && req.getPageSize() > 0) ? (int) req.getPageSize() : 10;
+        long offset = (long) (current - 1) * pageSize;
+    
+        Long bookId = (req != null) ? req.getBookId() : null;
+        Long userId = (req != null) ? req.getUserId() : null;
+        Integer minRating = (req != null) ? req.getMinRating() : null;
+        Integer maxRating = (req != null) ? req.getMaxRating() : null;
+    
+        long total = reviewMapper.countAllByQuery(bookId, userId, minRating, maxRating);
+        List<Review> list = total > 0
+                ? reviewMapper.selectAllByQuery(bookId, userId, minRating, maxRating, offset, pageSize)
+                : cn.hutool.core.collection.CollUtil.newArrayList();
+    
+        List<ReviewVO> records = getReviewVOList(list);
+        return new PageResult<>(current, pageSize, total, records);
     }
 
+    @Override
     public boolean moderate(long id, String status, User operator) {
+        // Placeholder implementation for admin moderation (not used currently)
         return true;
     }
 
+    @Override
     public String getUserNameByReviewId(long reviewId) {
         ThrowUtils.throwIf(reviewId <= 0, ErrorCode.PARAMS_ERROR, "Invalid review ID");
         Review review = reviewMapper.selectById(reviewId);
@@ -173,8 +190,4 @@ public class ReviewServiceImpl implements ReviewService {
         User user = userService.getById(review.getUserId());
         return user != null ? user.getFirstName() + " " + user.getLastName() : "Unknown User";
     }
-
-
-
-
 }

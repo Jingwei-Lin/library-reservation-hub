@@ -10,7 +10,7 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
 
-import cn.hutool.db.PageResult;
+import com.comp5619.libraryreservationreviewhub.common.PageResult;
 
 public interface ReviewService {
     /**

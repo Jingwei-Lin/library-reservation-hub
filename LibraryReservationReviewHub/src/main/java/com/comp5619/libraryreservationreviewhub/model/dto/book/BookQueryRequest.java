@@ -38,7 +38,7 @@ public class BookQueryRequest implements Serializable {
     private Boolean available;
 
     /**
-     * 搜索关键词 (支持模糊匹配 title / author / genre)
+     * 搜索关键词
      */
     private String searchText;
 

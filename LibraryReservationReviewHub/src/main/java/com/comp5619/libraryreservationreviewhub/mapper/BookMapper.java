@@ -10,40 +10,43 @@ public interface BookMapper {
 
     /* ================= 基础 CRUD ================= */
 
-    @Select("SELECT book_id as bookId, title, author, genre, quantity, available, path FROM book WHERE book_id = #{id} ORDER BY title")
+    /** 按 ID 查询：加入 description；去掉无意义的 ORDER BY */
+    @Select("""
+        SELECT book_id AS bookId, title, author, genre, description, quantity, available, path
+        FROM book
+        WHERE book_id = #{id}
+        """)
     Book selectById(@Param("id") Long id);
 
-    /**s
-     * 若无 ISBN，可用 (title, author, genre) 作为“近似唯一”约束做去重检查
-     * 建议在数据库加唯一索引：UNIQUE idx_book_tag (title, author, genre)
-     */
     @Select("""
-        SELECT COUNT(1) 
-        FROM book 
+        SELECT COUNT(1)
+        FROM book
         WHERE title = #{title} AND author = #{author} AND genre = #{genre}
         """)
     long countByTag(@Param("title") String title,
                     @Param("author") String author,
                     @Param("genre") String genre);
 
+    /** 插入：补充 description 与 path */
     @Insert("""
-        INSERT INTO book (title, author, genre, quantity, available, path)
-        VALUES (#{title}, #{author}, #{genre}, #{quantity}, #{available}, #{path})
+        INSERT INTO book (title, author, genre, description, quantity, available, path)
+        VALUES (#{title}, #{author}, #{genre}, #{description}, #{quantity}, #{available}, #{path})
         """)
     @Options(useGeneratedKeys = true, keyProperty = "bookId", keyColumn = "book_id")
     int insertBook(Book b);
 
-    /** 动态更新：仅更新非空字段 */
+    /** 动态更新：仅更新非空字段，补充 description 与 path */
     @Update("""
         <script>
         UPDATE book
         <set>
-          <if test="title    != null">title    = #{title},</if>
-          <if test="author   != null">author   = #{author},</if>
-          <if test="genre    != null">genre    = #{genre},</if>
-          <if test="quantity != null">quantity = #{quantity},</if>
-          <if test="available!= null">available= #{available},</if>
-          <if test="path!= null">path= #{path},</if>
+          <if test="title       != null">title       = #{title},</if>
+          <if test="author      != null">author      = #{author},</if>
+          <if test="genre       != null">genre       = #{genre},</if>
+          <if test="description != null">description = #{description},</if>
+          <if test="quantity    != null">quantity    = #{quantity},</if>
+          <if test="available   != null">available   = #{available},</if>
+          <if test="path        != null">path        = #{path},</if>
         </set>
         WHERE book_id = #{bookId}
         </script>
@@ -59,6 +62,7 @@ public interface BookMapper {
 
     /* ================== 分页 / 搜索 ================== */
 
+    /** 统计：把 description 纳入关键词匹配 */
     @Select("""
         <script>
         SELECT COUNT(1)
@@ -67,7 +71,8 @@ public interface BookMapper {
           <if test="kw != null and kw != ''">
             (title LIKE CONCAT('%', #{kw}, '%')
              OR author LIKE CONCAT('%', #{kw}, '%')
-             OR genre  LIKE CONCAT('%', #{kw}, '%'))
+             OR genre  LIKE CONCAT('%', #{kw}, '%')
+             OR description LIKE CONCAT('%', #{kw}, '%'))
           </if>
           <if test="available != null">
             AND available = #{available}
@@ -79,24 +84,25 @@ public interface BookMapper {
                         @Param("available") Boolean available);
 
     /**
-     * 注意：orderBy 参数用 ${} 直拼，必须在 Service 做字段白名单校验，防止 SQL 注入
-     * 例：允许的字段集 {"title","author","genre","quantity","available"}
+     *
+     *
      */
     @Select("""
         <script>
-        SELECT book_id as bookId, title, author, genre, quantity, available, path
+        SELECT book_id AS bookId, title, author, genre, description, quantity, available, path
         FROM book
         <where>
           <if test="kw != null and kw != ''">
             (title LIKE CONCAT('%', #{kw}, '%')
              OR author LIKE CONCAT('%', #{kw}, '%')
-             OR genre  LIKE CONCAT('%', #{kw}, '%'))
+             OR genre  LIKE CONCAT('%', #{kw}, '%')
+             OR description LIKE CONCAT('%', #{kw}, '%'))
           </if>
           <if test="available != null">
             AND available = #{available}
           </if>
         </where>
-        ORDER BY title ASC
+        ${orderBySql}
         LIMIT #{limit} OFFSET #{offset}
         </script>
         """)
@@ -104,10 +110,11 @@ public interface BookMapper {
                                         @Param("available") Boolean available,
                                         @Param("offset") long offset,
                                         @Param("limit") long limit,
-                                        @Param("orderBy") String orderBySql);
+                                        @Param("orderBySql") String orderBySql);
 
+    /** 按体裁查询：补充 description */
     @Select("""
-        SELECT book_id as bookId, title, author, genre, quantity, available, path
+        SELECT book_id AS bookId, title, author, genre, description, quantity, available, path
         FROM book
         WHERE genre = #{genre}
         ORDER BY title

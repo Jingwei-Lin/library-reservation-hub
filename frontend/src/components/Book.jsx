@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
 import { waitingListService } from "../services/waitingListService";
 import { logoutUser } from "../services/authApi";
+import Portal from './Portal';
 import "./Book.css";
 
-const Book = ({ isAuthenticated, setIsAuthenticated }) => {
-    const { id } = useParams();
+const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
+    // const { id } = useParams();
     const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [reviews, setReviews] = useState([]);
@@ -18,6 +19,25 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
     const [isOnWaitingList, setIsOnWaitingList] = useState(false);
     const [isNotified, setIsNotified] = useState(false);
     const [waitingStatus, setWaitingStatus] = useState(null);
+    const [hasActiveReservation, setHasActiveReservation] = useState(false);
+
+    // State for delete review popup
+    const [showDeletePopup, setShowDeletePopup] = useState(false);
+    const [reviewToDelete, setReviewToDelete] = useState(null);
+
+    // State for reservation popup
+    const [showReservationPopup, setShowReservationPopup] = useState(false);
+    const [reservationForm, setReservationForm] = useState({
+        pickupTime: "",
+        dueTime: ""
+    });
+    const [reservationLoading, setReservationLoading] = useState(false);
+    const [reservationError, setReservationError] = useState("");
+    const [reservationSuccess, setReservationSuccess] = useState("");
+
+    // Review submission feedback
+    const [reviewSuccess, setReviewSuccess] = useState("");
+    const [reviewError, setReviewError] = useState("");
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -30,7 +50,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (bookResponse && bookResponse.code === 0 && bookResponse.data) {
                     setBook(bookResponse.data);
                 } else {
-                    setError(bookResponse?.msg || "Invalid response format");
+                    setError(bookResponse.message || "Invalid response format");
                     return;
                 }
 
@@ -39,12 +59,19 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                     setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
                 } else {
-                    console.warn(reviewResponse?.msg || "No reviews found");
+                    console.warn(reviewResponse.message || "No reviews found");
                     setReviews([]);
                 }
 
-                // Fetch waiting list status if authenticated
+                // Fetch waiting list and reservation status if authenticated
                 if (isAuthenticated) {
+                    // Check reservation status
+                    const reservationResponse = await reservationService.hasActiveReservation(id);
+                    if (reservationResponse && reservationResponse.code === 0) {
+                        setHasActiveReservation(reservationResponse.data.hasActive);
+                    }
+
+                    // Fetch waiting list status
                     await waitingListService.getEligibility();
                     const waitResponse = await waitingListService.getMyWaitingList();
                     if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
@@ -74,10 +101,26 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
         };
 
         fetchBookAndReviews();
-    }, [id, navigate, setIsAuthenticated, isAuthenticated]);
+    }, [id, setIsAuthenticated, isAuthenticated]);
+
+    useEffect(() => {
+        if (showReservationPopup) {
+            document.body.classList.add('popup-open');
+        } else {
+            document.body.classList.remove('popup-open');
+        }
+
+        return () => {
+            document.body.classList.remove('popup-open');
+        };
+    }, [showReservationPopup]);
 
     const handleBack = () => {
-        navigate("/dashboard");
+        if (onBack) {
+            onBack(); // Call onBack if provided
+        } else {
+            navigate('/dashboard'); // Fallback to dashboard
+        }
     };
 
     const handleReserve = () => {
@@ -85,7 +128,82 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             navigate("/login");
             return;
         }
-        navigate(`/reservation/form/${id}`);
+        setShowReservationPopup(true);
+        // navigate(`/reservation/form/${id}?fromBook=${id}`);
+    };
+
+    const handleReservationSubmit = async (e) => {
+        e.preventDefault();
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
+
+        setReservationLoading(true);
+        setReservationError("");
+        setReservationSuccess("");
+
+        try {
+            const pickupDate = new Date(reservationForm.pickupTime);
+            const dueDate = new Date(reservationForm.dueTime);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (pickupDate < today) {
+                throw new Error("Pickup date cannot be in the past");
+            }
+            if (dueDate <= pickupDate) {
+                throw new Error("Due date must be after pickup date");
+            }
+
+            // Calculate maximum allowed due date (7 days from pickup)
+            const maxDueDate = new Date(pickupDate);
+            maxDueDate.setDate(pickupDate.getDate() + 30);
+
+            if (dueDate > maxDueDate) {
+                throw new Error("Reservation period cannot exceed 30 days");
+            }
+
+            const response = await reservationService.createReservation(id, {
+                pickupTime: reservationForm.pickupTime,
+                dueTime: reservationForm.dueTime
+            });
+
+            if (response && response.code === 0) {
+                setReservationSuccess("Reservation created successfully!");
+                setHasActiveReservation(true);
+                setTimeout(() => {
+                    setShowReservationPopup(false);
+                    setReservationForm({ pickupTime: "", dueTime: "" });
+                }, 2000);
+            } else if (response && response.code === 50001) {
+                setReservationError(response.message);
+            } else {
+                setReservationError(response?.message || "Failed to create reservation");
+            }
+        } catch (err) {
+            console.error("createReservation error:", err);
+            if (err.message.includes("Session expired") || err.message.includes("Please log in")) {
+                localStorage.removeItem('user');
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setReservationError(err.message || "Failed to create reservation");
+            }
+        } finally {
+            setReservationLoading(false);
+        }
+    };
+
+    const handleReservationFormChange = (e) => {
+        setReservationForm({ ...reservationForm, [e.target.name]: e.target.value });
+    };
+
+    const handleCloseReservationPopup = () => {
+        setShowReservationPopup(false);
+        setReservationForm({ pickupTime: "", dueTime: "" });
+        setReservationError("");
+        setReservationSuccess("");
     };
 
     const handleJoinWaiting = async () => {
@@ -101,7 +219,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus("waiting");
             } else {
-                window.alert(response?.msg || "Failed to add to waiting list");
+                window.alert(response.message || "Failed to add to waiting list");
             }
         } catch (err) {
             window.alert(err.message || "Failed to add to waiting list");
@@ -122,7 +240,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus(null);
             } else {
-                window.alert(response?.msg || "Failed to cancel waiting list entry");
+                window.alert(response.message || "Failed to cancel waiting list entry");
             }
         } catch (err) {
             window.alert(err.message || "Failed to cancel waiting list entry");
@@ -131,16 +249,19 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
 
     const handleAddReview = async (e) => {
         e.preventDefault();
+        setReviewSuccess("");
+        setReviewError("");
+
         if (!isAuthenticated) {
             navigate("/login");
             return;
         }
         if (newReview.rating < 1 || newReview.rating > 5) {
-            window.alert("Rating must be between 1 and 5");
+            setReviewError("Rating must be between 1 and 5.");
             return;
         }
         if (!newReview.comment.trim()) {
-            window.alert("Comment cannot be empty");
+            setReviewError("Comment cannot be empty.");
             return;
         }
 
@@ -148,39 +269,58 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             setError("");
             const reviewData = { rating: newReview.rating, comment: newReview.comment };
             await reviewService.addReview(parseInt(id), reviewData);
-            window.alert("Review added successfully!");
+
+            setReviewSuccess("✅ Review submitted successfully!");
+
             setNewReview({ rating: 0, comment: "" });
-            window.location.reload();
+
+            // Update reviews immediately
+            const updatedReviews = await reviewService.getReviewsByBookId(id);
+            if (updatedReviews && updatedReviews.code === 0 && Array.isArray(updatedReviews.data)) {
+                setReviews(updatedReviews.data);
+            } else {
+                console.warn("No updated reviews found");
+            }
+
         } catch (err) {
             window.alert(err.message || "Failed to add review");
             console.error("Error adding review:", err);
         }
     };
 
+
     const handleDeleteReview = async (reviewId) => {
         if (!isAuthenticated) {
             navigate("/login");
             return;
         }
-        if (!window.confirm("Are you sure you want to delete this review?")) {
-            return;
-        }
+        // open confirmation popup
+        setReviewToDelete(reviewId);
+        setShowDeletePopup(true);
+    };
 
+    const confirmDeleteReview = async () => {
         try {
             setError("");
-            await reviewService.deleteReview(reviewId);
-            window.alert("Review deleted successfully!");
+            await reviewService.deleteReview(reviewToDelete);
+            setShowDeletePopup(false);
+            setReviewToDelete(null);
+
+            // Refresh the reviews after deletion
             const reviewResponse = await reviewService.getReviewsByBookId(id);
-            if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
-                setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
-            } else {
-                console.warn(reviewResponse?.msg || "No reviews found after deletion");
-                setReviews([]);
+            if (reviewResponse && reviewResponse.code === 0 && Array.isArray(reviewResponse.data)) {
+                setReviews(reviewResponse.data);
             }
         } catch (err) {
-            window.alert(err.message || "Failed to delete review");
             console.error("Error deleting review:", err);
+            setShowDeletePopup(false);
+            setReviewToDelete(null);
         }
+    };
+
+    const cancelDeleteReview = () => {
+        setShowDeletePopup(false);
+        setReviewToDelete(null);
     };
 
     const handleStarClick = (rating) => {
@@ -189,6 +329,132 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
 
     return (
         <div className="book-detail-container">
+            {/* Delete Review Popup */}
+            {showDeletePopup && (
+                <Portal>
+                    <div className="popup-overlay">
+                        <div className="delete-popup">
+                            <div className="popup-header">
+                                <h3>Delete Review</h3>
+                                <button
+                                    className="close-popup"
+                                    onClick={cancelDeleteReview}
+                                    aria-label="Close delete popup"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div className="popup-body">
+                                <p>Are you sure you want to delete this review <strong>permanently</strong>?</p>
+                            </div>
+                            <div className="popup-actions">
+                                <button
+                                    className="cancel-btn"
+                                    onClick={cancelDeleteReview}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="confirm-btn"
+                                    onClick={confirmDeleteReview}
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
+
+            {/* Reservation Popup */}
+            {showReservationPopup && (
+                <Portal>
+                    <div className="popup-overlay">
+                        <div className="reservation-popup">
+                            <div className="popup-header">
+                                <h3>Reserve "{book?.title}"</h3>
+                                <button
+                                    className="close-popup"
+                                    onClick={handleCloseReservationPopup}
+                                    aria-label="Close reservation popup"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <form onSubmit={handleReservationSubmit} className="reservation-form">
+                                <div className="form-group">
+                                    <label htmlFor="pickupTime">Pickup Date:</label>
+                                    <input
+                                        type="date"
+                                        id="pickupTime"
+                                        name="pickupTime"
+                                        value={reservationForm.pickupTime}
+                                        onChange={handleReservationFormChange}
+                                        required
+                                        min={new Date().toISOString().split("T")[0]}
+                                        max={(() => {
+                                            const maxDate = new Date();
+                                            maxDate.setDate(maxDate.getDate() + 7);
+                                            return maxDate.toISOString().split("T")[0];
+                                        })()}
+                                    />
+                                    <small className="date-hint">Select a date within the next 7 days</small>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="dueTime">Due Date:</label>
+                                    <input
+                                        type="date"
+                                        id="dueTime"
+                                        name="dueTime"
+                                        value={reservationForm.dueTime}
+                                        onChange={handleReservationFormChange}
+                                        required
+                                        min={reservationForm.pickupTime || new Date().toISOString().split("T")[0]}
+                                        max={(() => {
+                                            if (reservationForm.pickupTime) {
+                                                const maxDueDate = new Date(reservationForm.pickupTime);
+                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
+                                                return maxDueDate.toISOString().split("T")[0];
+                                            }
+                                            const maxDate = new Date();
+                                            maxDate.setDate(maxDate.getDate() + 30);
+                                            return maxDate.toISOString().split("T")[0];
+                                        })()}
+                                    />
+                                    <small className="date-hint">
+                                        {reservationForm.pickupTime
+                                            ? `Due date must be within 30 days of pickup (max: ${(() => {
+                                                const maxDueDate = new Date(reservationForm.pickupTime);
+                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
+                                                return maxDueDate.toISOString().split("T")[0];
+                                            })()})`
+                                            : "Select pickup date first"
+                                        }
+                                    </small>
+                                </div>
+                                {reservationError && <p className="error">{reservationError}</p>}
+                                {reservationSuccess && <p className="success">{reservationSuccess}</p>}
+                                <div className="popup-actions">
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseReservationPopup}
+                                        className="cancel-btn"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={reservationLoading}
+                                        className="confirm-btn"
+                                    >
+                                        {reservationLoading ? "Reserving..." : "Confirm Reservation"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </Portal>
+            )}
             <button className="book-back-button" onClick={handleBack} aria-label="Back to dashboard">
                 ← Back to Dashboard
             </button>
@@ -236,11 +502,14 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                                 <span className="quantity">Quantity: {book.quantity}</span>
                             )}
                         </div>
-                        {book.available && book.quantity > 0 ? (
+                        {hasActiveReservation ? (
+                            <p className="reservation-status">You have already reserved this book.</p>
+                        ) : book.available && book.quantity > 0 ? (
                             <button
                                 className="reserve-button"
                                 onClick={handleReserve}
                                 aria-label="Reserve book"
+                                disabled={hasActiveReservation}
                             >
                                 Reserve Now
                             </button>
@@ -332,6 +601,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                             >
                                 Submit Review
                             </button>
+                            {reviewSuccess && <p className="review-success">{reviewSuccess}</p>}
+                            {reviewError && <p className="review-error">{reviewError}</p>}
                         </form>
                     )}
 

@@ -8,7 +8,6 @@ const ChatPanel: React.FC = () => {
   const { messages, isTyping, sendMessage, messagesEndRef } = useChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 自动调整textarea高度
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -18,24 +17,17 @@ const ChatPanel: React.FC = () => {
   }, [inputValue]);
 
   const togglePanel = () => {
-    setIsOpen(!isOpen);
-    // 当打开面板时，聚焦输入框
+    setIsOpen(prev => !prev);
     if (!isOpen) {
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 300);
+      setTimeout(() => textareaRef.current?.focus(), 300);
     }
   };
 
   const handleSend = () => {
-    if (inputValue.trim()) {
-      sendMessage(inputValue);
-      setInputValue('');
-      // 重置textarea高度
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-    }
+    if (!inputValue.trim()) return;
+    sendMessage(inputValue);
+    setInputValue('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -47,16 +39,17 @@ const ChatPanel: React.FC = () => {
 
   return (
     <div className={`chat-panel-container ${isOpen ? 'open' : 'closed'}`}>
-      {/* 切换按钮 */}
-      <button 
-        className="chat-toggle-button"
+      {/* 👇 这个按钮使用自定义样式，不受全局 button 干扰 */}
+      <button
+        className="chat-slide-toggle"
+        type="button"
         onClick={togglePanel}
-        aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
+        aria-label={isOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
+        aria-expanded={isOpen}
       >
         {isOpen ? '✕' : '🤖'}
       </button>
 
-      {/* 聊天面板 */}
       <div className="chat-panel">
         <div className="chat-header">
           <h3>🤖 AI Assistant</h3>
@@ -69,13 +62,11 @@ const ChatPanel: React.FC = () => {
             </div>
           ) : (
             messages.map((message) => (
-              <div 
-                key={message.id} 
+              <div
+                key={message.id}
                 className={`message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}
               >
-                <div className="message-content">
-                  {message.content || ' '}
-                </div>
+                <div className="message-content">{message.content || ' '}</div>
                 <div className="message-timestamp">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -103,8 +94,11 @@ const ChatPanel: React.FC = () => {
             disabled={isTyping}
             rows={1}
           />
-          <button 
-            onClick={handleSend} 
+          {/* 👇 发送按钮也单独覆盖全局按钮 */}
+          <button
+            className="chat-send-button"
+            type="button"
+            onClick={handleSend}
             disabled={!inputValue.trim() || isTyping}
             aria-label="Send message"
           >

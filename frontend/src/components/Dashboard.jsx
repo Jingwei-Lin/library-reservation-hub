@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { logoutUser } from "../services/authApi";
 import Header from "./Header";
+import ChatPanel from "./ChatPanel";
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleTheme }) => {
@@ -326,6 +327,8 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated, theme, toggleThe
                     </div>
                 </div>
             </div>
+            {/* AI Assistant Chat Panel */}
+            <ChatPanel />
         </div>
     );
 };

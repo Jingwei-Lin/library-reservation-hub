@@ -4,6 +4,7 @@ package com.comp5619.libraryreservationreviewhub.app;
 import com.comp5619.libraryreservationreviewhub.advisor.MyLoggerAdvisor;
 import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -12,6 +13,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -24,17 +26,38 @@ public class PersonalAgent {
     private final ChatClient chatClient;
 
     private static final String SYSTEM_PROMPT =
-            "Act as an experienced online librarian of a Book Reservation Hub. " +
-                    "Introduce yourself at the beginning, explaining that you can help users discover, reserve, and review books online. " +
-                    "You are responsible for recommending books to users based on their reading preferences, interests, and the current average ratings of available books. " +
-                    "You should also be able to answer users’ questions about specific books, authors, genres, or the reservation system itself. " +
-                    "During interactions, ask guiding questions to better understand the user's taste, reading history, or goals, " +
-                    "then provide thoughtful and personalized recommendations. " +
-                    "When responding, include short explanations about why a book might appeal to the user, and optionally mention related titles or authors. " +
-                    "Your tone should be friendly, professional, and knowledgeable — just like a helpful librarian guiding readers to their next favorite book.";
+            "You are PersonalAgent — a Book Recommendation Assistant for the LibraryReservationReviewHub.\n" +
+                    "\n" +
+                    "Your role:\n" +
+                    "- Recommend books based on user interests and catalog data.\n" +
+                    "- Answer questions about books, genres, availability, reservations, and reviews.\n" +
+                    "- Speak clearly, concisely, and helpfully.\n" +
+                    "\n" +
+                    "Tool usage (MANDATORY for user-related queries):\n" +
+                    "- Use get_user_info to fetch the logged-in user’s username, borrowing history, and reviews.\n" +
+                    "- Trigger this tool whenever the user mentions “my”, “me”, “username”, “account”, “borrowed books”, “reservations”, “reviews”, or “logged-in user”.\n" +
+                    "- Do not guess personal data — always use the tool’s results.\n" +
+                    "\n" +
+                    "Time handling:\n" +
+                    "- When processing timestamps (e.g., dueTime, pickupTime, reservationTime), convert them to human-readable format.\n" +
+                    "- Use Sydney timezone, e.g., \"2025-10-29 11:00:00\".\n" +
+                    "- Never output raw timestamp numbers.\n" +
+                    "\n" +
+                    "After tool call:\n" +
+                    "- Summarize retrieved info (e.g., username, recent borrowings, reviews).\n" +
+                    "- Use it to personalize recommendations.\n" +
+                    "- If not logged in or no data, inform the user politely.\n" +
+                    "\n" +
+                    "Guidelines:\n" +
+                    "- Prioritize tool usage over assumptions.\n" +
+                    "- Give structured, actionable replies.\n" +
+                    "- Respect privacy — never expose internal IDs or system details.";
 
 
 
+    // AI 调用工具能力
+    @Resource
+    private ToolCallback[] allTools;
 
 
 
@@ -60,7 +83,8 @@ public class PersonalAgent {
 
 
         /**
-         * AI 基础对话（支持多轮对话记忆）
+         * AI 基础对话
+         * 支持多轮对话记忆，工具调用
          * @param message
          * @param chatId
          * @return
@@ -70,6 +94,7 @@ public class PersonalAgent {
                     .prompt()
                     .user(message)
                     .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                    .toolCallbacks(allTools)
                     .call()
                     .chatResponse();
             String content = chatResponse.getResult().getOutput().getText();
@@ -77,27 +102,62 @@ public class PersonalAgent {
             return content;
         }
         /**
-         * AI 基础对话（支持多轮对话记忆，SSE 流式传输）
+         * AI 基础对话
+         * 支持多轮对话记忆，SSE 流式传输，工具调用
          *
          * @param message
          * @param chatId
          * @return
          */
-        public Flux<String> doChatByStream(String message, String chatId) {
-            return chatClient
-                    .prompt()
-                    .user(message)
-                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                    .stream()
-                    .content();
+    /**
+     * SSE 流式对话 + 用户上下文
+     */
+    public Flux<String> doChatByStream(String message, String chatId, String userContext) {
+        String finalPrompt = buildPromptWithUserContext(message, userContext);
+
+        return chatClient
+                .prompt()
+                .user(finalPrompt)
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+                .toolCallbacks(allTools)
+                .stream()
+                .content();
+    }
+
+    /**
+     * 构造带用户上下文的 prompt
+     */
+    private String buildPromptWithUserContext(String message, String userContext) {
+        if (userContext == null || userContext.isEmpty()) {
+            return String.format("[UserContext]: {\"status\":\"not_logged_in\"}\n[Message]: %s", message);
         }
-
-        record PersonalAgentReport(String title, List<String> suggestions) {
-
-        }
+        return String.format("[UserContext]: %s\n[Message]: %s", userContext, message);
+    }
 
 
 
+
+//    /**
+//     * AI 使用工具 聊天
+//     *
+//     * @param message
+//     * @param chatId
+//     * @return
+//     */
+//    public String doChatWithTools(String message, String chatId) {
+//        ChatResponse chatResponse = chatClient
+//                .prompt()
+//                .user(message)
+//                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+//                // 开启日志，便于观察效果
+//                .advisors(new MyLoggerAdvisor())
+//                .toolCallbacks(allTools)
+//                .call()
+//                .chatResponse();
+//        String content = chatResponse.getResult().getOutput().getText();
+//        log.info("content: {}", content);
+//        return content;
+//    }
 
 
 

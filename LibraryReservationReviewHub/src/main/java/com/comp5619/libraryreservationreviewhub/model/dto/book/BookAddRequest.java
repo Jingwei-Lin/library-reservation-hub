@@ -36,4 +36,14 @@ public class BookAddRequest implements Serializable {
      * 是否可借 (默认 true)
      */
     private Boolean available;
+
+    /**
+     * 描述
+     */
+    private String description;
+
+    /**
+    * 路径
+    */
+    private String path;
 }

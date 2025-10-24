@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { reservationService } from "../services/reservationService";
 import "./ReservationForm.css";
 
 const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
     const { bookId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({
         pickupTime: "",
         dueTime: "",
@@ -52,9 +53,9 @@ const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
                 setTimeout(() => navigate("/reservations"), 2000);
             } else if (response && response.code === 50001) {
                 // Handle OPERATION_ERROR specifically
-                setError(response.message || "You have already reserved this book");
+                setError(response.message);
             } else {
-                setError(response?.message || "Invalid response from server");
+                setError(response?.message);
             }
         } catch (err) {
             console.error("createReservation error:", err);
@@ -70,10 +71,14 @@ const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
         }
     };
 
+    // Parse fromBook query parameter
+    const params = new URLSearchParams(location.search);
+    const fromBook = params.get('fromBook') || bookId;
+
     return (
         <div className="reservation-form-container">
             <h2>Reserve Book</h2>
-            <button onClick={() => navigate(`/book/${bookId}`)} className="back-button">
+            <button onClick={() => navigate(`/dashboard?book=${fromBook}`)} className="back-button">
                 ← Back to Book
             </button>
 

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../services/authApi';
 
-const Login = ({ setIsAuthenticated, setUser }) => {
+const Login = ({ setIsAuthenticated, setUser, theme }) => {
     const [formData, setFormData] = useState({ userAccount: '', userPassword: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -43,7 +43,11 @@ const Login = ({ setIsAuthenticated, setUser }) => {
     };
 
     return (
-        <div className="page-container login-container">
+        <div className={`page-container login-container ${theme === "dark" ? "dark-mode" : ""}`}>
+            <button onClick={() => navigate("/dashboard")} className="back-button">
+                ← Back to Dashboard
+            </button>
+
             <h2>Login</h2>
             <form onSubmit={handleSubmit}>
                 <div>

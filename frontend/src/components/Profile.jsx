@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../services/userService";
 import { logoutUser } from "../services/authApi";
+import { getTheme } from "../themeUtils";
 import "./Profile.css";
 
-const Profile = ({ user, setIsAuthenticated, theme }) => {
+const Profile = ({ user, setIsAuthenticated }) => {
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState({
         firstName: "",
@@ -17,6 +18,7 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [theme, setTheme] = useState(getTheme());
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -64,7 +66,7 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (profileData.password !== profileData.confirmPassword) {
-            setError("Passwords do not match");
+            setError("Passwords do not match!");
             return;
         }
         try {
@@ -72,16 +74,17 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
             setSuccess("");
 
             const response = await userService.updateUserProfile(profileData);
+            console.log(response);
             if (response && response.code === 0) {
                 setSuccess("Profile updated successfully!");
                 // Update session storage if needed
                 const updatedUser = { ...user, ...profileData };
                 sessionStorage.setItem("user", JSON.stringify(updatedUser));
             } else {
-                setError(response?.message || "Failed to update profile");
+                setError(response?.message || "Failed to update profile.");
             }
         } catch (err) {
-            setError(err.message || "Failed to update profile");
+            setError(err.response?.data?.message || err.message || "Failed to update profile.");
             console.error("Error updating profile:", err);
         }
     };
@@ -89,10 +92,13 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
     return (
         <div className={`profile-container ${theme === "dark" ? "dark-mode" : ""}`}>
             <h1>Profile Settings</h1>
+            <button onClick={() => navigate("/dashboard")} className="back-button">
+                ← Back to Dashboard
+            </button>
             {loading && <div className="loading">Loading profile...</div>}
             {error && <div className="error">{error}</div>}
             {success && <div className="success">{success}</div>}
-            {!loading && !error && (
+            {!loading && (
                 <form onSubmit={handleSubmit} className="profile-form">
                     <div className="form-group">
                         <label htmlFor="firstName">First Name:</label>

@@ -58,16 +58,19 @@ public class BookServiceImpl implements BookService {
         String author = StrUtil.trim(req.getAuthor());
         String genre = StrUtil.trim(req.getGenre());
 
-        ThrowUtils.throwIf(StrUtil.hasBlank(title, author, genre), ErrorCode.PARAMS_ERROR, "图书信息不能为空");
+        ThrowUtils.throwIf(StrUtil.hasBlank(title, author, genre), ErrorCode.PARAMS_ERROR, "Book information cannot be left blank.");
 
-        // 若无 ISBN，用 (title, author, genre)
         long cnt = bookMapper.countByTag(title, author, genre);
-        ThrowUtils.throwIf(cnt > 0, ErrorCode.PARAMS_ERROR, "该书已存在");
+        ThrowUtils.throwIf(cnt > 0, ErrorCode.PARAMS_ERROR, "The book already exists.");
 
         Book b = new Book();
         b.setTitle(title);
         b.setAuthor(author);
         b.setGenre(genre);
+
+        b.setDescription(StrUtil.emptyToNull(StrUtil.trim(req.getDescription())));
+        b.setPath(StrUtil.emptyToNull(StrUtil.trim(req.getPath())));
+
         b.setQuantity(req.getQuantity() == null ? 0 : req.getQuantity());
         b.setAvailable(req.getAvailable() == null ? Boolean.TRUE : req.getAvailable());
 
@@ -95,7 +98,6 @@ public class BookServiceImpl implements BookService {
         Book old = bookMapper.selectById(book.getBookId());
         ThrowUtils.throwIf(old == null, ErrorCode.NOT_FOUND_ERROR);
 
-        // 只允许更新：title/author/genre/quantity/available（Mapper 已做动态非空更新）
         return bookMapper.updateBook(book) > 0;
     }
 
@@ -111,9 +113,7 @@ public class BookServiceImpl implements BookService {
     public BookVO getBookVO(Book book) {
         if (book == null) return null;
         BookVO vo = new BookVO();
-        // 建议 BookVO 仅包含：bookId/title/author/genre/quantity/available
         BeanUtils.copyProperties(book, vo);
-        // 如果 BookVO 字段名不同，手动映射：
         vo.setBookId(book.getBookId());
         vo.setTitle(book.getTitle());
         vo.setAuthor(book.getAuthor());
@@ -121,6 +121,7 @@ public class BookServiceImpl implements BookService {
         vo.setQuantity(book.getQuantity());
         vo.setAvailable(book.getAvailable());
         vo.setPath(book.getPath());
+        vo.setDescription(book.getDescription());
         return vo;
     }
 
@@ -132,7 +133,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available) {
-        Set<String> whitelist = Set.of("book_id", "title", "author", "genre", "quantity", "available");
+        Set<String> whitelist = Set.of("book_id", "title", "author", "genre", "quantity", "available" , "description");
         PageCalc p = calc(pageReq, whitelist);
 
         String kw = StrUtil.emptyToDefault(keyword, "");
@@ -146,7 +147,7 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public List<BookVO> getBooksByGenre(String genre) {
-        ThrowUtils.throwIf(StrUtil.isBlank(genre), ErrorCode.PARAMS_ERROR, "genre 不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(genre), ErrorCode.PARAMS_ERROR, "genre can not be null");
         List<Book> list = bookMapper.selectByGenre(genre.trim());
         return getBookVOList(list);
     }

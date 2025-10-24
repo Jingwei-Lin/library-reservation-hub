@@ -17,4 +17,6 @@ public class ReservationVO implements Serializable {
     private Date dueTime;
     private Date returnTime;
     private String reservationStatus;
+
+
 }

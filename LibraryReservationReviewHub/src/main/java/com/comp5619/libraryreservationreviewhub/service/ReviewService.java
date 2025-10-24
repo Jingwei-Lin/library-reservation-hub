@@ -49,6 +49,16 @@ public interface ReviewService {
     Review getReviewById(long reviewId);
 
     /**
+     * 根据用户ID获取该用户的所有评论
+     *
+     * @param userId 用户ID
+     * @return 评论VO列表
+     */
+    List<ReviewVO> getReviewsByUserId(Long userId);
+
+
+
+    /**
      * 分页输出
      * 
      * @param req

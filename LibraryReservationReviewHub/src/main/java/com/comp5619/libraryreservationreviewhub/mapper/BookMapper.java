@@ -27,7 +27,7 @@ public interface BookMapper {
                     @Param("author") String author,
                     @Param("genre") String genre);
 
-    /** 插入：补充 description 与 path */
+
     @Insert("""
         INSERT INTO book (title, author, genre, description, quantity, available, path)
         VALUES (#{title}, #{author}, #{genre}, #{description}, #{quantity}, #{available}, #{path})

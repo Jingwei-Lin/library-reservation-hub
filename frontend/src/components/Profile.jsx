@@ -37,7 +37,7 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
                         confirmPassword: ""
                     });
                 } else {
-                    setError(response?.msg || "Failed to load profile");
+                    setError(response?.message || "Failed to load profile");
                 }
             } catch (err) {
                 if (err.message.includes("Session expired or user banned")) {
@@ -78,7 +78,7 @@ const Profile = ({ user, setIsAuthenticated, theme }) => {
                 const updatedUser = { ...user, ...profileData };
                 sessionStorage.setItem("user", JSON.stringify(updatedUser));
             } else {
-                setError(response?.msg || "Failed to update profile");
+                setError(response?.message || "Failed to update profile");
             }
         } catch (err) {
             setError(err.message || "Failed to update profile");

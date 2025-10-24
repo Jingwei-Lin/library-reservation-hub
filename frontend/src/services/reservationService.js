@@ -29,7 +29,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to create reservation');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to create reservation');
         }
     },
 
@@ -46,7 +46,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to load reservations');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load reservations');
         }
     },
 
@@ -63,7 +63,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to cancel reservation');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to cancel reservation');
         }
     },
 
@@ -80,7 +80,39 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to check reservation status');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to check reservation status');
+        }
+    },
+
+    getAllReservations: async (current = 1, pageSize = 5) => {
+        try {
+            const response = await api.get(`/reservation/all`, {
+                headers: getAuthHeader(),
+                params: { current, pageSize },
+            });
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load all reservations');
+        }
+    },
+
+    updateReservationStatus: async (reservationId, status) => {
+        try {
+            const response = await api.put(`/reservation/status/${reservationId}`, null, {
+                headers: getAuthHeader(),
+                params: { status },
+            });
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to update reservation status');
         }
     },
 };

@@ -28,7 +28,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (response && response.code === 0 && response.data) {
                     setReservations(Array.isArray(response.data) ? response.data : []);
                 } else {
-                    setError(response?.msg || "Invalid response format from server");
+-                    setError(response?.msg || "Invalid response format from server");
++                    setError(response?.message || "Invalid response format from server");
                 }
             } catch (err) {
                 console.error("fetchReservations error:", err);
@@ -64,7 +65,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 setSuccessMessage("Reservation cancelled successfully!");
                 setTimeout(() => setSuccessMessage(""), 3000);
             } else {
-                setError(response?.msg || "Failed to cancel reservation");
+-                setError(response?.msg || "Failed to cancel reservation");
++                setError(response?.message || "Failed to cancel reservation");
             }
         } catch (err) {
             console.error("cancelReservation error:", err);

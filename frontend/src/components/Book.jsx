@@ -39,7 +39,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                     setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
                 } else {
-                    console.warn(reviewResponse?.msg || "No reviews found");
+                    console.warn(reviewResponse?.message || "No reviews found");
                     setReviews([]);
                 }
 
@@ -101,7 +101,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus("waiting");
             } else {
-                window.alert(response?.msg || "Failed to add to waiting list");
+                window.alert(response?.message || "Failed to add to waiting list");
             }
         } catch (err) {
             window.alert(err.message || "Failed to add to waiting list");
@@ -122,7 +122,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
                 setIsNotified(false);
                 setWaitingStatus(null);
             } else {
-                window.alert(response?.msg || "Failed to cancel waiting list entry");
+                window.alert(response?.message || "Failed to cancel waiting list entry");
             }
         } catch (err) {
             window.alert(err.message || "Failed to cancel waiting list entry");
@@ -174,7 +174,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated }) => {
             if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
                 setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
             } else {
-                console.warn(reviewResponse?.msg || "No reviews found after deletion");
+                console.warn(reviewResponse?.message || "No reviews found after deletion");
                 setReviews([]);
             }
         } catch (err) {

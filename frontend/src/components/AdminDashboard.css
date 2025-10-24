@@ -175,6 +175,9 @@
   background: #1a2028;
 }
 
+.admin-table tbody tr.row-red td {
+  color: var(--danger);
+}
 .actions {
   display: flex;
   align-items: center;

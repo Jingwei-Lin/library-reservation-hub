@@ -97,12 +97,14 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     public boolean cancelReservation(Long reservationId, User user) {
         log.info("Attempting to cancel reservationId: {} for userId: {}", reservationId, user.getId());
-        ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR, "Invalid reservation ID");
+        ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR,
+                "Invalid reservation ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
 
         Reservation reservation = reservationMapper.selectById(reservationId);
         log.info("Fetched reservation: {}", reservation);
-        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR, "Reservation not found or already cancelled");
+        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR,
+                "Reservation not found or already cancelled");
         ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
                 ErrorCode.NO_AUTH_ERROR, "Not authorized to cancel this reservation");
 
@@ -173,10 +175,16 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public PageResult<ReservationVO> getAllReservations(PageRequest pageRequest, User operator) {
         ThrowUtils.throwIf(!userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
-        List<Reservation> reservations = reservationMapper.selectByUserId(null);
-        log.info("Fetched all reservations: {}", reservations);
-        return new PageResult<>(pageRequest.getCurrent(), pageRequest.getPageSize(),
-                reservations.size(), reservations.stream().map(this::toReservationVO).collect(Collectors.toList()));
+        List<Reservation> reservations = reservationMapper.selectAll();
+        int current = Math.max(1, pageRequest.getCurrent());
+        int pageSize = Math.max(1, pageRequest.getPageSize());
+        int total = reservations.size();
+        int fromIndex = Math.min((current - 1) * pageSize, total);
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        List<Reservation> pageList = total == 0 ? List.of() : reservations.subList(fromIndex, toIndex);
+        return new PageResult<>(current, pageSize,
+                total,
+                pageList.stream().map(this::toReservationVO).collect(java.util.stream.Collectors.toList()));
     }
 
     @Override

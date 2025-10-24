@@ -309,6 +309,9 @@
     transform: translateX(4px);
 }
 
+.admin-table tbody tr.row-red td {
+  color: var(--danger);
+}
 .actions {
     display: flex;
     align-items: center;

@@ -39,7 +39,7 @@ const Profile = ({ user, setIsAuthenticated }) => {
                         confirmPassword: ""
                     });
                 } else {
-                    setError(response?.msg || "Failed to load profile");
+                    setError(response?.message || "Failed to load profile");
                 }
             } catch (err) {
                 if (err.message.includes("Session expired or user banned")) {

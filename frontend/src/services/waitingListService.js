@@ -23,7 +23,7 @@ export const waitingListService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to load waiting list');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load waiting list');
         }
     },
 
@@ -38,7 +38,7 @@ export const waitingListService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to add to waiting list');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to add to waiting list');
         }
     },
 
@@ -53,7 +53,7 @@ export const waitingListService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to cancel waiting list entry');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to cancel waiting list entry');
         }
     },
 
@@ -68,7 +68,7 @@ export const waitingListService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to check eligibility');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to check eligibility');
         }
     },
 };

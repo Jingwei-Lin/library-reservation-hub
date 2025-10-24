@@ -36,6 +36,33 @@ CREATE TABLE Book (
                       available BOOLEAN DEFAULT TRUE,
                       `path` VARCHAR(255)
 );
+
+-- 触发器：插入前
+DELIMITER $$
+CREATE TRIGGER trg_book_bi_set_available
+    BEFORE INSERT ON Book
+    FOR EACH ROW
+BEGIN
+    IF NEW.quantity IS NULL OR NEW.quantity <= 0 THEN
+        SET NEW.quantity  = 0;
+        SET NEW.available = FALSE;
+    END IF;
+END$$
+DELIMITER ;
+
+-- 触发器：更新前
+DELIMITER $$
+CREATE TRIGGER trg_book_bu_set_available
+    BEFORE UPDATE ON Book
+    FOR EACH ROW
+BEGIN
+    IF NEW.quantity IS NULL OR NEW.quantity <= 0 THEN
+        SET NEW.quantity  = 0;
+        SET NEW.available = FALSE;
+    END IF;
+END$$
+DELIMITER ;
+
 CREATE TABLE Waiting_list (
                               wait_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                               user_id INT NOT NULL,

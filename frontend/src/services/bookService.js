@@ -13,7 +13,7 @@ const api = axios.create({
 export const bookService = {
     getAllBooks: async (page = 1, size = 101) => {
         try {
-            const response = await api.get(`/book/search?current=${page}&pageSize=${size}`);
+            const response = await api.get(`/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`);
             console.log('Get all books response:', response);
             return response.data;
         } catch (error) {
@@ -29,8 +29,8 @@ export const bookService = {
     searchBooks: async (keyword, page = 1, size = 101) => {
         try {
             const url = keyword
-                ? `/book/search?keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`
-                : `/book/search?current=${page}&pageSize=${size}`;
+                ? `/book/search?sortField=title&sortOrder=ascend&keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`
+                : `/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`;
             const response = await api.get(url);
             console.log('Search books response:', response);
             return response.data;

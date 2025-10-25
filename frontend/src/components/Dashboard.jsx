@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
+import { waitingListService } from "../services/waitingListService";
 import { logoutUser } from "../services/authApi";
 import Header from "./Header";
 
@@ -21,6 +22,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
     const [selectedBookId, setSelectedBookId] = useState(null);
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
+    const [hasNotification, setHasNotification] = useState(false);
     const booksPerPage = 12;
     const navigate = useNavigate();
     const location = useLocation();
@@ -58,6 +60,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         const initializeDashboard = async () => {
             console.log(sessionStorage);
             await fetchBooks();
+            await fetchWaitingList();
             setInitialLoadComplete(true);
         };
 
@@ -80,6 +83,12 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
             setSelectedBookId(null);
         }
     }, [location.search], initialLoadComplete, navigate);
+
+    useEffect(() => {
+        if (initialLoadComplete) {
+            fetchWaitingList(); // Refetch when navigating back to dashboard
+        }
+    }, [location.pathname, initialLoadComplete]);
 
     const fetchBooks = async (keyword = "") => {
         try {
@@ -194,6 +203,30 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         navigate('/dashboard', { replace: true });
     };
 
+    // Fetch waiting list and check for notified status
+    const fetchWaitingList = async () => {
+        try {
+            const response = await waitingListService.getMyWaitingList();
+            if (response && response.code === 0 && response.data) {
+                // Check if any waiting list item has status "notified"
+                const hasNotified = response.data.some(item => item.status === "notified");
+                setHasNotification(hasNotified);
+            } else {
+                setHasNotification(false); // No notifications if response is invalid
+            }
+        } catch (err) {
+            console.error("fetchWaitingList error:", err);
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                console.warn("Failed to check waiting list notifications");
+                setHasNotification(false); // Safe default on error
+            }
+        }
+    };
+
     // Pagination logic
     const indexOfLastBook = currentPage * booksPerPage;
     const indexOfFirstBook = indexOfLastBook - booksPerPage;
@@ -245,7 +278,13 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     <ul>
                         <li onClick={() => fetchBooks()}>All Books</li>
                         <li onClick={() => navigate("/reservations")}>My Reservations</li>
-                        <li onClick={() => navigate("/waitinglist")}>My Waiting List</li>
+                        <li
+                            onClick={() => navigate("/waitinglist")}
+                            className={hasNotification ? "shiny" : ""}
+                        >
+                            My Waiting List
+                            {hasNotification && <span className="notification-dot"></span>}
+                        </li>
                     </ul>
                 </div>
                 <div className="category-box">

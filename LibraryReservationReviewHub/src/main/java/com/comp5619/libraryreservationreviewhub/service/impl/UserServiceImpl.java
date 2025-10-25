@@ -115,8 +115,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!user.getUserPassword().equals(getEncryptPassword(userPassword))) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Incorrect password");
         }
+        // user is banned
+        if (user.getStatus().equals(0)) {
+            throw new BusinessException(ErrorCode.USER_BANNED);
+        }
         // 4. 获取脱敏后的用户信息
         LoginUserVO loginUserVO = getLoginUserVO(user);
+
 
         // Set properties for LoginUserVO
         BeanUtils.copyProperties(user, loginUserVO);

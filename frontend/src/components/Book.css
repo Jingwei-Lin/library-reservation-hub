@@ -23,18 +23,24 @@
 }
 
 .book-back-button {
+    position: absolute;
+    top: 2rem; /* Distance from the top of the container */
+    right: 3rem; /* Distance from the right of the container */
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 1rem;
-    margin-bottom: 2rem;
-    padding: 12px 20px;
-    border-radius: 12px;
+    font-size: 1rem; /* Smaller font size */
+    padding: 8px 16px; /* Reduced padding for a smaller button */
+    border-radius: 8px; /* Slightly smaller border-radius for proportionality */
     font-weight: 600;
     transition: all 0.3s ease;
-    position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto; /* Ensure it doesn't stretch */
+    z-index: 10; /* Ensure it stays above other elements */
 }
 
 .book-back-button::before {
@@ -58,6 +64,7 @@
 }
 
 .book-detail-card {
+    padding-top: 3.5rem;
     display: flex;
     gap: 3rem;
     align-items: flex-start;
@@ -125,6 +132,33 @@
     border-radius: 20px;
     display: inline-block;
     font-weight: 500;
+}
+
+.book-description-title {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.3;
+    text-align: left;
+}
+
+.book-description {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 2rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    text-align: left;
 }
 
 .book-status {
@@ -584,8 +618,10 @@
     background: var(--surface);
     border-radius: 20px;
     padding: 0;
-    width: 95%;                  /* increased from 90% for better fit */
-    max-width: 520px;            /* slightly wider to align with top decoration */
+    width: 90%;
+    max-width: 520px;
+    max-height: 50vh;
+    overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -832,6 +868,7 @@
 /* Responsive adjustments */
 @media (max-width: 968px) {
     .book-detail-card {
+        padding-top: 3rem;
         flex-direction: column;
         align-items: center;
         text-align: center;
@@ -849,6 +886,18 @@
 
     .book-status {
         justify-content: center;
+    }
+
+    .book-description-title {
+        font-size: 1.3rem;
+        text-align: left;
+    }
+
+    .book-description {
+        font-size: 0.95rem;
+        padding: 0.75rem;
+        max-height: 150px;
+        text-align: left;
     }
 }
 
@@ -914,6 +963,9 @@
         margin: 70px 15px 15px;
         padding: 1rem;
     }
+    .book-detail-card {
+        padding-top: 2.5rem;
+    }
 
     .book-detail-cover {
         height: 300px;
@@ -921,6 +973,18 @@
 
     .book-detail-info h1 {
         font-size: 1.8rem;
+    }
+
+    .book-description-title {
+        font-size: 1.2rem;
+        text-align: left;
+    }
+
+    .book-description {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+        max-height: 120px;
+        text-align: left;
     }
 
     .reviews-section {
@@ -986,4 +1050,14 @@
 .book-detail-container.dark-mode .reservation-form input:focus {
     background: rgba(255, 255, 255, 0.08);
     border-color: var(--primary);
+}
+
+/* Dark mode specific styles for description */
+.book-detail-container.dark-mode .book-description {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.book-detail-container.dark-mode .book-description:hover {
+    background: rgba(255, 255, 255, 0.06);
 }

@@ -243,7 +243,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                 <div className="nav-box">
                     <h3>Navigation</h3>
                     <ul>
-                        <li onClick={() => navigate("/dashboard")}>All Books</li>
+                        <li onClick={() => fetchBooks()}>All Books</li>
                         <li onClick={() => navigate("/reservations")}>My Reservations</li>
                         <li onClick={() => navigate("/waitinglist")}>My Waiting List</li>
                     </ul>

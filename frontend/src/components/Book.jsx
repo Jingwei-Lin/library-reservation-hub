@@ -456,7 +456,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 </Portal>
             )}
             <button className="book-back-button" onClick={handleBack} aria-label="Back to dashboard">
-                ← Back to Dashboard
+                ← Back
             </button>
 
             {loading && <div className="loading">Loading book details...</div>}
@@ -493,7 +493,9 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                     <div className="book-detail-info">
                         <h1>{book.title}</h1>
                         <p className="book-author">by {book.author}</p>
-                        <p className="book-genre">Genre: {book.genre}</p>
+                        <p className="book-genre">{book.genre}</p>
+                        <p className="book-description-title">Description:</p>
+                        <p className="book-description">{book.description}</p>
                         <div className="book-status">
                             <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
                                 {book.available ? 'Available' : 'Unavailable'}

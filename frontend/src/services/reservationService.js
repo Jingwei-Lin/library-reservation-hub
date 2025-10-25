@@ -8,8 +8,10 @@ const api = axios.create({
 
 const getAuthHeader = () => {
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-    if (!user || !user.token) {
-        console.warn('No valid user or token found in sessionStorage:', user);
+    console.log(user);
+    console.log(sessionStorage);
+    if (!user) {
+        console.warn('No valid user found in sessionStorage:', user);
         return {};
     }
     return { Authorization: `Bearer ${user.token}` };

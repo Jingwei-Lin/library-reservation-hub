@@ -20,6 +20,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,13 +41,45 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Creating reservation for bookId: {}, userId: {}", bookId, user.getId());
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
+        ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
         ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Reservation details are required");
 
         // Validate dates
-        Date today = new Date();
-        ThrowUtils.throwIf(req.getPickupTime() == null || req.getPickupTime().before(today),
-                ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
-        ThrowUtils.throwIf(req.getDueTime() == null || req.getDueTime().before(req.getPickupTime()),
+        Date pickupTime = req.getPickupTime();
+        Date dueTime = req.getDueTime();
+        ThrowUtils.throwIf(pickupTime == null, ErrorCode.PARAMS_ERROR, "Pickup date is required");
+        ThrowUtils.throwIf(dueTime == null, ErrorCode.PARAMS_ERROR, "Due date is required");
+
+        // Normalize dates to compare only date part
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        Date today = todayCal.getTime();
+
+        Calendar pickupCal = Calendar.getInstance();
+        pickupCal.setTime(pickupTime);
+        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
+        pickupCal.set(Calendar.MINUTE, 0);
+        pickupCal.set(Calendar.SECOND, 0);
+        pickupCal.set(Calendar.MILLISECOND, 0);
+        Date pickupDateOnly = pickupCal.getTime();
+
+        // Allow pickup date to be today or future
+        ThrowUtils.throwIf(pickupDateOnly.before(today), ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
+
+        // Set dueTime to just before midnight (23:59:59.999)
+        Calendar dueCal = Calendar.getInstance();
+        dueCal.setTime(dueTime);
+        dueCal.set(Calendar.HOUR_OF_DAY, 23);
+        dueCal.set(Calendar.MINUTE, 59);
+        dueCal.set(Calendar.SECOND, 59);
+        dueCal.set(Calendar.MILLISECOND, 999);
+        Date adjustedDueTime = dueCal.getTime();
+
+        // Validate due date is after pickup date
+        ThrowUtils.throwIf(adjustedDueTime.before(pickupTime) || adjustedDueTime.equals(pickupTime),
                 ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
 
         // Check if book is available

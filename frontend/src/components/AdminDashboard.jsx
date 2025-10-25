@@ -560,10 +560,10 @@ useEffect(() => {
         {usersLoading && <div className="loading">Loading users...</div>}
         {usersError && <div className="alert alert-error">{usersError}</div>}
         {usersSuccess && <div className="alert alert-success">{usersSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table users-table">
           <thead>
             <tr>
-              <th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
+              <th></th><th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -599,10 +599,10 @@ useEffect(() => {
         {rvLoading && <div className="loading">Loading reviews...</div>}
         {rvError && <div className="alert alert-error">{rvError}</div>}
         {rvSuccess && <div className="alert alert-success">{rvSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table reviews-table">
           <thead>
             <tr>
-              <th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
+              <th></th><th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -637,10 +637,10 @@ useEffect(() => {
         {booksLoading && <div className="loading">Loading books...</div>}
         {booksError && <div className="alert alert-error">{booksError}</div>}
         {booksSuccess && <div className="alert alert-success">{booksSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table books-table">
           <thead>
             <tr>
-              <th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>ISBN</th><th>Available</th><th>Actions</th>
+              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>ISBN</th><th>Available</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -681,9 +681,10 @@ useEffect(() => {
         {resLoading && <div className="loading">Loading reservations...</div>}
         {resError && <div className="alert alert-error">{resError}</div>}
         {resSuccess && <div className="alert alert-success">{resSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table reservations-table">
           <thead>
             <tr>
+              <th></th>
               <th>User ID</th>
               <th>Book Title</th>
               <th>Borrowed Date</th>

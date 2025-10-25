@@ -310,7 +310,7 @@
 }
 
 .admin-table tbody tr.row-red td {
-  color: var(--danger);
+    color: var(--danger);
 }
 .actions {
     display: flex;

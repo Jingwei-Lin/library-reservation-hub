@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
@@ -247,5 +248,66 @@ public class ReservationServiceImpl implements ReservationService {
                 .anyMatch(r -> r != null && r.getUserId() != null && r.getReservationStatus() != null &&
                         r.getUserId().equals(userId) &&
                         List.of("reserved", "borrowed").contains(r.getReservationStatus()));
+    }
+
+    @Override
+    @Transactional
+    public boolean updatePickupTime(ReservationUpdatePickupRequest req, User user) {
+        log.info("Attempting to update pickup time for reservationId: {} by userId: {}",
+                req.getReservationId(), user.getId());
+
+        // Validate inputs
+        ThrowUtils.throwIf(req == null || req.getReservationId() == null || req.getReservationId() <= 0,
+                ErrorCode.PARAMS_ERROR, "Invalid reservation ID");
+        ThrowUtils.throwIf(req.getPickupTime() == null, ErrorCode.PARAMS_ERROR, "Pickup time is required");
+        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
+        ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
+
+        // Fetch the reservation
+        Reservation reservation = reservationMapper.selectById(req.getReservationId());
+        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(),
+                ErrorCode.NOT_FOUND_ERROR, "Reservation not found or already cancelled");
+        ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
+                ErrorCode.NO_AUTH_ERROR, "Not authorized to update this reservation");
+
+        // Validate reservation status (only allow updates for 'reserved' status)
+        ThrowUtils.throwIf(!"reserved".equals(reservation.getReservationStatus()),
+                ErrorCode.OPERATION_ERROR, "Can only update pickup time for reserved status");
+
+        // Validate new pickup time
+        Date newPickupTime = req.getPickupTime();
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        Date today = todayCal.getTime();
+
+        Calendar pickupCal = Calendar.getInstance();
+        pickupCal.setTime(newPickupTime);
+        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
+        pickupCal.set(Calendar.MINUTE, 0);
+        pickupCal.set(Calendar.SECOND, 0);
+        pickupCal.set(Calendar.MILLISECOND, 0);
+        Date pickupDateOnly = pickupCal.getTime();
+
+        // Allow pickup date to be today or future
+        ThrowUtils.throwIf(pickupDateOnly.before(today),
+                ErrorCode.PARAMS_ERROR, "New pickup date cannot be in the past");
+
+        // Validate new pickup time is before due time
+        ThrowUtils.throwIf(newPickupTime.after(reservation.getDueTime()) ||
+                        newPickupTime.equals(reservation.getDueTime()),
+                ErrorCode.PARAMS_ERROR, "New pickup time must be before due time");
+
+        // Update the reservation
+        reservation.setPickupTime(newPickupTime);
+        reservation.setUpdateTime(new Date());
+        int rows = reservationMapper.updatePickupTime(req.getReservationId(), newPickupTime);
+        log.info("Updated pickup time for reservationId {}, rows affected: {}",
+                req.getReservationId(), rows);
+        ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to update pickup time");
+
+        return true;
     }
 }

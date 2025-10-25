@@ -117,4 +117,21 @@ export const reservationService = {
             throw new Error(error.response?.data?.message || error.message || 'Failed to update reservation status');
         }
     },
+
+    updatePickupTime: async (reservationId, formData) => {
+        try {
+            const response = await api.put(`/reservation/pickup/${reservationId}`, formData, {
+                headers: getAuthHeader(),
+            });
+            console.log('updatePickupTime response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('updatePickupTime error:', error.response?.data, error.message);
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to update pickup time');
+        }
+    },
 };

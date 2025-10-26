@@ -26,8 +26,7 @@ export const loginUser = async (loginData) => {
     const response = await api.post('/user/login', loginData);
     const result = response.data;
 
-    console.log("authApi");
-    console.log(result);
+    console.log("authApi:", result);
 
     if (result.code !== 0) {
         throw new Error(result.message || 'Login failed');
@@ -41,11 +40,11 @@ export const validateSession = async () => {
     try {
         const response = await api.get('/user/get/login');
         const result = response.data;
-        console.log(response)
+        console.log("validateSession:", result)
         if (result.code !== 0) {
             throw new Error(result.message || 'Session invalid');
         }
-        return result.data; // Return user data if needed
+        return result; // Return user data if needed
     } catch (error) {
         throw new Error(error.message || 'Session validation failed');
     }

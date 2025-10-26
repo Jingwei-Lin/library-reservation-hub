@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { waitingListService } from "../services/waitingListService";
-import { logoutUser } from "../services/authApi";
+import { validateSession, logoutUser } from "../services/authApi";
 import Header from "./Header";
 
 import ChatPanel from "./ChatPanel";
@@ -13,7 +13,7 @@ import { getTheme } from "../themeUtils";
 
 import "./Dashboard.css";
 
-const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
+const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [books, setBooks] = useState([]);
@@ -66,11 +66,32 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
             console.log(sessionStorage);
             await fetchBooks();
             await fetchWaitingList();
+            await fetchUser();
             setInitialLoadComplete(true);
         };
 
         initializeDashboard();
     }, []);
+
+    // Revalidate and sync user session when dashboard loads
+    const fetchUser = async () => {
+        try {
+            const response = await validateSession();
+            console.log("revalidate:", response.data);
+            if (response && response.code === 0 && response.data) {
+                setUser(response.data);
+                setIsAuthenticated(true);
+            } else {
+                logoutUser();
+                setIsAuthenticated(false);
+            }
+        } catch (err) {
+            logoutUser();
+            setIsAuthenticated(false);
+            console.warn("Failed to fetchUser");
+        }
+    };
+
 
     // Sync URL with selected book state
     useEffect(() => {
@@ -89,11 +110,6 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         }
     }, [location.search, navigate]);
 
-    useEffect(() => {
-        if (initialLoadComplete) {
-            fetchWaitingList(); // Refetch when navigating back to dashboard
-        }
-    }, [location.pathname, initialLoadComplete]);
 
     const fetchBooks = async (keyword = "") => {
         try {

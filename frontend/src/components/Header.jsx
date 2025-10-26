@@ -20,7 +20,7 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSear
         const newTheme = toggleTheme();
         setTheme(newTheme);
         // Dispatch custom event for in-page sync
-        window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme: newTheme } }));
+        window.dispatchEvent(new CustmEvent('themeChange', { detail: { theme: newTheme } }));
     };
 
     const handleLogout = () => {

@@ -2,6 +2,8 @@ package com.comp5619.libraryreservationreviewhub.mapper;
 
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import org.apache.ibatis.annotations.*;
+
+import java.util.Date;
 import java.util.List;
 
 @Mapper
@@ -65,4 +67,12 @@ public interface ReservationMapper {
         WHERE book_id = #{bookId} AND status IN ('reserved', 'borrowed') AND is_delete = FALSE
         """)
     List<Reservation> selectActiveByBookId(@Param("bookId") Long bookId);
+
+    @Update("""
+        UPDATE Reservation 
+        SET pickup_date = #{pickupTime}, update_time = CURRENT_TIMESTAMP
+        WHERE reservation_id = #{reservationId} AND is_delete = FALSE
+        """)
+    int updatePickupTime(@Param("reservationId") Long reservationId, @Param("pickupTime") Date pickupTime);
+
 }

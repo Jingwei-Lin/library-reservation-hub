@@ -164,7 +164,7 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                                 )}
                                 {item.status === "notified" && (
                                     <button
-                                        onClick={() => navigate(`/reservation/form/${item.bookId}`)}
+                                        onClick={() => navigate(`/dashboard?book=${item.bookId}&reserve=true`)}
                                         className="reserve-btn"
                                     >
                                         Reserve Now

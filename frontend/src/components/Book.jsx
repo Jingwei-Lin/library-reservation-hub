@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
@@ -11,6 +11,7 @@ import "./Book.css";
 const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     // const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [book, setBook] = useState(null);
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [isNotified, setIsNotified] = useState(false);
     const [waitingStatus, setWaitingStatus] = useState(null);
     const [hasActiveReservation, setHasActiveReservation] = useState(false);
+    const [autoOpenReserve, setAutoOpenReserve] = useState(false);
 
     // State for delete review popup
     const [showDeletePopup, setShowDeletePopup] = useState(false);
@@ -67,8 +69,12 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 if (isAuthenticated) {
                     // Check reservation status
                     const reservationResponse = await reservationService.hasActiveReservation(id);
+                    console.log(reservationResponse)
                     if (reservationResponse && reservationResponse.code === 0) {
-                        setHasActiveReservation(reservationResponse.data.hasActive);
+                        setHasActiveReservation(reservationResponse.data || false);
+                    } else {
+                        console.warn(reservationResponse?.message || "Failed to check reservation status");
+                        setHasActiveReservation(false);
                     }
 
                     // Fetch waiting list status
@@ -80,7 +86,16 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                             setIsOnWaitingList(true);
                             setIsNotified(waitItem.status === "notified");
                             setWaitingStatus(waitItem.status);
+                        } else {
+                            setIsOnWaitingList(false);
+                            setIsNotified(false);
+                            setWaitingStatus(null);
                         }
+                    } else {
+                        console.warn(waitResponse?.message || "Failed to check waiting list status");
+                        setIsOnWaitingList(false);
+                        setIsNotified(false);
+                        setWaitingStatus(null);
                     }
                 }
             } catch (err) {
@@ -101,7 +116,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
         };
 
         fetchBookAndReviews();
-    }, [id, setIsAuthenticated, isAuthenticated]);
+    }, [id, setIsAuthenticated, isAuthenticated, hasActiveReservation, setHasActiveReservation]);
 
     useEffect(() => {
         if (showReservationPopup) {
@@ -114,6 +129,28 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             document.body.classList.remove('popup-open');
         };
     }, [showReservationPopup]);
+
+    // Check for ?reserve=true in URL and set flag to auto-open popup
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('reserve') === 'true') {
+            setAutoOpenReserve(true);
+            // Remove the 'reserve' param from URL to clean it up
+            params.delete('reserve');
+            navigate({ search: params.toString() }, { replace: true });
+        }
+    }, [location.search, navigate]);
+
+    // Auto-open the reservation popup after data is loaded if flag is set
+    useEffect(() => {
+        if (autoOpenReserve && !loading && book && !error) {
+            // Optional: Add eligibility check (e.g., if notified or available)
+            if (!hasActiveReservation && (book.available || isNotified)) {
+                setShowReservationPopup(true);
+            }
+            setAutoOpenReserve(false); // Reset flag after handling
+        }
+    }, [autoOpenReserve, loading, book, error, hasActiveReservation, isNotified]);
 
     const handleBack = () => {
         if (onBack) {
@@ -175,6 +212,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 setTimeout(() => {
                     setShowReservationPopup(false);
                     setReservationForm({ pickupTime: "", dueTime: "" });
+                    navigate("/reservations");
                 }, 2000);
             } else if (response && response.code === 50001) {
                 setReservationError(response.message);

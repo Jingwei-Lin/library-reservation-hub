@@ -3,6 +3,7 @@ package com.comp5619.libraryreservationreviewhub.service;
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReservationVO;
@@ -20,4 +21,6 @@ public interface ReservationService {
     ReservationVO toReservationVO(Reservation reservation);
 
     boolean hasActiveReservation(Long userId, Long bookId);
+
+    boolean updatePickupTime(ReservationUpdatePickupRequest req, User user);
 }

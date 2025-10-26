@@ -271,7 +271,7 @@ INSERT INTO Book (book_id, title, author, genre, description, quantity, availabl
 	(98, 'The Canterbury Tales', 'Geoffrey Chaucer', 'Poetry Classic', 'Chaucer''s lively collection of stories told by pilgrims offers comic, satiric, and moral portraits of medieval life.', 5, TRUE, 'The_Canterbury_Tales.jpg'),
 	(99, 'Ariel', 'Sylvia Plath', 'Poetry Classic', 'Sylvia Plath''s intensely personal and powerful poems explore identity, transformation, and emotional extremes.', 5, TRUE, 'Ariel.jpg'),
 	(100, 'The Raven and Other Poems', 'Edgar Allan Poe', 'Poetry Classic', 'Edgar Allan Poe''s dark, musical poems probe grief, longing, and the supernatural with memorable lyricism.', 5, TRUE, 'The_Raven_and_Other_Poems.jpg'),
-	(101, 'Waiting List test', 'Test', 'Fantasy', 'Test', 0, FALSE, 'The_Raven_and_Other_Poems.jpg');
+	(101, 'Waiting List test', 'Test', 'Fantasy', 'Test', 1, True, 'The_Raven_and_Other_Poems.jpg');
 
 
 -- Waiting list

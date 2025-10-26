@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReservationVO;
@@ -73,5 +74,14 @@ public class ReservationController {
     public BaseResponse<Boolean> hasActiveReservation(@PathVariable Long bookId, HttpServletRequest request) {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(reservationService.hasActiveReservation(user.getId(), bookId));
+    }
+
+    @PutMapping("/pickup/{reservationId}")
+    public BaseResponse<Boolean> updatePickupTime(@PathVariable Long reservationId,
+                                                  @RequestBody ReservationUpdatePickupRequest req,
+                                                  HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        req.setReservationId(reservationId); // Set reservationId from path variable
+        return ResultUtils.success(reservationService.updatePickupTime(req, user));
     }
 }

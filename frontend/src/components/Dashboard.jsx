@@ -14,18 +14,23 @@ import { getTheme } from "../themeUtils";
 import "./Dashboard.css";
 
 const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedBookId, setSelectedBookId] = useState(null);
+    const [selectedBookId, setSelectedBookId] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        const bookIdFromUrl = params.get('book');
+        const id = Number(bookIdFromUrl);
+        return (!isNaN(id) && id > 0) ? id : null;
+    });
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const [hasNotification, setHasNotification] = useState(false);
     const booksPerPage = 12;
-    const navigate = useNavigate();
-    const location = useLocation();
 
     // Apply theme from localStorage
     useEffect(() => {
@@ -69,7 +74,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
 
     // Sync URL with selected book state
     useEffect(() => {
-        if (!initialLoadComplete) return; // Wait for initial data load
+        // if (!initialLoadComplete) return; // Wait for initial data load
         const params = new URLSearchParams(location.search);
         const bookIdFromUrl = params.get('book');
         if (bookIdFromUrl) {
@@ -82,7 +87,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         } else {
             setSelectedBookId(null);
         }
-    }, [location.search], initialLoadComplete, navigate);
+    }, [location.search, navigate]);
 
     useEffect(() => {
         if (initialLoadComplete) {

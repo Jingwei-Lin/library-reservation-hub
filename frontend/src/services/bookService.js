@@ -118,4 +118,19 @@ export const bookService = {
             throw new Error(error.response?.data?.message || 'Failed to restore book');
         }
     },
+
+    getTop10Books: async () => {
+        try {
+            const response = await api.get('/book-rating/top10-books');
+            console.log('Get top 10 books response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error fetching top 10 books:', error);
+            throw new Error('Failed to fetch top 10 books');
+        }
+    },
 };

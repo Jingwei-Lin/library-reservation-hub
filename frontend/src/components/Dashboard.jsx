@@ -17,6 +17,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [books, setBooks] = useState([]);
+    const [topBooks, setTopBooks] = useState([]);
+    const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -67,6 +69,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             await fetchBooks();
             await fetchWaitingList();
             await fetchUser();
+            await fetchTop10Books();
             setInitialLoadComplete(true);
         };
 
@@ -134,6 +137,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     return true;
                 });
                 setBooks(validBooks);
+                setCurrentTitle(keyword ? `Search Results for "${keyword}"` : "All Books");
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
                     setError("All books have missing or invalid IDs. Please contact support.");
                 }
@@ -154,6 +158,41 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         } finally {
             setLoading(false);
             setCurrentPage(1);
+        }
+    };
+
+    // Fetch top 10 rated books
+    const fetchTop10Books = async () => {
+        try {
+            const response = await bookService.getTop10Books();
+            if (response && response.code === 0 && response.data) {
+                const bookList = Array.isArray(response.data) ? response.data : [];
+                const validBooks = bookList.filter(book => {
+                    const bookId = Number(book.bookId);
+                    const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
+                    if (!isValid) {
+                        console.warn('Invalid book detected in top 10:', JSON.stringify(book, null, 2));
+                    }
+                    return isValid;
+                });
+                setTopBooks(validBooks);
+                if (bookList.length > 0 && validBooks.length === 0) {
+                    setError("All top books have missing or invalid IDs. Please contact support.");
+                }
+            } else {
+                setError("Invalid response format for top books");
+                setTopBooks([]);
+            }
+        } catch (err) {
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(err.message || "Failed to load top 10 books");
+                console.error("Error fetching top 10 books:", err);
+                setTopBooks([]);
+            }
         }
     };
 
@@ -183,6 +222,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     return true;
                 });
                 setBooks(validBooks);
+                setCurrentTitle(`${genre} Books`);
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
                     setError(`All ${genre} books have missing or invalid IDs. Please contact support.`);
                 }
@@ -220,6 +260,18 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     };
 
     const handleBackFromBook = () => {
+        setSelectedBookId(null);
+        navigate('/dashboard', { replace: true });
+    };
+
+    const handleTop10Click = () => {
+        if (topBooks.length === 0) {
+            setError("No top-rated books available yet.");
+            return;
+        }
+        setBooks(topBooks);
+        setCurrentTitle("Top 10 Rated Books");
+        setCurrentPage(1);
         setSelectedBookId(null);
         navigate('/dashboard', { replace: true });
     };
@@ -350,7 +402,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                                 </div>
                                 <div className="book-listing">
                                     <div className="book-listing-header">
-                                        <h2>Book Listing</h2>
+                                        <h2>{currentTitle}</h2>
                                         <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
                                     </div>
                                     {loading && <div className="loading">Loading books...</div>}
@@ -395,6 +447,11 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                                                         <h3>{book.title || 'Untitled'}</h3>
                                                         <p className="books-author">by {book.author || 'Unknown'}</p>
                                                         <p className="books-genre">{book.genre || 'Unknown'}</p>
+                                                        {book.avgRating != null && (
+                                                            <div className="book-rating">
+                                                                {book.avgRating.toFixed(1)} ★
+                                                            </div>
+                                                        )}
                                                         <div className="book-status">
                                                             <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
                                                                 {book.available ? 'Available' : 'Unavailable'}
@@ -455,8 +512,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                             <h3>Quick Actions</h3>
                             <ul>
                                 <li onClick={() => fetchBooks()}>View All Books</li>
-                                <li onClick={() => handleGenreClick("Fantasy")}>Fantasy Books</li>
-                                <li onClick={() => handleGenreClick("Science Fiction")}>Sci-Fi Books</li>
+                                <li onClick={handleTop10Click}>Top 10 Rated Books</li>
                             </ul>
                         </div>
                     </div>

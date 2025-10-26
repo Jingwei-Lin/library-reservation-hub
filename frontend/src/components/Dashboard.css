@@ -356,6 +356,17 @@
     display: inline-block;
 }
 
+.book-rating {
+    font-weight: bold;
+    color: #f39c12; /* Orange for stars */
+    margin: 10px 0;
+}
+
+/* Dark mode support */
+body.dark .book-rating {
+    color: #ffb74d;
+}
+
 .book-status {
     display: flex;
     justify-content: space-between;

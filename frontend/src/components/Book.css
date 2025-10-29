@@ -1061,3 +1061,57 @@
 .book-detail-container.dark-mode .book-description:hover {
     background: rgba(255, 255, 255, 0.06);
 }
+
+
+.book-rating-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.star-rating-large {
+    display: flex;
+    gap: 0.4rem;
+    font-size: 2.2rem;               /* Slightly larger than form stars */
+    line-height: 1;
+}
+
+.star.large {
+    color: #ccc;                     /* empty */
+    transition: transform 0.2s ease;
+}
+
+/* Full star – same orange-gold as interactive stars */
+.star.large.filled {
+    color: #f39c12;
+}
+
+/* Half-star – gradient clip (same technique used elsewhere) */
+.star.large.half {
+    background: linear-gradient(90deg, #f39c12 50%, #ccc 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Hover glow – subtle lift */
+.star-rating-large:hover .star.large {
+    transform: scale(1.1);
+}
+
+.rating-text {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(67, 97, 238, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+    line-height: 1;
+}

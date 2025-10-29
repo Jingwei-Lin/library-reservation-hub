@@ -133,4 +133,18 @@ export const bookService = {
             throw new Error('Failed to fetch top 10 books');
         }
     },
+    getRatingByBookId: async (bookId) => {
+        try {
+            const response = await api.get(`/book-rating/${bookId}`);
+            console.log('Get book rating response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error fetching book rating:', error);
+            throw new Error('Failed to fetch book rating');
+        }
+    }
 };

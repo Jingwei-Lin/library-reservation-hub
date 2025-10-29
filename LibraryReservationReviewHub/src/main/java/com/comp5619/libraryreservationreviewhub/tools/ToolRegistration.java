@@ -23,7 +23,7 @@ public class ToolRegistration {
     }
 
     @Bean
-    public ToolCallback[] allTools(UserInfoTool userInfoTool) {
+    public ToolCallback[] allTools(UserInfoTool userInfoTool, BookSearchTool bookSearchTool) {
         FileOperationTool fileOperationTool = new FileOperationTool();
         WebSearchTool webSearchTool = new WebSearchTool(searchApiKey, searchEngineId);
         WebScrapingTool webScrapingTool = new WebScrapingTool();
@@ -32,7 +32,7 @@ public class ToolRegistration {
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();
 
-        // 传入 Spring 管理的 userInfoTool
+        // 使用 Spring 管理的 bookSearchTool，避免 @Autowired 为空
         return ToolCallbacks.from(
                 fileOperationTool,
                 webSearchTool,
@@ -41,7 +41,8 @@ public class ToolRegistration {
                 terminalOperationTool,
                 pdfGenerationTool,
                 terminateTool,
-                userInfoTool
+                userInfoTool,
+                bookSearchTool
         );
     }
 }

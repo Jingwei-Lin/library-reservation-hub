@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -174,4 +175,24 @@ public class BookServiceImpl implements BookService {
         }
         return bookMapper.restoreById((long) id) > 0;
     }
+
+    @Override
+    public List<BookVO> getRandomBooks(int limit) {
+        // 默认取 10 本
+        int realLimit = Math.min(Math.max(limit, 1), 20);
+        log.info("Fetching {} random books as top books (no score field, random selection)", realLimit);
+
+        // 先查出部分书籍（防止全表取出性能太差）
+        PageRequest pr = new PageRequest();
+        pr.setCurrent(1);
+        pr.setPageSize(100); // 取前100本进行随机
+        PageResult<BookVO> page = searchBooks("", pr, true);
+
+        List<BookVO> list = page.getRecords();
+        if (list.isEmpty()) return List.of();
+
+        Collections.shuffle(list);
+        return list.stream().limit(realLimit).collect(Collectors.toList());
+    }
+
 }

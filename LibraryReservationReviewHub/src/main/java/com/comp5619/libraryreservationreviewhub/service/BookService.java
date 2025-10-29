@@ -22,4 +22,6 @@ public interface BookService {
     List<BookVO> getBooksByGenre(String genre);
     boolean restoreBook(Long id, User operator);
     boolean isBookAvailable(Long id);
+    List<BookVO> getRandomBooks(int limit);
+
 }

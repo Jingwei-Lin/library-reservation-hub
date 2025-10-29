@@ -1,6 +1,8 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import useChat from '../hooks/useChat';
 import './ChatPanel.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ChatPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +68,11 @@ const ChatPanel: React.FC = () => {
                 key={message.id}
                 className={`message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}
               >
-                <div className="message-content">{message.content || ' '}</div>
+                <div className="message-content markdown">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.content || ''}
+                  </ReactMarkdown>
+                </div>
                 <div className="message-timestamp">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>

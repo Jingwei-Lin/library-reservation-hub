@@ -22,6 +22,7 @@ spring:
     url: jdbc:mysql://localhost:3306/library_reservation
     username: root
     password: 123456789
+
 #    datasource:
 #      url: jdbc:postgresql://localhost:5433/library_reservation
 #      username: postgres

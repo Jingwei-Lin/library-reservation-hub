@@ -71,6 +71,7 @@
   font-size: 1.1rem;
 }
 
+/* 消息列表容器 */
 .chat-messages {
   flex: 1;
   padding: 15px;
@@ -79,15 +80,20 @@
   flex-direction: column;
   gap: 10px;
   background-color: #f5f7fb;
+  align-items: stretch; /* 保证列内元素充满宽度而非居中 */
+  text-align: left; /* 作为继承锚点，确保文本左对齐 */
 }
 
+/* 单条消息气泡（统一左对齐文本） */
 .message {
   max-width: 80%;
   padding: 10px 15px;
   border-radius: 18px;
   word-break: break-word;
+  text-align: left; /* 避免文本在气泡内居中 */
 }
 
+/* 用户与 AI 消息均保持左对齐文本 */
 .user-message {
   align-self: flex-end;
   background-color: #4a6da7;
@@ -229,4 +235,205 @@
     height: 56px;
     border-radius: 50%;
   }
+}
+
+
+/* 消息气泡基础样式保持不变 */
+.message .message-content {
+  white-space: pre-wrap;      /* 保留换行与额外空格 */
+  line-height: 1.6;           /* 提升行距，避免“挤在一起” */
+  word-break: break-word;     /* 长词断行 */
+  overflow-wrap: anywhere;    /* 过长元素强制断行 */
+}
+
+/* Markdown 结构化元素的间距与样式 */
+.message .message-content.markdown p {
+  margin: 0 0 8px 0;
+  text-align: left;
+}
+
+.message .message-content.markdown ul,
+.message .message-content.markdown ol {
+  margin: 0 0 10px 18px;
+  padding: 0 0 0 6px;
+  text-align: left;
+}
+
+.message .message-content.markdown li {
+  margin: 4px 0;
+  text-align: left;
+}
+
+.message .message-content.markdown strong {
+  font-weight: 700;
+}
+
+.message .message-content.markdown em {
+  font-style: italic;
+}
+
+.message .message-content.markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 8px 0;
+}
+
+/* 链接可读性与安全 */
+.message .message-content.markdown a {
+  color: #4a6da7;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/* 代码与引用（如后续输出包含） */
+.message .message-content.markdown code {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.message .message-content.markdown pre {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+/* 消息内容（Markdown）排版优化 */
+.message .message-content {
+  white-space: pre-wrap;      /* 保留换行与额外空格 */
+  line-height: 1.65;          /* 舒适行距 */
+  word-break: break-word;     /* 长词断行 */
+  overflow-wrap: anywhere;    /* 过长元素强制断行 */
+  text-align: left;           /* 明确左对齐 */
+  letter-spacing: 0.2px;      /* 轻微字距，提升可读性 */
+  font-size: 0.95rem;         /* 略微增大，提升阅读舒适度 */
+}
+
+/* Markdown 结构化元素的间距与样式 */
+.message .message-content.markdown p {
+  margin: 0 0 8px 0;
+}
+
+.message .message-content.markdown ul,
+.message .message-content.markdown ol {
+  margin: 0 0 10px 18px;
+  padding: 0 0 0 6px;
+}
+
+.message .message-content.markdown li {
+  margin: 4px 0;
+}
+
+.message .message-content.markdown strong {
+  font-weight: 700;
+}
+
+.message .message-content.markdown em {
+  font-style: italic;
+}
+
+.message .message-content.markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 8px 0;
+}
+
+/* 链接可读性与安全 */
+.message .message-content.markdown a {
+  color: #4a6da7;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/* 代码与引用（如后续输出包含） */
+.message .message-content.markdown code {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.message .message-content.markdown pre {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+/* 消息内容（Markdown）排版优化 */
+.message .message-content {
+  white-space: pre-wrap;      /* 保留换行与额外空格 */
+  line-height: 1.65;          /* 舒适行距 */
+  word-break: break-word;     /* 长词断行 */
+  overflow-wrap: anywhere;    /* 过长元素强制断行 */
+}
+
+/* Markdown 结构化元素统一左对齐 */
+.message .message-content.markdown p,
+.message .message-content.markdown ul,
+.message .message-content.markdown ol,
+.message .message-content.markdown li {
+  margin: 0 0 8px 0;
+}
+
+.message .message-content.markdown ul,
+.message .message-content.markdown ol {
+  margin: 0 0 10px 18px;
+  padding: 0 0 0 6px;
+}
+
+.message .message-content.markdown li {
+  margin: 4px 0;
+}
+
+.message .message-content.markdown strong {
+  font-weight: 700;
+}
+
+.message .message-content.markdown em {
+  font-style: italic;
+}
+
+.message .message-content.markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 8px 0;
+}
+
+/* 链接可读性与安全 */
+.message .message-content.markdown a {
+  color: #4a6da7;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/* 代码与引用（如后续输出包含） */
+.message .message-content.markdown code {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.message .message-content.markdown pre {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+/* 🧭 强制 Markdown 与气泡文本左对齐 */
+.ai-message .message-content,
+.user-message .message-content {
+  text-align: left !important;
 }

@@ -28,7 +28,7 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowCredentials(true)
-                .allowedOrigins("http://localhost:5173") // 👈 specify frontend
+                .allowedOrigins("http://localhost:5173", "http://localhost:5174") // allow both common Vite ports
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*");

@@ -30,7 +30,8 @@ useEffect(() => {
   // 用户管理：分页查询、状态标记（封禁/正常）、内联编辑保存
   const [users, setUsers] = useState([]);
   const [usersPage, setUsersPage] = useState(1);
-  const [usersSize, setUsersSize] = useState(10);
+  const USERS_PAGE_SIZE = 10;
+  const [usersTotal, setUsersTotal] = useState(0);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState('');
   const [usersSuccess, setUsersSuccess] = useState('');
@@ -71,17 +72,18 @@ useEffect(() => {
   const fetchUsers = async () => {
     try {
       setUsersLoading(true); setUsersError(''); setUsersSuccess('');
-      const res = await adminUserService.listUsersPage({ current: usersPage, pageSize: usersSize });
+      const res = await adminUserService.listUsersPage({ current: usersPage, pageSize: USERS_PAGE_SIZE });
       if (res && res.code === 0 && res.data) {
         const records = res.data.records || [];
+        setUsersTotal(res.data.total ?? 0);
         await enrichUsersWithStatus(records);
       } else {
         setUsersError(res?.msg || 'Failed to load users');
-        setUsers([]); setUsersOriginal([]);
+        setUsers([]); setUsersOriginal([]); setUsersTotal(0);
       }
     } catch (err) {
       setUsersError(err.message || 'Failed to load users');
-      setUsersOriginal([]);
+      setUsersOriginal([]); setUsersTotal(0);
     } finally {
       setUsersLoading(false);
     }
@@ -197,13 +199,14 @@ useEffect(() => {
     if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
       fetchUsers();
     }
-  }, [usersPage, usersSize]);
+  }, [usersPage]);
 
   // ====== Books ======
   // 图书管理：分页查询、内联编辑保存、删除与恢复
   const [books, setBooks] = useState([]);
   const [booksPage, setBooksPage] = useState(1);
-  const [booksSize, setBooksSize] = useState(50);
+  const BOOKS_PAGE_SIZE = 10;
+  const [booksTotal, setBooksTotal] = useState(0);
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksError, setBooksError] = useState('');
   const [booksSuccess, setBooksSuccess] = useState('');
@@ -214,15 +217,16 @@ useEffect(() => {
   const fetchBooks = async () => {
     try {
       setBooksLoading(true); setBooksError(''); setBooksSuccess('');
-      const res = await bookService.getAllBooks(booksPage, booksSize);
+      const res = await bookService.getAllBooks(booksPage, BOOKS_PAGE_SIZE);
       if (res && res.code === 0 && res.data) {
         setBooks(res.data.records || []);
+        setBooksTotal(res.data.total ?? 0);
       } else {
         setBooksError(res?.msg || 'Failed to load books');
-        setBooks([]);
+        setBooks([]); setBooksTotal(0);
       }
     } catch (err) {
-      setBooksError(err.message || 'Failed to load books');
+      setBooksError(err.message || 'Failed to load books'); setBooksTotal(0);
     } finally {
       setBooksLoading(false);
     }
@@ -305,7 +309,47 @@ useEffect(() => {
   const [rvError, setRvError] = useState('');
   const [rvSuccess, setRvSuccess] = useState('');
   const [rvPage, setRvPage] = useState(1);
-  const [rvSize, setRvSize] = useState(20);
+  const RV_PAGE_SIZE = 10;
+  const [rvTotal, setRvTotal] = useState(0);
+
+  /**
+   * 为评论记录批量补充书名与用户名，避免逐条请求造成性能问题
+   */
+  const enrichReviewsWithNames = async (list) => {
+    if (!Array.isArray(list) || list.length === 0) return list || [];
+    const bookIds = Array.from(new Set(list.map(r => r.bookId).filter(Boolean)));
+    const userIds = Array.from(new Set(list.map(r => r.userId).filter(Boolean)));
+    const bookMap = new Map();
+    const userMap = new Map();
+
+    await Promise.all([
+      Promise.all(bookIds.map(async (id) => {
+        try {
+          const resp = await bookService.getBookById(id);
+          if (resp && resp.code === 0 && resp.data) {
+            bookMap.set(id, resp.data.title);
+          }
+        } catch (_) { /* no-op */ }
+      })),
+      Promise.all(userIds.map(async (id) => {
+        try {
+          const res = await adminUserService.getUserById(id);
+          if (res && res.code === 0 && res.data) {
+            const fn = res.data.firstName || '';
+            const ln = res.data.lastName || '';
+            const name = `${fn}${fn && ln ? ' ' : ''}${ln}`.trim() || res.data.userAccount || String(id);
+            userMap.set(id, name);
+          }
+        } catch (_) { /* no-op */ }
+      }))
+    ]);
+
+    return list.map(r => ({
+      ...r,
+      bookTitle: r.bookTitle || bookMap.get(r.bookId),
+      userName: r.userName || userMap.get(r.userId),
+    }));
+  };
 
   /**
    * 分页拉取评论列表，保存原始数据用于修改比较
@@ -313,18 +357,20 @@ useEffect(() => {
   const fetchAllReviews = async () => {
     try {
       setRvLoading(true); setRvError(''); setRvSuccess('');
-      const res = await reviewService.getAllReviews({ current: rvPage, pageSize: rvSize });
+      const res = await reviewService.getAllReviews({ current: rvPage, pageSize: RV_PAGE_SIZE });
       if (res && res.code === 0 && res.data) {
         const records = res.data.records || [];
-        setReviews(records);
-        setReviewsOriginal(records);
+        setRvTotal(res.data.total ?? 0);
+        const enriched = await enrichReviewsWithNames(records);
+        setReviews(enriched);
+        setReviewsOriginal(enriched);
       } else {
         setRvError(res?.msg || 'Failed to load reviews');
-        setReviews([]); setReviewsOriginal([]);
+        setReviews([]); setReviewsOriginal([]); setRvTotal(0);
       }
     } catch (err) {
       setRvError(err.message || 'Failed to load reviews');
-      setReviews([]); setReviewsOriginal([]);
+      setReviews([]); setReviewsOriginal([]); setRvTotal(0);
     } finally {
       setRvLoading(false);
     }
@@ -421,7 +467,7 @@ useEffect(() => {
     if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
       fetchAllReviews();
     }
-  }, [rvPage, rvSize]); // 仅在评论分页变化时触发
+  }, [rvPage]); // 仅在评论分页变化时触发
 
   // ====== Reservations (Borrowing Management) ======
   const [reservations, setReservations] = useState([]);
@@ -528,7 +574,7 @@ useEffect(() => {
     if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
       fetchBooks();
     }
-  }, [booksPage, booksSize]);
+  }, [booksPage]);
 
   // ====== UI Rendering ======
   return (
@@ -539,23 +585,19 @@ useEffect(() => {
       <div className="admin-section">
         <h3>Users</h3>
         <div className="admin-controls">
-          <label>Page:</label>
-          <input
-            className="input input-sm"
-            type="number"
-            min={1}
-            value={usersPage}
-            onChange={(e) => setUsersPage(Math.max(1, Number(e.target.value)))}
-          />
-          <label>Size:</label>
-          <input
-            className="input input-sm"
-            type="number"
-            min={1}
-            value={usersSize}
-            onChange={(e) => setUsersSize(Math.max(1, Number(e.target.value)))}
-          />
-          <button className="btn btn-primary" onClick={fetchUsers}>Load Users</button>
+          <span>Page size: {USERS_PAGE_SIZE}</span>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setUsersPage(Math.max(1, usersPage - 1))}
+            disabled={usersPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setUsersPage(usersPage + 1)}
+            disabled={usersPage >= Math.max(1, Math.ceil((usersTotal || 0) / USERS_PAGE_SIZE))}
+          >Next</button>
+          <span>Page: {usersPage} / {Math.max(1, Math.ceil((usersTotal || 0) / USERS_PAGE_SIZE))}</span>
+          <button className="btn btn-primary" onClick={fetchUsers}>Refresh</button>
         </div>
         {usersLoading && <div className="loading">Loading users...</div>}
         {usersError && <div className="alert alert-error">{usersError}</div>}
@@ -590,11 +632,19 @@ useEffect(() => {
       <div className="admin-section">
         <h3>Reviews</h3>
         <div className="admin-controls">
-          <label>Page:</label>
-          <input className="input input-sm" type="number" min={1} value={rvPage} onChange={(e) => setRvPage(Math.max(1, Number(e.target.value)))} />
-          <label>Size:</label>
-          <input className="input input-sm" type="number" min={1} value={rvSize} onChange={(e) => setRvSize(Math.max(1, Number(e.target.value)))} />
-          <button className="btn btn-primary" onClick={fetchAllReviews}>Load Reviews</button>
+          <span>Page size: {RV_PAGE_SIZE}</span>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setRvPage(Math.max(1, rvPage - 1))}
+            disabled={rvPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setRvPage(rvPage + 1)}
+            disabled={rvPage >= Math.max(1, Math.ceil((rvTotal || 0) / RV_PAGE_SIZE))}
+          >Next</button>
+          <span>Page: {rvPage} / {Math.max(1, Math.ceil((rvTotal || 0) / RV_PAGE_SIZE))}</span>
+          <button className="btn btn-primary" onClick={fetchAllReviews}>Refresh</button>
         </div>
         {rvLoading && <div className="loading">Loading reviews...</div>}
         {rvError && <div className="alert alert-error">{rvError}</div>}
@@ -609,8 +659,8 @@ useEffect(() => {
             {reviews.map((r, idx) => (
               <tr key={r.reviewId || idx}>
                 <td>{r.reviewId}</td>
-                <td>{r.bookId}</td>
-                <td>{r.userId}</td>
+                <td>{r.bookTitle || r.bookId}</td>
+                <td>{r.userName || r.userId}</td>
                 <td><input className="input" type="number" min={1} max={5} value={r.rating ?? 1} onChange={(e) => handleReviewFieldChange(idx, 'rating', Number(e.target.value))} /></td>
                 <td><input className="input" value={r.comment || ''} onChange={(e) => handleReviewFieldChange(idx, 'comment', e.target.value)} /></td>
                 <td>{r.reviewDate}</td>
@@ -628,11 +678,19 @@ useEffect(() => {
       <div className="admin-section">
         <h3>Books</h3>
         <div className="admin-controls">
-          <label>Page:</label>
-          <input className="input input-sm" type="number" min={1} value={booksPage} onChange={(e) => setBooksPage(Math.max(1, Number(e.target.value)))} />
-          <label>Size:</label>
-          <input className="input input-sm" type="number" min={1} value={booksSize} onChange={(e) => setBooksSize(Math.max(1, Number(e.target.value)))} />
-          <button className="btn btn-primary" onClick={fetchBooks}>Load Books</button>
+          <span>Page size: {BOOKS_PAGE_SIZE}</span>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setBooksPage(Math.max(1, booksPage - 1))}
+            disabled={booksPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setBooksPage(booksPage + 1)}
+            disabled={booksPage >= Math.max(1, Math.ceil((booksTotal || 0) / BOOKS_PAGE_SIZE))}
+          >Next</button>
+          <span>Page: {booksPage} / {Math.max(1, Math.ceil((booksTotal || 0) / BOOKS_PAGE_SIZE))}</span>
+          <button className="btn btn-primary" onClick={fetchBooks}>Refresh</button>
         </div>
         {booksLoading && <div className="loading">Loading books...</div>}
         {booksError && <div className="alert alert-error">{booksError}</div>}
@@ -640,7 +698,7 @@ useEffect(() => {
         <table className="admin-table books-table">
           <thead>
             <tr>
-              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>ISBN</th><th>Available</th><th>Actions</th>
+              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>Quantity</th><th>Available</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -650,7 +708,7 @@ useEffect(() => {
                 <td><input className="input" value={b.title || ''} onChange={(e) => handleBookFieldChange(idx, 'title', e.target.value)} /></td>
                 <td><input className="input" value={b.author || ''} onChange={(e) => handleBookFieldChange(idx, 'author', e.target.value)} /></td>
                 <td><input className="input" value={b.genre || ''} onChange={(e) => handleBookFieldChange(idx, 'genre', e.target.value)} /></td>
-                <td><input className="input" value={b.isbn || ''} onChange={(e) => handleBookFieldChange(idx, 'isbn', e.target.value)} /></td>
+                <td><input className="input" type="number" min={0} value={b.quantity ?? 0} onChange={(e) => handleBookFieldChange(idx, 'quantity', Number(e.target.value))} /></td>
                 <td><input className="checkbox" type="checkbox" checked={!!b.available} onChange={(e) => handleBookFieldChange(idx, 'available', e.target.checked)} /></td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleBookUpdate(b)}>Save</button>

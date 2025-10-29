@@ -5,6 +5,39 @@
     background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
     position: relative;
 }
+/* Notification red dot */
+.notification-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: red;
+    border-radius: 50%;
+    margin-left: 8px;
+    box-shadow: 0 0 4px rgba(255, 0, 0, 0.5); /* Optional glow effect */
+}
+
+/* Shiny pulsating effect for notified waiting list button */
+.shiny {
+    position: relative;
+    animation: pulse 1.5s infinite ease-in-out;
+    border-radius: 4px;
+    padding: 4px 8px; /* Optional: Add padding for better appearance */
+    color: white; /* Ensure text is readable */
+    cursor: pointer;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 10px 5px rgba(67, 97, 238, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+    }
+}
+
 
 /* Enhanced Sidebar */
 .sidebar {
@@ -321,6 +354,17 @@
     padding: 4px 12px;
     border-radius: 20px;
     display: inline-block;
+}
+
+.book-rating {
+    font-weight: bold;
+    color: #f39c12; /* Orange for stars */
+    margin: 10px 0;
+}
+
+/* Dark mode support */
+body.dark .book-rating {
+    color: #ffb74d;
 }
 
 .book-status {

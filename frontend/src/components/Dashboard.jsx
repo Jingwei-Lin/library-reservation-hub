@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
-import { logoutUser } from "../services/authApi";
+import { waitingListService } from "../services/waitingListService";
+import { validateSession, logoutUser } from "../services/authApi";
 import Header from "./Header";
 
 import ChatPanel from "./ChatPanel";
@@ -12,18 +13,26 @@ import { getTheme } from "../themeUtils";
 
 import "./Dashboard.css";
 
-const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
+const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [books, setBooks] = useState([]);
+    const [topBooks, setTopBooks] = useState([]);
+    const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedBookId, setSelectedBookId] = useState(null);
+    const [selectedBookId, setSelectedBookId] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        const bookIdFromUrl = params.get('book');
+        const id = Number(bookIdFromUrl);
+        return (!isNaN(id) && id > 0) ? id : null;
+    });
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
+    const [hasNotification, setHasNotification] = useState(false);
     const booksPerPage = 12;
-    const navigate = useNavigate();
-    const location = useLocation();
 
     // Apply theme from localStorage
     useEffect(() => {
@@ -58,15 +67,38 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         const initializeDashboard = async () => {
             console.log(sessionStorage);
             await fetchBooks();
+            await fetchWaitingList();
+            await fetchUser();
+            await fetchTop10Books();
             setInitialLoadComplete(true);
         };
 
         initializeDashboard();
     }, []);
 
+    // Revalidate and sync user session when dashboard loads
+    const fetchUser = async () => {
+        try {
+            const response = await validateSession();
+            console.log("revalidate:", response.data);
+            if (response && response.code === 0 && response.data) {
+                setUser(response.data);
+                setIsAuthenticated(true);
+            } else {
+                logoutUser();
+                setIsAuthenticated(false);
+            }
+        } catch (err) {
+            logoutUser();
+            setIsAuthenticated(false);
+            console.warn("Failed to fetchUser");
+        }
+    };
+
+
     // Sync URL with selected book state
     useEffect(() => {
-        if (!initialLoadComplete) return; // Wait for initial data load
+        // if (!initialLoadComplete) return; // Wait for initial data load
         const params = new URLSearchParams(location.search);
         const bookIdFromUrl = params.get('book');
         if (bookIdFromUrl) {
@@ -79,7 +111,8 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         } else {
             setSelectedBookId(null);
         }
-    }, [location.search], initialLoadComplete, navigate);
+    }, [location.search, navigate]);
+
 
     const fetchBooks = async (keyword = "") => {
         try {
@@ -104,6 +137,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     return true;
                 });
                 setBooks(validBooks);
+                setCurrentTitle(keyword ? `Search Results for "${keyword}"` : "All Books");
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
                     setError("All books have missing or invalid IDs. Please contact support.");
                 }
@@ -124,6 +158,41 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
         } finally {
             setLoading(false);
             setCurrentPage(1);
+        }
+    };
+
+    // Fetch top 10 rated books
+    const fetchTop10Books = async () => {
+        try {
+            const response = await bookService.getTop10Books();
+            if (response && response.code === 0 && response.data) {
+                const bookList = Array.isArray(response.data) ? response.data : [];
+                const validBooks = bookList.filter(book => {
+                    const bookId = Number(book.bookId);
+                    const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
+                    if (!isValid) {
+                        console.warn('Invalid book detected in top 10:', JSON.stringify(book, null, 2));
+                    }
+                    return isValid;
+                });
+                setTopBooks(validBooks);
+                if (bookList.length > 0 && validBooks.length === 0) {
+                    setError("All top books have missing or invalid IDs. Please contact support.");
+                }
+            } else {
+                setError("Invalid response format for top books");
+                setTopBooks([]);
+            }
+        } catch (err) {
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(err.message || "Failed to load top 10 books");
+                console.error("Error fetching top 10 books:", err);
+                setTopBooks([]);
+            }
         }
     };
 
@@ -153,6 +222,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                     return true;
                 });
                 setBooks(validBooks);
+                setCurrentTitle(`${genre} Books`);
                 if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
                     setError(`All ${genre} books have missing or invalid IDs. Please contact support.`);
                 }
@@ -192,6 +262,42 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
     const handleBackFromBook = () => {
         setSelectedBookId(null);
         navigate('/dashboard', { replace: true });
+    };
+
+    const handleTop10Click = () => {
+        if (topBooks.length === 0) {
+            setError("No top-rated books available yet.");
+            return;
+        }
+        setBooks(topBooks);
+        setCurrentTitle("Top 10 Rated Books");
+        setCurrentPage(1);
+        setSelectedBookId(null);
+        navigate('/dashboard', { replace: true });
+    };
+
+    // Fetch waiting list and check for notified status
+    const fetchWaitingList = async () => {
+        try {
+            const response = await waitingListService.getMyWaitingList();
+            if (response && response.code === 0 && response.data) {
+                // Check if any waiting list item has status "notified"
+                const hasNotified = response.data.some(item => item.status === "notified");
+                setHasNotification(hasNotified);
+            } else {
+                setHasNotification(false); // No notifications if response is invalid
+            }
+        } catch (err) {
+            console.error("fetchWaitingList error:", err);
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                console.warn("Failed to check waiting list notifications");
+                setHasNotification(false); // Safe default on error
+            }
+        }
     };
 
     // Pagination logic
@@ -243,9 +349,15 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                 <div className="nav-box">
                     <h3>Navigation</h3>
                     <ul>
-                        <li onClick={() => navigate("/dashboard")}>All Books</li>
+                        <li onClick={() => fetchBooks()}>All Books</li>
                         <li onClick={() => navigate("/reservations")}>My Reservations</li>
-                        <li onClick={() => navigate("/waitinglist")}>My Waiting List</li>
+                        <li
+                            onClick={() => navigate("/waitinglist")}
+                            className={hasNotification ? "shiny" : ""}
+                        >
+                            My Waiting List
+                            {hasNotification && <span className="notification-dot"></span>}
+                        </li>
                     </ul>
                 </div>
                 <div className="category-box">
@@ -290,7 +402,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                                 </div>
                                 <div className="book-listing">
                                     <div className="book-listing-header">
-                                        <h2>Book Listing</h2>
+                                        <h2>{currentTitle}</h2>
                                         <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
                                     </div>
                                     {loading && <div className="loading">Loading books...</div>}
@@ -335,6 +447,11 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                                                         <h3>{book.title || 'Untitled'}</h3>
                                                         <p className="books-author">by {book.author || 'Unknown'}</p>
                                                         <p className="books-genre">{book.genre || 'Unknown'}</p>
+                                                        {book.avgRating != null && (
+                                                            <div className="book-rating">
+                                                                {book.avgRating.toFixed(1)} ★
+                                                            </div>
+                                                        )}
                                                         <div className="book-status">
                                                             <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
                                                                 {book.available ? 'Available' : 'Unavailable'}
@@ -395,8 +512,7 @@ const Dashboard = ({ user, setIsAuthenticated, isAuthenticated }) => {
                             <h3>Quick Actions</h3>
                             <ul>
                                 <li onClick={() => fetchBooks()}>View All Books</li>
-                                <li onClick={() => handleGenreClick("Fantasy")}>Fantasy Books</li>
-                                <li onClick={() => handleGenreClick("Science Fiction")}>Sci-Fi Books</li>
+                                <li onClick={handleTop10Click}>Top 10 Rated Books</li>
                             </ul>
                         </div>
                     </div>

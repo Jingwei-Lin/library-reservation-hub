@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { bookService } from '../services/bookService';
 import { reviewService } from '../services/reviewService';
 import { adminUserService } from '../services/adminUserService';
+import { reservationService } from '../services/reservationService';
 import './AdminDashboard.css';
 
 /**
@@ -295,11 +296,6 @@ useEffect(() => {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
-      fetchBooks();
-    }
-  }, [booksPage, booksSize]);
 
   // ====== Reviews ======
   // 评论管理：分页查询、内联编辑评分与评论、保存与删除
@@ -427,6 +423,113 @@ useEffect(() => {
     }
   }, [rvPage, rvSize]); // 仅在评论分页变化时触发
 
+  // ====== Reservations (Borrowing Management) ======
+  const [reservations, setReservations] = useState([]);
+  const [resLoading, setResLoading] = useState(false);
+  const [resError, setResError] = useState('');
+  const [resSuccess, setResSuccess] = useState('');
+  const [resPage, setResPage] = useState(1);
+  const RES_PAGE_SIZE = 5; // UI page size per requirement
+  const [resFilter, setResFilter] = useState('borrowed'); // borrowed | active | all
+
+  const filterReservations = (records, filter) => {
+    switch (filter) {
+      case 'borrowed':
+        return records.filter(r => ['borrowed', 'overdue'].includes(r.reservationStatus));
+      case 'active':
+        return records.filter(r => ['reserved', 'borrowed', 'overdue'].includes(r.reservationStatus));
+      case 'all':
+        return records;
+      default:
+        return records;
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      setResLoading(true); setResError(''); setResSuccess('');
+      // Fetch a large page then paginate client-side
+      const res = await reservationService.getAllReservations(1, 1000);
+      if (res && res.code === 0 && res.data) {
+        const records = res.data.records || [];
+        const filtered = filterReservations(records, resFilter);
+        setReservations(filtered);
+        setResPage(1);
+      } else {
+        setResError(res?.message || 'Failed to load reservations');
+        setReservations([]);
+      }
+    } catch (err) {
+      setResError(err.message || 'Failed to load reservations');
+      setReservations([]);
+    } finally {
+      setResLoading(false);
+    }
+  };
+
+  const isDueToday = (dueTime) => {
+    if (!dueTime) return false;
+    const d = new Date(dueTime);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  };
+
+  const isOverdue = (dueTime, status) => {
+    if (!dueTime) return false;
+    const d = new Date(dueTime);
+    return d.getTime() < Date.now() && status !== 'returned' && status !== 'cancelled';
+  };
+
+  const handleConfirmBorrow = async (reservationId) => {
+    const confirmed = window.confirm("Confirm marking this reservation as borrowed?");
+    if (!confirmed) return;
+    try {
+      setResError("");
+      setResSuccess("");
+      const resp = await reservationService.updateReservationStatus(reservationId, "borrowed");
+      if (resp && resp.code === 0 && resp.data === true) {
+        setResSuccess("Borrow confirmed successfully");
+        await fetchReservations();
+        setTimeout(() => setResSuccess(""), 2000);
+      } else {
+        setResError(resp?.message || "Failed to confirm borrow");
+      }
+    } catch (err) {
+      setResError(err.message || "Failed to confirm borrow");
+    }
+  };
+
+  const handleConfirmReturn = async (reservationId) => {
+    const confirmed = window.confirm("Confirm marking this reservation as returned?");
+    if (!confirmed) return;
+    try {
+      setResError("");
+      setResSuccess("");
+      const resp = await reservationService.updateReservationStatus(reservationId, "returned");
+      if (resp && resp.code === 0 && resp.data === true) {
+        setResSuccess("Return confirmed successfully");
+        await fetchReservations();
+        setTimeout(() => setResSuccess(""), 2000);
+      } else {
+        setResError(resp?.message || "Failed to confirm return");
+      }
+    } catch (err) {
+      setResError(err.message || "Failed to confirm return");
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
+      fetchReservations();
+    }
+  }, [resFilter]);
+
+  useEffect(() => {
+    if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
+      fetchBooks();
+    }
+  }, [booksPage, booksSize]);
+
   // ====== UI Rendering ======
   return (
     <div className="admin-container">
@@ -457,10 +560,10 @@ useEffect(() => {
         {usersLoading && <div className="loading">Loading users...</div>}
         {usersError && <div className="alert alert-error">{usersError}</div>}
         {usersSuccess && <div className="alert alert-success">{usersSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table users-table">
           <thead>
             <tr>
-              <th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
+              <th></th><th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -496,10 +599,10 @@ useEffect(() => {
         {rvLoading && <div className="loading">Loading reviews...</div>}
         {rvError && <div className="alert alert-error">{rvError}</div>}
         {rvSuccess && <div className="alert alert-success">{rvSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table reviews-table">
           <thead>
             <tr>
-              <th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
+              <th></th><th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -534,10 +637,10 @@ useEffect(() => {
         {booksLoading && <div className="loading">Loading books...</div>}
         {booksError && <div className="alert alert-error">{booksError}</div>}
         {booksSuccess && <div className="alert alert-success">{booksSuccess}</div>}
-        <table className="admin-table">
+        <table className="admin-table books-table">
           <thead>
             <tr>
-              <th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>ISBN</th><th>Available</th><th>Actions</th>
+              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>ISBN</th><th>Available</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -556,6 +659,59 @@ useEffect(() => {
                 </td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+      {/* 预约管理区块 */}
+      <div className="admin-section">
+        <h3>Reservations</h3>
+        <div className="admin-controls">
+          <span>Page size: {RES_PAGE_SIZE}</span>
+          <label>Filter:</label>
+          <select className="input input-sm" value={resFilter} onChange={(e) => setResFilter(e.target.value)}>
+            <option value="borrowed">Borrowed/Overdue only</option>
+            <option value="active">Include reserved</option>
+            <option value="all">All statuses</option>
+          </select>
+          <button className="btn btn-primary" onClick={fetchReservations}>Refresh</button>
+          <button className="btn btn-secondary" onClick={() => setResPage(Math.max(1, resPage - 1))}>Prev</button>
+          <button className="btn btn-secondary" onClick={() => setResPage(resPage + 1)} disabled={(resPage * RES_PAGE_SIZE) >= reservations.length}>Next</button>
+          <span>Page: {resPage} / {Math.max(1, Math.ceil(reservations.length / RES_PAGE_SIZE))}</span>
+        </div>
+        {resLoading && <div className="loading">Loading reservations...</div>}
+        {resError && <div className="alert alert-error">{resError}</div>}
+        {resSuccess && <div className="alert alert-success">{resSuccess}</div>}
+        <table className="admin-table reservations-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>User ID</th>
+              <th>Book Title</th>
+              <th>Borrowed Date</th>
+              <th>Due Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservations.slice((resPage - 1) * RES_PAGE_SIZE, (resPage - 1) * RES_PAGE_SIZE + RES_PAGE_SIZE).map((r, idx) => {
+              const red = isDueToday(r.dueTime) || isOverdue(r.dueTime, r.reservationStatus);
+              return (
+                <tr key={r.reservationId || idx} className={red ? 'row-red' : ''}>
+                  <td>{r.userId}</td>
+                  <td>{r.bookTitle || r.bookId}</td>
+                  <td>{r.pickupTime ? new Date(r.pickupTime).toLocaleDateString() : 'N/A'}</td>
+                  <td>{r.dueTime ? new Date(r.dueTime).toLocaleDateString() : 'N/A'}</td>
+                  <td className="actions">
+                    {['borrowed', 'overdue'].includes(r.reservationStatus) && (
+                      <button className="btn btn-primary" onClick={() => handleConfirmReturn(r.reservationId)}>Confirm Return</button>
+                    )}
+                    {r.reservationStatus === 'reserved' && (
+                      <button className="btn btn-outline" onClick={() => handleConfirmBorrow(r.reservationId)}>Confirm Borrow</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

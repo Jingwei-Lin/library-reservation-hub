@@ -39,7 +39,7 @@ const Profile = ({ user, setIsAuthenticated }) => {
                         confirmPassword: ""
                     });
                 } else {
-                    setError(response?.msg || "Failed to load profile");
+                    setError(response?.message || "Failed to load profile");
                 }
             } catch (err) {
                 if (err.message.includes("Session expired or user banned")) {
@@ -92,7 +92,13 @@ const Profile = ({ user, setIsAuthenticated }) => {
     return (
         <div className={`profile-container ${theme === "dark" ? "dark-mode" : ""}`}>
             <h1>Profile Settings</h1>
-            <button onClick={() => navigate("/dashboard")} className="back-button">
+            <button
+                onClick={() => {
+                    navigate("/dashboard");
+                    // window.location.reload();
+                }}
+                className="back-button"
+            >
                 ← Back to Dashboard
             </button>
             {loading && <div className="loading">Loading profile...</div>}

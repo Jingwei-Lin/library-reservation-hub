@@ -8,8 +8,10 @@ const api = axios.create({
 
 const getAuthHeader = () => {
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
-    if (!user || !user.token) {
-        console.warn('No valid user or token found in sessionStorage:', user);
+    console.log(user);
+    console.log(sessionStorage);
+    if (!user) {
+        console.warn('No valid user found in sessionStorage:', user);
         return {};
     }
     return { Authorization: `Bearer ${user.token}` };
@@ -29,7 +31,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to create reservation');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to create reservation');
         }
     },
 
@@ -46,7 +48,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to load reservations');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load reservations');
         }
     },
 
@@ -63,7 +65,7 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to cancel reservation');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to cancel reservation');
         }
     },
 
@@ -80,7 +82,56 @@ export const reservationService = {
                 logoutUser();
                 throw new Error('Session expired or user banned. Please log in again.');
             }
-            throw new Error(error.response?.data?.msg || error.message || 'Failed to check reservation status');
+            throw new Error(error.response?.data?.message || error.message || 'Failed to check reservation status');
+        }
+    },
+
+    getAllReservations: async (current = 1, pageSize = 5) => {
+        try {
+            const response = await api.get(`/reservation/all`, {
+                headers: getAuthHeader(),
+                params: { current, pageSize },
+            });
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load all reservations');
+        }
+    },
+
+    updateReservationStatus: async (reservationId, status) => {
+        try {
+            const response = await api.put(`/reservation/status/${reservationId}`, null, {
+                headers: getAuthHeader(),
+                params: { status },
+            });
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to update reservation status');
+        }
+    },
+
+    updatePickupTime: async (reservationId, formData) => {
+        try {
+            const response = await api.put(`/reservation/pickup/${reservationId}`, formData, {
+                headers: getAuthHeader(),
+            });
+            console.log('updatePickupTime response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('updatePickupTime error:', error.response?.data, error.message);
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to update pickup time');
         }
     },
 };

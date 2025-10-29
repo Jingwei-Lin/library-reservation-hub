@@ -11,6 +11,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [cancelling, setCancelling] = useState(null);
+    const [updatingPickup, setUpdatingPickup] = useState(null);
+    const [newPickupDate, setNewPickupDate] = useState("");
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -28,7 +30,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 if (response && response.code === 0 && response.data) {
                     setReservations(Array.isArray(response.data) ? response.data : []);
                 } else {
-                    setError(response?.msg || "Invalid response format from server");
+                    setError(response?.message || "Invalid response format from server");
                 }
             } catch (err) {
                 console.error("fetchReservations error:", err);
@@ -57,14 +59,13 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
             const response = await reservationService.cancelReservation(reservationId);
             console.log("cancelReservation response:", response);
             if (response && response.code === 0) {
-                // Update reservation status to 'cancelled' in the UI
                 setReservations(reservations.map(r =>
                     r.reservationId === reservationId ? { ...r, reservationStatus: "cancelled" } : r
                 ));
                 setSuccessMessage("Reservation cancelled successfully!");
                 setTimeout(() => setSuccessMessage(""), 3000);
             } else {
-                setError(response?.msg || "Failed to cancel reservation");
+                setError(response?.message || "Failed to cancel reservation");
             }
         } catch (err) {
             console.error("cancelReservation error:", err);
@@ -80,11 +81,53 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
         }
     };
 
-    // Helper to format status
+    const startUpdatePickup = (reservationId, currentPickup) => {
+        setUpdatingPickup(reservationId);
+        // Format current pickup date to YYYY-MM-DD
+        setNewPickupDate(currentPickup ? new Date(currentPickup).toISOString().slice(0, 10) : "");
+    };
+
+    const handleUpdatePickup = async (reservationId) => {
+        if (!newPickupDate) {
+            setError("Please select a new pickup date.");
+            return;
+        }
+
+        try {
+            setError("");
+            setSuccessMessage("");
+            // Send date as YYYY-MM-DD format
+            const response = await reservationService.updatePickupTime(reservationId, { pickupTime: newPickupDate });
+            console.log("updatePickupTime response:", response);
+            if (response && response.code === 0) {
+                setReservations(reservations.map(r =>
+                    r.reservationId === reservationId ? { ...r, pickupTime: new Date(newPickupDate) } : r
+                ));
+                setSuccessMessage("Pickup date updated successfully!");
+                setTimeout(() => setSuccessMessage(""), 3000);
+                setUpdatingPickup(null);
+                setNewPickupDate("");
+            } else {
+                setError(response?.message || "Failed to update pickup date");
+            }
+        } catch (err) {
+            console.error("updatePickupTime error:", err);
+            if (err.message.includes("Session expired or user banned")) {
+                logoutUser();
+                setIsAuthenticated(false);
+                navigate("/login");
+            } else {
+                setError(err.message || "Failed to update pickup date");
+            }
+        }
+    };
+
     const formatStatus = (status) => {
         if (!status) return 'Unknown';
         return status.charAt(0).toUpperCase() + status.slice(1);
     };
+
+    const formatDate = (date) => date ? new Date(date).toLocaleDateString() : 'N/A';
 
     return (
         <div className="reservations-container">
@@ -120,20 +163,59 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                     {reservations.map((res) => (
                         <tr key={res.reservationId}>
                             <td>{res.bookTitle || 'Unknown'}</td>
-                            <td>{res.reservationTime ? new Date(res.reservationTime).toLocaleDateString() : 'N/A'}</td>
-                            <td>{res.pickupTime ? new Date(res.pickupTime).toLocaleDateString() : 'N/A'}</td>
-                            <td>{res.dueTime ? new Date(res.dueTime).toLocaleDateString() : 'N/A'}</td>
+                            <td>{formatDate(res.reservationTime)}</td>
+                            <td>
+                                {updatingPickup === res.reservationId ? (
+                                    <input
+                                        type="date" // Changed from datetime-local to date
+                                        value={newPickupDate}
+                                        onChange={(e) => setNewPickupDate(e.target.value)}
+                                        min={new Date().toISOString().slice(0, 10)} // Prevent past dates
+                                    />
+                                ) : (
+                                    formatDate(res.pickupTime)
+                                )}
+                            </td>
+                            <td>{formatDate(res.dueTime)}</td>
                             <td>{formatStatus(res.reservationStatus)}</td>
                             <td>
-                                {["reserved", "borrowed"].includes(res.reservationStatus) && (
-                                    <button
-                                        onClick={() => handleCancel(res.reservationId)}
-                                        className="cancel-btn"
-                                        disabled={cancelling === res.reservationId}
-                                    >
-                                        {cancelling === res.reservationId ? "Cancelling..." : "Cancel"}
-                                    </button>
+                                {res.reservationStatus === "reserved" && (
+                                    <>
+                                        {updatingPickup === res.reservationId ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleUpdatePickup(res.reservationId)}
+                                                    className="update-btn"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setUpdatingPickup(null)}
+                                                    className="cancel-update-btn"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => startUpdatePickup(res.reservationId, res.pickupTime)}
+                                                className="edit-btn"
+                                            >
+                                                Edit Pickup
+                                            </button>
+                                        )}
+                                    </>
                                 )}
+                                {["reserved", "borrowed"].includes(res.reservationStatus) &&
+                                    updatingPickup !== res.reservationId && (
+                                        <button
+                                            onClick={() => handleCancel(res.reservationId)}
+                                            className="cancel-btn"
+                                            disabled={cancelling === res.reservationId}
+                                        >
+                                            {cancelling === res.reservationId ? "Cancelling..." : "Cancel"}
+                                        </button>
+                                    )}
                             </td>
                         </tr>
                     ))}

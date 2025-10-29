@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
+import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
@@ -20,6 +21,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,13 +42,45 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Creating reservation for bookId: {}, userId: {}", bookId, user.getId());
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
+        ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
         ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Reservation details are required");
 
         // Validate dates
-        Date today = new Date();
-        ThrowUtils.throwIf(req.getPickupTime() == null || req.getPickupTime().before(today),
-                ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
-        ThrowUtils.throwIf(req.getDueTime() == null || req.getDueTime().before(req.getPickupTime()),
+        Date pickupTime = req.getPickupTime();
+        Date dueTime = req.getDueTime();
+        ThrowUtils.throwIf(pickupTime == null, ErrorCode.PARAMS_ERROR, "Pickup date is required");
+        ThrowUtils.throwIf(dueTime == null, ErrorCode.PARAMS_ERROR, "Due date is required");
+
+        // Normalize dates to compare only date part
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        Date today = todayCal.getTime();
+
+        Calendar pickupCal = Calendar.getInstance();
+        pickupCal.setTime(pickupTime);
+        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
+        pickupCal.set(Calendar.MINUTE, 0);
+        pickupCal.set(Calendar.SECOND, 0);
+        pickupCal.set(Calendar.MILLISECOND, 0);
+        Date pickupDateOnly = pickupCal.getTime();
+
+        // Allow pickup date to be today or future
+        ThrowUtils.throwIf(pickupDateOnly.before(today), ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
+
+        // Set dueTime to just before midnight (23:59:59.999)
+        Calendar dueCal = Calendar.getInstance();
+        dueCal.setTime(dueTime);
+        dueCal.set(Calendar.HOUR_OF_DAY, 23);
+        dueCal.set(Calendar.MINUTE, 59);
+        dueCal.set(Calendar.SECOND, 59);
+        dueCal.set(Calendar.MILLISECOND, 999);
+        Date adjustedDueTime = dueCal.getTime();
+
+        // Validate due date is after pickup date
+        ThrowUtils.throwIf(adjustedDueTime.before(pickupTime) || adjustedDueTime.equals(pickupTime),
                 ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
 
         // Check if book is available
@@ -97,12 +131,14 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     public boolean cancelReservation(Long reservationId, User user) {
         log.info("Attempting to cancel reservationId: {} for userId: {}", reservationId, user.getId());
-        ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR, "Invalid reservation ID");
+        ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR,
+                "Invalid reservation ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
 
         Reservation reservation = reservationMapper.selectById(reservationId);
         log.info("Fetched reservation: {}", reservation);
-        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR, "Reservation not found or already cancelled");
+        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR,
+                "Reservation not found or already cancelled");
         ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
                 ErrorCode.NO_AUTH_ERROR, "Not authorized to cancel this reservation");
 
@@ -173,10 +209,16 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public PageResult<ReservationVO> getAllReservations(PageRequest pageRequest, User operator) {
         ThrowUtils.throwIf(!userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
-        List<Reservation> reservations = reservationMapper.selectByUserId(null);
-        log.info("Fetched all reservations: {}", reservations);
-        return new PageResult<>(pageRequest.getCurrent(), pageRequest.getPageSize(),
-                reservations.size(), reservations.stream().map(this::toReservationVO).collect(Collectors.toList()));
+        List<Reservation> reservations = reservationMapper.selectAll();
+        int current = Math.max(1, pageRequest.getCurrent());
+        int pageSize = Math.max(1, pageRequest.getPageSize());
+        int total = reservations.size();
+        int fromIndex = Math.min((current - 1) * pageSize, total);
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        List<Reservation> pageList = total == 0 ? List.of() : reservations.subList(fromIndex, toIndex);
+        return new PageResult<>(current, pageSize,
+                total,
+                pageList.stream().map(this::toReservationVO).collect(java.util.stream.Collectors.toList()));
     }
 
     @Override
@@ -206,5 +248,66 @@ public class ReservationServiceImpl implements ReservationService {
                 .anyMatch(r -> r != null && r.getUserId() != null && r.getReservationStatus() != null &&
                         r.getUserId().equals(userId) &&
                         List.of("reserved", "borrowed").contains(r.getReservationStatus()));
+    }
+
+    @Override
+    @Transactional
+    public boolean updatePickupTime(ReservationUpdatePickupRequest req, User user) {
+        log.info("Attempting to update pickup time for reservationId: {} by userId: {}",
+                req.getReservationId(), user.getId());
+
+        // Validate inputs
+        ThrowUtils.throwIf(req == null || req.getReservationId() == null || req.getReservationId() <= 0,
+                ErrorCode.PARAMS_ERROR, "Invalid reservation ID");
+        ThrowUtils.throwIf(req.getPickupTime() == null, ErrorCode.PARAMS_ERROR, "Pickup time is required");
+        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
+        ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
+
+        // Fetch the reservation
+        Reservation reservation = reservationMapper.selectById(req.getReservationId());
+        ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(),
+                ErrorCode.NOT_FOUND_ERROR, "Reservation not found or already cancelled");
+        ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
+                ErrorCode.NO_AUTH_ERROR, "Not authorized to update this reservation");
+
+        // Validate reservation status (only allow updates for 'reserved' status)
+        ThrowUtils.throwIf(!"reserved".equals(reservation.getReservationStatus()),
+                ErrorCode.OPERATION_ERROR, "Can only update pickup time for reserved status");
+
+        // Validate new pickup time
+        Date newPickupTime = req.getPickupTime();
+        Calendar todayCal = Calendar.getInstance();
+        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+        todayCal.set(Calendar.MINUTE, 0);
+        todayCal.set(Calendar.SECOND, 0);
+        todayCal.set(Calendar.MILLISECOND, 0);
+        Date today = todayCal.getTime();
+
+        Calendar pickupCal = Calendar.getInstance();
+        pickupCal.setTime(newPickupTime);
+        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
+        pickupCal.set(Calendar.MINUTE, 0);
+        pickupCal.set(Calendar.SECOND, 0);
+        pickupCal.set(Calendar.MILLISECOND, 0);
+        Date pickupDateOnly = pickupCal.getTime();
+
+        // Allow pickup date to be today or future
+        ThrowUtils.throwIf(pickupDateOnly.before(today),
+                ErrorCode.PARAMS_ERROR, "New pickup date cannot be in the past");
+
+        // Validate new pickup time is before due time
+        ThrowUtils.throwIf(newPickupTime.after(reservation.getDueTime()) ||
+                        newPickupTime.equals(reservation.getDueTime()),
+                ErrorCode.PARAMS_ERROR, "New pickup time must be before due time");
+
+        // Update the reservation
+        reservation.setPickupTime(newPickupTime);
+        reservation.setUpdateTime(new Date());
+        int rows = reservationMapper.updatePickupTime(req.getReservationId(), newPickupTime);
+        log.info("Updated pickup time for reservationId {}, rows affected: {}",
+                req.getReservationId(), rows);
+        ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to update pickup time");
+
+        return true;
     }
 }

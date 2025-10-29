@@ -45,6 +45,7 @@ function App() {
                         element={
                             <Dashboard
                                 user={user}
+                                setUser={setUser}
                                 setIsAuthenticated={setIsAuthenticated}
                                 isAuthenticated={isAuthenticated}
                             />

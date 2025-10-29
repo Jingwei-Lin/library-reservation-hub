@@ -34,6 +34,8 @@ const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
             const pickupDate = new Date(formData.pickupTime);
             const dueDate = new Date(formData.dueTime);
             const today = new Date();
+            dueDate.setHours(23, 59, 59, 999);
+            pickupDate.setHours(0, 0, 0, 1);
             today.setHours(0, 0, 0, 0);
 
             if (pickupDate < today) {
@@ -44,8 +46,8 @@ const ReservationForm = ({ isAuthenticated, setIsAuthenticated }) => {
             }
 
             const response = await reservationService.createReservation(bookId, {
-                pickupTime: formData.pickupTime,
-                dueTime: formData.dueTime
+                pickupTime: pickupDate,
+                dueTime: dueDate
             });
             console.log("createReservation response:", response);
             if (response && response.code === 0) {

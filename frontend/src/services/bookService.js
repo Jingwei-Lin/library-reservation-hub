@@ -13,7 +13,7 @@ const api = axios.create({
 export const bookService = {
     getAllBooks: async (page = 1, size = 101) => {
         try {
-            const response = await api.get(`/book/search?current=${page}&pageSize=${size}`);
+            const response = await api.get(`/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`);
             console.log('Get all books response:', response);
             return response.data;
         } catch (error) {
@@ -29,8 +29,8 @@ export const bookService = {
     searchBooks: async (keyword, page = 1, size = 101) => {
         try {
             const url = keyword
-                ? `/book/search?keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`
-                : `/book/search?current=${page}&pageSize=${size}`;
+                ? `/book/search?sortField=title&sortOrder=ascend&keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`
+                : `/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`;
             const response = await api.get(url);
             console.log('Search books response:', response);
             return response.data;
@@ -116,6 +116,21 @@ export const bookService = {
             }
             console.error('Error restoring book:', error);
             throw new Error(error.response?.data?.message || 'Failed to restore book');
+        }
+    },
+
+    getTop10Books: async () => {
+        try {
+            const response = await api.get('/book-rating/top10-books');
+            console.log('Get top 10 books response:', response);
+            return response.data;
+        } catch (error) {
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            console.error('Error fetching top 10 books:', error);
+            throw new Error('Failed to fetch top 10 books');
         }
     },
 };

@@ -36,4 +36,7 @@ public interface WaitingListService extends IService<WaitingList> {
 
     /**Notify users of the current books available for borrowing**/
     List<NotifyEligibilityVO> computeNotifyEligibilityForUser(Long id);
+
+    /**Automatically update the status of the waiting list**/
+    int cancelStaleWaiting();
 }

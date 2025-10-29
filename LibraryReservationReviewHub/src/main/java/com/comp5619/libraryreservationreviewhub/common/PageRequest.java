@@ -31,7 +31,7 @@ public class PageRequest {
      * Sort order (default descending)
      * 排序顺序（默认降序）
      */
-    private String sortOrder = "descend";
+    private String sortOrder = "ASC";
 }
 
 

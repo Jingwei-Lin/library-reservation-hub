@@ -28,7 +28,8 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
             if (response && response.code === 0 && response.data) {
                 setWaitingItems(Array.isArray(response.data) ? response.data : []);
             } else {
-                setError(response?.msg || "Invalid response format from server");
+-                setError(response?.msg || "Invalid response format from server");
++                setError(response?.message || "Invalid response format from server");
             }
         } catch (err) {
             console.error("fetchWaitingList error:", err);
@@ -57,7 +58,8 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                 setTimeout(() => setSuccessMessage(""), 3000);
                 await fetchWaitingList(); // Refresh list
             } else {
-                setError(response?.msg || "Failed to cancel waiting list entry");
+-                setError(response?.msg || "Failed to cancel waiting list entry");
++                setError(response?.message || "Failed to cancel waiting list entry");
             }
         } catch (err) {
             console.error("handleCancel error:", err);
@@ -84,7 +86,8 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                 setTimeout(() => setSuccessMessage(""), 3000);
                 await fetchWaitingList(); // Refresh to show updated statuses
             } else {
-                setError(response?.msg || "Failed to check eligibility");
+-                setError(response?.msg || "Failed to check eligibility");
++                setError(response?.message || "Failed to check eligibility");
             }
         } catch (err) {
             console.error("checkEligibility error:", err);
@@ -161,7 +164,7 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                                 )}
                                 {item.status === "notified" && (
                                     <button
-                                        onClick={() => navigate(`/reservation/form/${item.bookId}`)}
+                                        onClick={() => navigate(`/dashboard?book=${item.bookId}&reserve=true`)}
                                         className="reserve-btn"
                                     >
                                         Reserve Now

@@ -40,6 +40,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     // Review submission feedback
     const [reviewSuccess, setReviewSuccess] = useState("");
     const [reviewError, setReviewError] = useState("");
+    const [bookRating, setBookRating] = useState(null);
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -54,6 +55,15 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 } else {
                     setError(bookResponse.message || "Invalid response format");
                     return;
+                }
+
+                // Fetch book rating
+                const ratingResponse = await bookService.getRatingByBookId(id);
+                if (ratingResponse && ratingResponse.code === 0 && ratingResponse.data) {
+                    setBookRating(ratingResponse.data);
+                } else {
+                    console.warn("No rating data:", ratingResponse?.message);
+                    setBookRating(null);
                 }
 
                 // Fetch all reviews (accessible to all users)
@@ -316,6 +326,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             const updatedReviews = await reviewService.getReviewsByBookId(id);
             if (updatedReviews && updatedReviews.code === 0 && Array.isArray(updatedReviews.data)) {
                 setReviews(updatedReviews.data);
+                await fetchBookRating();
             } else {
                 console.warn("No updated reviews found");
             }
@@ -348,6 +359,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             const reviewResponse = await reviewService.getReviewsByBookId(id);
             if (reviewResponse && reviewResponse.code === 0 && Array.isArray(reviewResponse.data)) {
                 setReviews(reviewResponse.data);
+                await fetchBookRating();
             }
         } catch (err) {
             console.error("Error deleting review:", err);
@@ -363,6 +375,20 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
 
     const handleStarClick = (rating) => {
         setNewReview({ ...newReview, rating });
+    };
+
+    const fetchBookRating = async () => {
+        try {
+            const response = await bookService.getRatingByBookId(id);
+            if (response && response.code === 0 && response.data) {
+                setBookRating(response.data);
+            } else {
+                setBookRating(null);
+            }
+        } catch (err) {
+            console.warn("Failed to refresh rating:", err);
+            setBookRating(null);
+        }
     };
 
     return (
@@ -532,6 +558,36 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                         <h1>{book.title}</h1>
                         <p className="book-author">by {book.author}</p>
                         <p className="book-genre">{book.genre}</p>
+
+                        {bookRating && (
+                            <div className="book-rating-display">
+                                <div className="star-rating-large">
+                                    {[1, 2, 3, 4, 5].map((star) => {
+                                        const rating = bookRating.avgRating ?? 0;
+                                        const fullStars = Math.floor(rating);
+                                        const decimal = rating - fullStars;
+                                        let isFilled = star <= fullStars;
+                                        let isHalf = false;
+                                        if (!isFilled && star === fullStars + 1 && decimal >= 0.25 && decimal < 0.75) {
+                                            isHalf = true;
+                                        } else if (!isFilled && star === fullStars + 1 && decimal >= 0.75) {
+                                            isFilled = true;
+                                        }
+                                        return (
+                                            <span key={star} className={`star large ${isFilled ? "filled" : isHalf ? "half" : ""}`}> ★ </span>
+                                        );
+                                    })}
+                                </div>
+                                {(bookRating?.avgRating ?? 0) > 0 ? (
+                                    <p className="rating-text">
+                                        <strong>{bookRating.avgRating.toFixed(1)}</strong> out of 5
+                                    </p>
+                                ) : (
+                                    <p className="rating-text">No ratings yet</p>
+                                )}
+                            </div>
+                        )}
+
                         <p className="book-description-title">Description:</p>
                         <p className="book-description">{book.description}</p>
                         <div className="book-status">

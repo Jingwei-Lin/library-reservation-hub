@@ -349,7 +349,15 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                 <div className="nav-box">
                     <h3>Navigation</h3>
                     <ul>
-                        <li onClick={() => fetchBooks()}>All Books</li>
+                        <li
+                            onClick={() => {
+                                fetchBooks();
+                                setSelectedBookId(null);
+                                navigate('/dashboard', { replace: true });
+                            }}
+                        >
+                            All Books
+                        </li>
                         <li onClick={() => navigate("/reservations")}>My Reservations</li>
                         <li
                             onClick={() => navigate("/waitinglist")}
@@ -511,7 +519,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                         <div className="recommend-box">
                             <h3>Quick Actions</h3>
                             <ul>
-                                <li onClick={() => fetchBooks()}>View All Books</li>
                                 <li onClick={handleTop10Click}>Top 10 Rated Books</li>
                             </ul>
                         </div>

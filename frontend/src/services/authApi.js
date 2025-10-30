@@ -50,8 +50,17 @@ export const validateSession = async () => {
     }
 };
 
-// Logout (clear sessionStorage)
-export const logoutUser = () => {
-    sessionStorage.removeItem('user');
-    sessionStorage.removeItem('token');
+// Logout
+export const logoutUser = async () => {
+    try {
+        // Call backend to kill session
+        await api.post('/user/logout');
+    } catch (error) {
+        console.warn("Logout API failed, continuing client-side logout:", error);
+        // Still proceed — don't let API failure block logout
+    } finally {
+        // Always clear client state
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+    }
 };

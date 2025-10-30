@@ -164,7 +164,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
 
     const handleBack = () => {
         if (onBack) {
-            onBack(); // Call onBack if provided
+            // onBack(); // Call onBack if provided
+            navigate('/dashboard');
         } else {
             navigate('/dashboard'); // Fallback to dashboard
         }

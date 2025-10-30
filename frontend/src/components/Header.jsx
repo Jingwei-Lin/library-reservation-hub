@@ -23,10 +23,15 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSear
         window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme: newTheme } }));
     };
 
-    const handleLogout = () => {
-        logoutUser();
-        setIsAuthenticated(false);
-        setIsPanelOpen(false);
+    const handleLogout = async () => {
+        try {
+            await logoutUser(); // Now awaits backend
+        } catch (err) {
+            // Optional: show toast
+        } finally {
+            setIsAuthenticated(false);
+            setIsPanelOpen(false);
+        }
     };
 
     const handleLoginRedirect = () => {

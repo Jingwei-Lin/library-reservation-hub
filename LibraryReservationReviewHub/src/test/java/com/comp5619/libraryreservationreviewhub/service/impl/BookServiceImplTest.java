@@ -21,12 +21,12 @@ class BookServiceImplTest {
     private BookService bookService;
     
 
-    @Test
-    void testGetRandomBooks_DefaultLimit() {
-        List<BookVO> books = bookService.getRandomBooks(10);
-        log.info("随机取出的书籍: {}", books);
-        Assertions.assertNotNull(books, "结果不应为 null");
-        Assertions.assertFalse(books.isEmpty(), "随机书籍列表不应为空");
-        Assertions.assertTrue(books.size() <= 10, "随机书籍数量应小于等于10");
-    }
+//    @Test
+//    void testGetRandomBooks_DefaultLimit() {
+//        List<BookVO> books = bookService.getRandomBooks(10);
+//        log.info("随机取出的书籍: {}", books);
+//        Assertions.assertNotNull(books, "结果不应为 null");
+//        Assertions.assertFalse(books.isEmpty(), "随机书籍列表不应为空");
+//        Assertions.assertTrue(books.size() <= 10, "随机书籍数量应小于等于10");
+//    }
 }

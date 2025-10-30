@@ -708,7 +708,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                             {reviews.map((review) => (
                                 <div key={review.reviewId} className="review-card">
                                     <div className="review-header">
-                                        <span className="review-user">User ID: {review.userId}</span>
+                                        <span className="review-user">{review.userName}</span>
                                         <div className="review-rating" aria-label={`Rating ${review.rating} out of 5 stars`}>
                                             {[1, 2, 3, 4, 5].map((num) => (
                                                 <span

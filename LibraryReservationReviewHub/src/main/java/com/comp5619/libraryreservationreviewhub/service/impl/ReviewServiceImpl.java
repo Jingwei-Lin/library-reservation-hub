@@ -32,8 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
-    @Resource
-    private ReviewMapper reviewMapper;
+    private final ReviewMapper reviewMapper;
     private final BookMapper bookMapper;
     private final UserService userService; // ensure injection via constructor
     private final BookService bookService;
@@ -97,16 +96,28 @@ public class ReviewServiceImpl implements ReviewService {
         vo.setUserId(review.getUserId());
         vo.setComment(review.getComment());
         vo.setRating(review.getRating());
-        // System.out.println(userService.getById(review.getUserId()));
-        // vo.setUserName(userService.getUserNameById(review.getUserId()));
+
+        // Fetch user to get name
+        User user = userService.getById(review.getUserId());
+        if (user != null) {
+            vo.setUserName(user.getFirstName() + " " + user.getLastName());
+        } else {
+            vo.setUserName("Unknown User");
+        }
 
         return vo;
     }
 
+
+
     @Override
     public List<ReviewVO> getReviewVOList(List<Review> reviews) {
-        if (CollUtil.isEmpty(reviews)) return CollUtil.newArrayList();
-        return reviews.stream().map(this::getReviewVO).collect(Collectors.toList());
+        if (CollUtil.isEmpty(reviews)) {
+            return CollUtil.newArrayList();
+        }
+        return reviews.stream()
+                .map(this::getReviewVO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -161,17 +172,17 @@ public class ReviewServiceImpl implements ReviewService {
         int current = (req != null && req.getCurrent() > 0) ? (int) req.getCurrent() : 1;
         int pageSize = (req != null && req.getPageSize() > 0) ? (int) req.getPageSize() : 10;
         long offset = (long) (current - 1) * pageSize;
-    
+
         Long bookId = (req != null) ? req.getBookId() : null;
         Long userId = (req != null) ? req.getUserId() : null;
         Integer minRating = (req != null) ? req.getMinRating() : null;
         Integer maxRating = (req != null) ? req.getMaxRating() : null;
-    
+
         long total = reviewMapper.countAllByQuery(bookId, userId, minRating, maxRating);
         List<Review> list = total > 0
                 ? reviewMapper.selectAllByQuery(bookId, userId, minRating, maxRating, offset, pageSize)
                 : cn.hutool.core.collection.CollUtil.newArrayList();
-    
+
         List<ReviewVO> records = getReviewVOList(list);
         return new PageResult<>(current, pageSize, total, records);
     }

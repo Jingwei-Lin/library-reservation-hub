@@ -337,6 +337,55 @@
     box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
 }
 
+/* Numeric Stepper with larger up/down buttons */
+.number-stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.number-stepper .input {
+    height: 40px;
+    font-size: 1rem;
+}
+.stepper-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.step-btn {
+    width: 32px;
+    height: 24px;
+    border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.95rem;
+}
+.step-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.step-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Hide native number input spinners to avoid duplication */
+.number-stepper input[type='number']::-webkit-outer-spin-button,
+.number-stepper input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.number-stepper input[type='number'] {
+    -moz-appearance: textfield;
+}
+
 .loading {
     color: var(--muted);
     font-size: 1rem;

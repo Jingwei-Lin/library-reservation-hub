@@ -5,6 +5,7 @@ import { reviewService } from '../services/reviewService';
 import { adminUserService } from '../services/adminUserService';
 import { reservationService } from '../services/reservationService';
 import './AdminDashboard.css';
+import NumericStepper from './NumericStepper';
 
 /**
  * 组件入参
@@ -14,6 +15,9 @@ import './AdminDashboard.css';
  */
 const AdminDashboard = ({ user, isAuthenticated, setIsAuthenticated }) => {
   const navigate = useNavigate();
+
+  // helper: case-insensitive substring match
+  const includesQuery = (value, q) => String(value ?? '').toLowerCase().includes(q);
 
   /**
  * 进入页面时校验管理员权限
@@ -36,6 +40,18 @@ useEffect(() => {
   const [usersError, setUsersError] = useState('');
   const [usersSuccess, setUsersSuccess] = useState('');
   const [usersOriginal, setUsersOriginal] = useState([]);
+  const [usersQuery, setUsersQuery] = useState('');
+  const filteredUsers = React.useMemo(() => {
+    const q = usersQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(u => (
+      includesQuery(u.id, q) ||
+      includesQuery(u.userAccount, q) ||
+      includesQuery(u.firstName, q) ||
+      includesQuery(u.lastName, q) ||
+      includesQuery(u.userRole, q)
+    ));
+  }, [users, usersQuery]);
 
   /**
    * 根据用户ID补充用户状态（status：0 正常 / 1 封禁）
@@ -92,10 +108,13 @@ useEffect(() => {
   /**
    * 本地修改某个用户的一列字段（不直接提交后端）
    */
-  const handleUserFieldChange = (index, field, value) => {
+  const handleUserFieldChange = (id, field, value) => {
     setUsers(prev => {
       const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
+      const idx = copy.findIndex(it => it.id === id);
+      if (idx >= 0) {
+        copy[idx] = { ...copy[idx], [field]: value };
+      }
       return copy;
     });
   };
@@ -210,6 +229,20 @@ useEffect(() => {
   const [booksLoading, setBooksLoading] = useState(false);
   const [booksError, setBooksError] = useState('');
   const [booksSuccess, setBooksSuccess] = useState('');
+  const [booksOriginal, setBooksOriginal] = useState([]);
+  const [booksQuery, setBooksQuery] = useState('');
+  const filteredBooks = React.useMemo(() => {
+    const q = booksQuery.trim().toLowerCase();
+    if (!q) return books;
+    return books.filter(b => (
+      includesQuery(b.bookId, q) ||
+      includesQuery(b.title, q) ||
+      includesQuery(b.author, q) ||
+      includesQuery(b.genre, q) ||
+      includesQuery(b.quantity, q) ||
+      includesQuery(b.available, q)
+    ));
+  }, [books, booksQuery]);
 
   /**
    * 分页拉取图书列表，并维护加载/错误/成功提示
@@ -219,14 +252,16 @@ useEffect(() => {
       setBooksLoading(true); setBooksError(''); setBooksSuccess('');
       const res = await bookService.getAllBooks(booksPage, BOOKS_PAGE_SIZE);
       if (res && res.code === 0 && res.data) {
-        setBooks(res.data.records || []);
+        const records = res.data.records || [];
+        setBooks(records);
+        setBooksOriginal(records);
         setBooksTotal(res.data.total ?? 0);
       } else {
         setBooksError(res?.msg || 'Failed to load books');
-        setBooks([]); setBooksTotal(0);
+        setBooks([]); setBooksOriginal([]); setBooksTotal(0);
       }
     } catch (err) {
-      setBooksError(err.message || 'Failed to load books'); setBooksTotal(0);
+      setBooksError(err.message || 'Failed to load books'); setBooksOriginal([]); setBooksTotal(0);
     } finally {
       setBooksLoading(false);
     }
@@ -235,18 +270,50 @@ useEffect(() => {
   /**
    * 本地修改图书的某个字段（不直接提交后端）
    */
-  const handleBookFieldChange = (index, field, value) => {
+  const handleBookFieldChange = (bookId, field, value) => {
     setBooks(prev => {
       const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
+      const idx = copy.findIndex(it => it.bookId === bookId);
+      if (idx >= 0) {
+        const updated = { ...copy[idx], [field]: value };
+        if (field === 'quantity') {
+          const q = Number(value);
+          const safeQ = Number.isFinite(q) ? q : 0;
+          updated.available = safeQ > 0;
+        }
+        copy[idx] = updated;
+      }
       return copy;
     });
+  };
+
+  const isBookUnchanged = (b) => {
+    const orig = booksOriginal.find(o => o.bookId === b.bookId);
+    if (!orig) return false;
+    return (
+      (b.title || '') === (orig.title || '') &&
+      (b.author || '') === (orig.author || '') &&
+      (b.genre || '') === (orig.genre || '') &&
+      Number(b.quantity ?? 0) === Number(orig.quantity ?? 0) &&
+      Boolean(b.available) === Boolean(orig.available)
+    );
   };
 
   /**
    * 保存图书编辑（内联保存），成功后刷新列表
    */
   const handleBookUpdate = async (b) => {
+    if (isBookUnchanged(b)) {
+      alert('No changes made');
+      return;
+    }
+    const confirmed = window.confirm('Are you sure you want to save the changes?');
+    if (!confirmed) {
+      await fetchBooks();
+      setBooksSuccess('');
+      setBooksError('');
+      return;
+    }
     try {
       setBooksError(''); setBooksSuccess('');
       const res = await bookService.updateBook(b.bookId, { ...b, bookId: b.bookId });
@@ -311,6 +378,19 @@ useEffect(() => {
   const [rvPage, setRvPage] = useState(1);
   const RV_PAGE_SIZE = 10;
   const [rvTotal, setRvTotal] = useState(0);
+  const [reviewsQuery, setReviewsQuery] = useState('');
+  const filteredReviews = React.useMemo(() => {
+    const q = reviewsQuery.trim().toLowerCase();
+    if (!q) return reviews;
+    return reviews.filter(r => (
+      includesQuery(r.reviewId, q) ||
+      includesQuery(r.bookTitle ?? r.bookId, q) ||
+      includesQuery(r.userName ?? r.userId, q) ||
+      includesQuery(r.rating, q) ||
+      includesQuery(r.comment, q) ||
+      includesQuery(r.reviewDate, q)
+    ));
+  }, [reviews, reviewsQuery]);
 
   /**
    * 为评论记录批量补充书名与用户名，避免逐条请求造成性能问题
@@ -379,10 +459,13 @@ useEffect(() => {
   /**
    * 本地修改评论的某个字段（如评分/评论内容）
    */
-  const handleReviewFieldChange = (index, field, value) => {
+  const handleReviewFieldChange = (reviewId, field, value) => {
     setReviews(prev => {
       const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
+      const idx = copy.findIndex(it => it.reviewId === reviewId);
+      if (idx >= 0) {
+        copy[idx] = { ...copy[idx], [field]: value };
+      }
       return copy;
     });
   };
@@ -476,7 +559,27 @@ useEffect(() => {
   const [resSuccess, setResSuccess] = useState('');
   const [resPage, setResPage] = useState(1);
   const RES_PAGE_SIZE = 5; // UI page size per requirement
-  const [resFilter, setResFilter] = useState('borrowed'); // borrowed | active | all
+  const [resFilter, setResFilter] = useState('all'); // borrowed | active | all
+  const [resQuery, setResQuery] = useState('');
+  const filteredReservations = React.useMemo(() => {
+    const q = resQuery.trim().toLowerCase();
+    if (!q) return reservations;
+    return reservations.filter(r => (
+      includesQuery(r.reservationId, q) ||
+      includesQuery(r.userId, q) ||
+      includesQuery(r.bookTitle ?? r.bookId, q) ||
+      includesQuery(r.reservationStatus, q) ||
+      includesQuery(r.pickupTime ? new Date(r.pickupTime).toLocaleDateString() : '', q) ||
+      includesQuery(r.dueTime ? new Date(r.dueTime).toLocaleDateString() : '', q)
+    ));
+  }, [reservations, resQuery]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredReservations.length / RES_PAGE_SIZE));
+    if (resPage > maxPage) {
+      setResPage(maxPage);
+    }
+  }, [filteredReservations.length]);
 
   const filterReservations = (records, filter) => {
     switch (filter) {
@@ -585,17 +688,13 @@ useEffect(() => {
       <div className="admin-section">
         <h3>Users</h3>
         <div className="admin-controls">
+          <input
+            className="input input-sm"
+            placeholder="Search users..."
+            value={usersQuery}
+            onChange={(e) => setUsersQuery(e.target.value)}
+          />
           <span>Page size: {USERS_PAGE_SIZE}</span>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setUsersPage(Math.max(1, usersPage - 1))}
-            disabled={usersPage <= 1}
-          >Prev</button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setUsersPage(usersPage + 1)}
-            disabled={usersPage >= Math.max(1, Math.ceil((usersTotal || 0) / USERS_PAGE_SIZE))}
-          >Next</button>
           <span>Page: {usersPage} / {Math.max(1, Math.ceil((usersTotal || 0) / USERS_PAGE_SIZE))}</span>
           <button className="btn btn-primary" onClick={fetchUsers}>Refresh</button>
         </div>
@@ -609,13 +708,17 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {users.map((u, idx) => (
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+              </tr>
+            ) : filteredUsers.map((u, idx) => (
               <tr key={u.id || idx}>
                 <td>{u.id}</td>
-                <td><input className="input" value={u.userAccount || ''} onChange={(e) => handleUserFieldChange(idx, 'userAccount', e.target.value)} /></td>
-                <td><input className="input" value={u.firstName || ''} onChange={(e) => handleUserFieldChange(idx, 'firstName', e.target.value)} /></td>
-                <td><input className="input" value={u.lastName || ''} onChange={(e) => handleUserFieldChange(idx, 'lastName', e.target.value)} /></td>
-                <td><input className="input" value={u.userRole || ''} onChange={(e) => handleUserFieldChange(idx, 'userRole', e.target.value)} /></td>
+                <td><input className="input" value={u.userAccount || ''} onChange={(e) => handleUserFieldChange(u.id, 'userAccount', e.target.value)} /></td>
+                <td><input className="input" value={u.firstName || ''} onChange={(e) => handleUserFieldChange(u.id, 'firstName', e.target.value)} /></td>
+                <td><input className="input" value={u.lastName || ''} onChange={(e) => handleUserFieldChange(u.id, 'lastName', e.target.value)} /></td>
+                <td><input className="input" value={u.userRole || ''} onChange={(e) => handleUserFieldChange(u.id, 'userRole', e.target.value)} /></td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleUserUpdate(u)}>Save</button>
                   <button className="btn btn-outline" onClick={() => handleToggleBan(u)}>
@@ -626,23 +729,31 @@ useEffect(() => {
             ))}
           </tbody>
         </table>
+        <div className="admin-pagination-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setUsersPage(Math.max(1, usersPage - 1))}
+            disabled={usersPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setUsersPage(usersPage + 1)}
+            disabled={usersPage >= Math.max(1, Math.ceil((usersTotal || 0) / USERS_PAGE_SIZE))}
+          >Next</button>
+        </div>
       </div>
 
       {/* 评论管理区块 */}
       <div className="admin-section">
         <h3>Reviews</h3>
         <div className="admin-controls">
+          <input
+            className="input input-sm"
+            placeholder="Search reviews..."
+            value={reviewsQuery}
+            onChange={(e) => setReviewsQuery(e.target.value)}
+          />
           <span>Page size: {RV_PAGE_SIZE}</span>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setRvPage(Math.max(1, rvPage - 1))}
-            disabled={rvPage <= 1}
-          >Prev</button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setRvPage(rvPage + 1)}
-            disabled={rvPage >= Math.max(1, Math.ceil((rvTotal || 0) / RV_PAGE_SIZE))}
-          >Next</button>
           <span>Page: {rvPage} / {Math.max(1, Math.ceil((rvTotal || 0) / RV_PAGE_SIZE))}</span>
           <button className="btn btn-primary" onClick={fetchAllReviews}>Refresh</button>
         </div>
@@ -656,13 +767,17 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {reviews.map((r, idx) => (
+            {filteredReviews.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+              </tr>
+            ) : filteredReviews.map((r, idx) => (
               <tr key={r.reviewId || idx}>
                 <td>{r.reviewId}</td>
                 <td>{r.bookTitle || r.bookId}</td>
                 <td>{r.userName || r.userId}</td>
-                <td><input className="input" type="number" min={1} max={5} value={r.rating ?? 1} onChange={(e) => handleReviewFieldChange(idx, 'rating', Number(e.target.value))} /></td>
-                <td><input className="input" value={r.comment || ''} onChange={(e) => handleReviewFieldChange(idx, 'comment', e.target.value)} /></td>
+                <td><NumericStepper min={1} max={5} step={1} value={r.rating ?? 1} onChange={(val) => handleReviewFieldChange(r.reviewId, 'rating', val)} /></td>
+                <td><input className="input" value={r.comment || ''} onChange={(e) => handleReviewFieldChange(r.reviewId, 'comment', e.target.value)} /></td>
                 <td>{r.reviewDate}</td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleReviewUpdate(r)}>Save</button>
@@ -672,23 +787,31 @@ useEffect(() => {
             ))}
           </tbody>
         </table>
+        <div className="admin-pagination-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setRvPage(Math.max(1, rvPage - 1))}
+            disabled={rvPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setRvPage(rvPage + 1)}
+            disabled={rvPage >= Math.max(1, Math.ceil((rvTotal || 0) / RV_PAGE_SIZE))}
+          >Next</button>
+        </div>
       </div>
 
       {/* 图书管理区块 */}
       <div className="admin-section">
         <h3>Books</h3>
         <div className="admin-controls">
+          <input
+            className="input input-sm"
+            placeholder="Search books..."
+            value={booksQuery}
+            onChange={(e) => setBooksQuery(e.target.value)}
+          />
           <span>Page size: {BOOKS_PAGE_SIZE}</span>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setBooksPage(Math.max(1, booksPage - 1))}
-            disabled={booksPage <= 1}
-          >Prev</button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setBooksPage(booksPage + 1)}
-            disabled={booksPage >= Math.max(1, Math.ceil((booksTotal || 0) / BOOKS_PAGE_SIZE))}
-          >Next</button>
           <span>Page: {booksPage} / {Math.max(1, Math.ceil((booksTotal || 0) / BOOKS_PAGE_SIZE))}</span>
           <button className="btn btn-primary" onClick={fetchBooks}>Refresh</button>
         </div>
@@ -702,14 +825,18 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {books.map((b, idx) => (
+            {filteredBooks.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+              </tr>
+            ) : filteredBooks.map((b, idx) => (
               <tr key={b.bookId || idx}>
                 <td>{b.bookId}</td>
-                <td><input className="input" value={b.title || ''} onChange={(e) => handleBookFieldChange(idx, 'title', e.target.value)} /></td>
-                <td><input className="input" value={b.author || ''} onChange={(e) => handleBookFieldChange(idx, 'author', e.target.value)} /></td>
-                <td><input className="input" value={b.genre || ''} onChange={(e) => handleBookFieldChange(idx, 'genre', e.target.value)} /></td>
-                <td><input className="input" type="number" min={0} value={b.quantity ?? 0} onChange={(e) => handleBookFieldChange(idx, 'quantity', Number(e.target.value))} /></td>
-                <td><input className="checkbox" type="checkbox" checked={!!b.available} onChange={(e) => handleBookFieldChange(idx, 'available', e.target.checked)} /></td>
+                <td><input className="input" value={b.title || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'title', e.target.value)} /></td>
+                <td><input className="input" value={b.author || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'author', e.target.value)} /></td>
+                <td><input className="input" value={b.genre || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'genre', e.target.value)} /></td>
+                <td><NumericStepper min={0} step={1} value={b.quantity ?? 0} onChange={(val) => handleBookFieldChange(b.bookId, 'quantity', val)} /></td>
+                <td><input className="checkbox" type="checkbox" checked={!!b.available} onChange={(e) => handleBookFieldChange(b.bookId, 'available', e.target.checked)} /></td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleBookUpdate(b)}>Save</button>
                   <button className="btn btn-danger" onClick={() => handleBookDelete(b.bookId)}>Delete</button>
@@ -719,6 +846,18 @@ useEffect(() => {
             ))}
           </tbody>
         </table>
+        <div className="admin-pagination-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setBooksPage(Math.max(1, booksPage - 1))}
+            disabled={booksPage <= 1}
+          >Prev</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setBooksPage(booksPage + 1)}
+            disabled={booksPage >= Math.max(1, Math.ceil((booksTotal || 0) / BOOKS_PAGE_SIZE))}
+          >Next</button>
+        </div>
       </div>
       {/* 预约管理区块 */}
       <div className="admin-section">
@@ -727,14 +866,18 @@ useEffect(() => {
           <span>Page size: {RES_PAGE_SIZE}</span>
           <label>Filter:</label>
           <select className="input input-sm" value={resFilter} onChange={(e) => setResFilter(e.target.value)}>
+            <option value="all">All statuses</option>
             <option value="borrowed">Borrowed/Overdue only</option>
             <option value="active">Include reserved</option>
-            <option value="all">All statuses</option>
           </select>
           <button className="btn btn-primary" onClick={fetchReservations}>Refresh</button>
-          <button className="btn btn-secondary" onClick={() => setResPage(Math.max(1, resPage - 1))}>Prev</button>
-          <button className="btn btn-secondary" onClick={() => setResPage(resPage + 1)} disabled={(resPage * RES_PAGE_SIZE) >= reservations.length}>Next</button>
-          <span>Page: {resPage} / {Math.max(1, Math.ceil(reservations.length / RES_PAGE_SIZE))}</span>
+          <input
+            className="input input-sm"
+            placeholder="Search reservations..."
+            value={resQuery}
+            onChange={(e) => setResQuery(e.target.value)}
+          />
+          <span>Page: {resPage} / {Math.max(1, Math.ceil(filteredReservations.length / RES_PAGE_SIZE))}</span>
         </div>
         {resLoading && <div className="loading">Loading reservations...</div>}
         {resError && <div className="alert alert-error">{resError}</div>}
@@ -751,27 +894,42 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {reservations.slice((resPage - 1) * RES_PAGE_SIZE, (resPage - 1) * RES_PAGE_SIZE + RES_PAGE_SIZE).map((r, idx) => {
-              const red = isDueToday(r.dueTime) || isOverdue(r.dueTime, r.reservationStatus);
-              return (
-                <tr key={r.reservationId || idx} className={red ? 'row-red' : ''}>
-                  <td>{r.userId}</td>
-                  <td>{r.bookTitle || r.bookId}</td>
-                  <td>{r.pickupTime ? new Date(r.pickupTime).toLocaleDateString() : 'N/A'}</td>
-                  <td>{r.dueTime ? new Date(r.dueTime).toLocaleDateString() : 'N/A'}</td>
-                  <td className="actions">
-                    {['borrowed', 'overdue'].includes(r.reservationStatus) && (
-                      <button className="btn btn-primary" onClick={() => handleConfirmReturn(r.reservationId)}>Confirm Return</button>
-                    )}
-                    {r.reservationStatus === 'reserved' && (
-                      <button className="btn btn-outline" onClick={() => handleConfirmBorrow(r.reservationId)}>Confirm Borrow</button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {(() => {
+              const start = (resPage - 1) * RES_PAGE_SIZE;
+              const pageItems = filteredReservations.slice(start, start + RES_PAGE_SIZE);
+              if (pageItems.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                  </tr>
+                );
+              }
+              return pageItems.map((r, idx) => {
+                const red = isDueToday(r.dueTime) || isOverdue(r.dueTime, r.reservationStatus);
+                return (
+                  <tr key={r.reservationId || idx} className={red ? 'row-red' : ''}>
+                    <td>{r.userId}</td>
+                    <td>{r.bookTitle || r.bookId}</td>
+                    <td>{r.pickupTime ? new Date(r.pickupTime).toLocaleDateString() : 'N/A'}</td>
+                    <td>{r.dueTime ? new Date(r.dueTime).toLocaleDateString() : 'N/A'}</td>
+                    <td className="actions">
+                      {['borrowed', 'overdue'].includes(r.reservationStatus) && (
+                        <button className="btn btn-primary" onClick={() => handleConfirmReturn(r.reservationId)}>Confirm Return</button>
+                      )}
+                      {r.reservationStatus === 'reserved' && (
+                        <button className="btn btn-outline" onClick={() => handleConfirmBorrow(r.reservationId)}>Confirm Borrow</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              });
+            })()}
           </tbody>
         </table>
+        <div className="admin-pagination-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+          <button className="btn btn-secondary" onClick={() => setResPage(Math.max(1, resPage - 1))} disabled={resPage <= 1}>Prev</button>
+          <button className="btn btn-secondary" onClick={() => setResPage(resPage + 1)} disabled={resPage >= Math.max(1, Math.ceil(filteredReservations.length / RES_PAGE_SIZE))}>Next</button>
+        </div>
       </div>
     </div>
   );

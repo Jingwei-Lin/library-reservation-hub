@@ -29,5 +29,15 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
 
     /** 将超过 7 天仍为 waiting 的记录置为 cancelled，返回受影响行数 */
     int cancelStaleWaiting();
+
+    /** 将BookQuantity + 1 当 通知被取消时 */
+    int increaseBookQuantityOnCancel(@Param("waitId") Long waitId);
+
+    /** 通知被取消时设置等待位为canceled */
+    int cancelWaitingById(@Param("waitId") Long waitId);
+
+    /** 通知时减少书的可用数量 - 1 */
+    int decreaseBookQuantityAfterNotify(@Param("userId") Long userId,
+                                         @Param("bookIds") List<Long> bookIds);
 }
 

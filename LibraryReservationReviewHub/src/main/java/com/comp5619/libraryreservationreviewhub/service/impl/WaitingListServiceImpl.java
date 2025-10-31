@@ -240,12 +240,36 @@ public class WaitingListServiceImpl
         if (!eligibleBookIds.isEmpty()) {
             int updated = baseMapper.batchNotifyByBooks(userId, eligibleBookIds);
             ThrowUtils.throwIf(updated <= 0, ErrorCode.OPERATION_ERROR, "Failed to update the notification status");
+            int decrease = baseMapper.decreaseBookQuantityAfterNotify(userId, eligibleBookIds);
+            ThrowUtils.throwIf(decrease <= 0, ErrorCode.OPERATION_ERROR, "Failed to update the notification status callback all status and book quantity");
         }
-
         // 返回结果
         return rows;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancelAndReleaseIfNeeded(Long userId, Long bookId) {
+        // 定位“可取消”的那条记录
+        WaitingList record = lambdaQuery()
+                .eq(WaitingList::getUserId, userId)
+                .eq(WaitingList::getBookId, bookId)
+                .in(WaitingList::getStatus, WaitingStatusEnum.WAITING, WaitingStatusEnum.NOTIFIED)
+                .one();
+        ThrowUtils.throwIf(record == null, ErrorCode.NOT_FOUND_ERROR, "No cancelable waiting record was found.");
+
+        Long waitId = record.getWaitId();
+
+        // 先尝试释放库存：只有当当前状态为 NOTIFIED 时才会 +1（SQL 中已限制）
+        int inc = baseMapper.increaseBookQuantityOnCancel(waitId); // 不是 NOTIFIED 会返回 0
+
+        // 再把等待记录置为 CANCELLED
+        int upd = baseMapper.cancelWaitingById(waitId);
+        ThrowUtils.throwIf(upd <= 0, ErrorCode.OPERATION_ERROR, "Cancellation failed");
+
+        return true;
+    }
+
+    //超过七天的并被通知过的等待，将会自动取消
     @Override
     public int cancelStaleWaiting() {
         int rows = baseMapper.cancelStaleWaiting();

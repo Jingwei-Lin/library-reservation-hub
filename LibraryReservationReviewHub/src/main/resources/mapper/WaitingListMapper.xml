@@ -39,7 +39,6 @@
             q.pos               AS position,
       q.total_waiting     AS totalWaiting,
       b.quantity          AS quantity,
-      b.held_quantity     AS heldQuantity,
       b.available         AS available
         FROM (
             SELECT
@@ -57,27 +56,78 @@
     </select>
 
 
-    <!-- 2) 批量将该用户对这些书的 waiting 记录改为 notified -->
+    <!-- 第一步：更新 waiting_list 状态 -->
     <update id="batchNotifyByBooks">
-        UPDATE waiting_list
-        SET status = 'notified',
-        is_notified = 1,
-        notification_date = NOW()
-        WHERE user_id = #{userId}
-        AND status = 'waiting'
-        AND book_id IN
-        <foreach collection="bookIds" item="bid" open="(" close=")" separator=",">
+        <![CDATA[
+    UPDATE waiting_list wl
+    SET wl.status = 'notified',
+        wl.is_notified = 1,
+        wl.notification_date = NOW()
+    WHERE wl.user_id = #{userId}
+      AND wl.status = 'waiting'
+      AND wl.book_id IN (
+]]>
+        <foreach collection="bookIds" item="bid" open="" close="" separator=",">
             #{bid}
         </foreach>
+        <![CDATA[
+      )
+]]>
     </update>
 
-    <!-- 将 join_date 超过 7 天且仍为 waiting and notified 的条目设为 cancelled -->
+    <!-- 第二步：对应书籍库存扣减 + available 更新 -->
+    <update id="decreaseBookQuantityAfterNotify">
+        <![CDATA[
+    UPDATE book b
+    JOIN (
+        SELECT DISTINCT wl.book_id
+        FROM waiting_list wl
+        WHERE wl.user_id = #{userId}
+          AND wl.status = 'notified'
+          AND wl.book_id IN (
+]]>
+        <foreach collection="bookIds" item="bid" open="" close="" separator=",">
+            #{bid}
+        </foreach>
+        <![CDATA[
+          )
+    ) w ON b.book_id = w.book_id
+    SET b.quantity = b.quantity - 1,
+        b.available = CASE WHEN b.quantity - 1 <= 0 THEN FALSE ELSE b.available END
+    WHERE b.quantity > 0
+]]>
+    </update>
+
+
+    <!-- 将 join_date 超过 7 天且仍为 waiting 的条目设为 cancelled -->
     <update id="cancelStaleWaiting">
         <![CDATA[
         UPDATE Waiting_list
         SET status = 'cancelled'
-        WHERE status = 'waiting' OR status = 'notified'
+        WHERE status = 'waiting'
           AND join_date < (CURRENT_TIMESTAMP - INTERVAL 7 DAY)
+        ]]>
+    </update>
+
+    <update id="increaseBookQuantityOnCancel">
+<![CDATA[
+        UPDATE book b
+            JOIN waiting_list wl ON wl.book_id = b.book_id
+        SET b.quantity = b.quantity + 1,
+            b.available = TRUE
+        WHERE wl.wait_id = #{waitId}
+          AND wl.status = 'notified'
+        ]]>
+    </update>
+
+    <!-- 将记录改为 CANCELLED（无论原来是 waiting 还是 notified，都能正确结束状态） -->
+    <update id="cancelWaitingById">
+<![CDATA[
+        UPDATE waiting_list
+        SET status = 'cancelled',
+            is_notified = 0
+        WHERE wait_id = #{waitId}
+          AND status IN ('waiting','notified')
         ]]>
     </update>
 </mapper>

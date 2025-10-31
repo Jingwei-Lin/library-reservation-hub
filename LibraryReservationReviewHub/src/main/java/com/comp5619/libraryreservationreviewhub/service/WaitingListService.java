@@ -41,4 +41,7 @@ public interface WaitingListService extends IService<WaitingList> {
 
     /**Automatically update the status of the waiting list**/
     int cancelStaleWaiting();
+
+    /**update status of the waiting list when canceled**/
+    boolean cancelAndReleaseIfNeeded(Long userId, Long bookId);
 }

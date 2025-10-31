@@ -73,7 +73,4 @@ logging:
     com.comp5619.libraryreservationreviewhub.app: DEBUG
 
 
-search-api:
-  api-key: REMOVED_API_KEY   # 你的 Google API Key
-  search-engine-id: 56c01db6fa7934c90       # 你的 Custom Search Engine ID
 

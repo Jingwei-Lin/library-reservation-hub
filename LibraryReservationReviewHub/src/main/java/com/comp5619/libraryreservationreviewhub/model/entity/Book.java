@@ -39,6 +39,12 @@ public class Book implements Serializable {
     private Integer quantity;
 
     /**
+     * On Hold Book Quantity for Waiting List
+     */
+    @TableField("held_quantity")
+    private Integer heldQuantity = 0;
+
+    /**
      * 是否可借 (默认 true)
      */
     private Boolean available;
@@ -62,4 +68,12 @@ public class Book implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
+
+    public Integer getAvailableQuantity() {
+        return (quantity != null && heldQuantity != null) ? quantity - heldQuantity : 0;
+    }
+
+    public boolean isPubliclyAvailable() {
+        return getAvailableQuantity() > 0;
+    }
 }

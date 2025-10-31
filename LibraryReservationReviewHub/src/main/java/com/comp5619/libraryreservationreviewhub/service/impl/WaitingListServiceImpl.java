@@ -15,6 +15,7 @@ import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingLis
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
+import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,8 @@ public class WaitingListServiceImpl
     private static final Set<String> SORT_WHITELIST = Set.of(
             "wait_id", "user_id", "book_id", "join_date", "notification_date", "is_notified", "status"
     );
+
+    private final BookService bookService;
 
     /** 计算分页与排序参数（默认 wait_id DESC） */
     private PageCalc calc(PageRequest pr) {
@@ -223,9 +226,10 @@ public class WaitingListServiceImpl
         // 判断哪些可以通知（position ≤ quantity 且库存>0）
         List<Long> eligibleBookIds = new ArrayList<>();
         for (var vo : rows) {
-            boolean can = Boolean.TRUE.equals(vo.getAvailable())
-                    && vo.getQuantity() != null && vo.getQuantity() > 0
-                    && vo.getPosition() != null && vo.getPosition() <= vo.getQuantity();
+            boolean can = vo.getHeldQuantity() != null
+                    && vo.getHeldQuantity() > 0
+                    && vo.getPosition() != null
+                    && vo.getPosition() <= vo.getHeldQuantity();
             vo.setCanNotify(can);
             if (can) {
                 eligibleBookIds.add(vo.getBookId());

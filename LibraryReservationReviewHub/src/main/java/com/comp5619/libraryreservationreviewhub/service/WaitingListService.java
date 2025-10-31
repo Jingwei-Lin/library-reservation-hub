@@ -34,6 +34,8 @@ public interface WaitingListService extends IService<WaitingList> {
     /**分页**/
     PageResult<WaitingListVO> pageByQuery(WaitingListQueryDTO query, PageRequest pageReq);
 
+    /** check eligible user
+
     /**Notify users of the current books available for borrowing**/
     List<NotifyEligibilityVO> computeNotifyEligibilityForUser(Long id);
 

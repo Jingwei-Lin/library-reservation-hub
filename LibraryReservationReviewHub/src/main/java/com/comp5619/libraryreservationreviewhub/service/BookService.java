@@ -20,6 +20,11 @@ public interface BookService {
 
     PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available);
     List<BookVO> getBooksByGenre(String genre);
+
+    boolean incrementHeldQuantity(Long id);
+
+    boolean decrementHeldQuantity(Long id);
+
     boolean restoreBook(Long id, User operator);
     boolean isBookAvailable(Long id);
     List<BookVO> getRandomBooks(int limit);

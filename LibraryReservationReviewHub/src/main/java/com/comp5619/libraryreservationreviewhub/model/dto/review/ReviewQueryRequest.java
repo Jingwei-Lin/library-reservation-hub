@@ -3,8 +3,10 @@ package com.comp5619.libraryreservationreviewhub.model.dto.review;
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class ReviewQueryRequest extends PageRequest {
     private Long bookId;

@@ -65,21 +65,55 @@ const Profile = ({ user, setIsAuthenticated }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (profileData.password !== profileData.confirmPassword) {
+
+        // Trim all string fields before validation/submission
+        const trimmedData = {
+            firstName: profileData.firstName.trim(),
+            lastName: profileData.lastName.trim(),
+            email: profileData.email.trim(),
+            phone: profileData.phone ? profileData.phone.trim() : "",
+            password: profileData.password,
+            confirmPassword: profileData.confirmPassword
+        };
+
+        // Re-validate after trimming
+        if (trimmedData.password !== profileData.confirmPassword) {
             setError("Passwords do not match!");
             return;
         }
+
+        // Optional: Prevent empty required fields after trim
+        if (!trimmedData.firstName || !trimmedData.lastName || !trimmedData.email) {
+            setError("First name, last name, and email are required.");
+            return;
+        }
+
         try {
             setError("");
             setSuccess("");
 
-            const response = await userService.updateUserProfile(profileData);
+            const response = await userService.updateUserProfile(trimmedData);
             console.log(response);
+
             if (response && response.code === 0) {
                 setSuccess("Profile updated successfully!");
-                // Update session storage if needed
-                const updatedUser = { ...user, ...profileData };
+
+                // Update local state and sessionStorage with trimmed values
+                const updatedUser = {
+                    ...user,
+                    firstName: trimmedData.firstName,
+                    lastName: trimmedData.lastName,
+                    userAccount: trimmedData.email,
+                    phone: trimmedData.phone
+                };
                 sessionStorage.setItem("user", JSON.stringify(updatedUser));
+
+                // Optional: Update form state to reflect trimmed values
+                setProfileData({
+                    ...trimmedData,
+                    password: "",
+                    confirmPassword: ""
+                });
             } else {
                 setError(response?.message || "Failed to update profile.");
             }

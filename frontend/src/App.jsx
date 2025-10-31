@@ -22,15 +22,25 @@ function App() {
     // Validate session on mount
     useEffect(() => {
         const checkSession = async () => {
-            if (sessionStorage.getItem("user")) {
-                try {
-                    await validateSession(); // Check with backend
-                } catch (error) {
-                    console.error('Session validation failed:', error.message);
-                    logoutUser(); // Clear sessionStorage
+            try {
+                const response = await validateSession(); // Always call
+                if (response && response.code === 0 && response.data) {
+                    // Session valid → restore from backend
+                    const userData = response.data;
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                    setUser(userData);
+                    setIsAuthenticated(true);
+                } else {
+                    // Invalid → ensure clean state
+                    logoutUser();
                     setIsAuthenticated(false);
                     setUser({});
                 }
+            } catch (error) {
+                console.error('Session validation failed:', error);
+                logoutUser();
+                setIsAuthenticated(false);
+                setUser({});
             }
         };
         checkSession();

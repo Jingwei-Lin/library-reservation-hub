@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.comp5619'
@@ -61,8 +62,6 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // mybatis-plus
     implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.14'
     // https://mvnrepository.com/artifact/com.baomidou/mybatis-plus-jsqlparser
@@ -114,10 +113,50 @@ dependencies {
     // Asian fonts (仅测试使用)
     testImplementation 'com.itextpdf:font-asian:9.1.0'
 
+    // test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'com.baomidou:mybatis-plus-spring-boot3-starter-test:3.5.14'
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.mockito:mockito-core:5.14.2'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.14.2'
+    testImplementation 'org.assertj:assertj-core:3.26.3'
+    testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+}
 
+/* --------------------------------------------------------------
+   JACOCO CONFIGURATION
+   -------------------------------------------------------------- */
+jacoco {
+    toolVersion = "0.8.12"               // latest stable
+}
+
+jacocoTestReport {
+    dependsOn test                       // run tests first
+
+    reports {
+        html.required = true             // open in browser
+        xml.required  = true             // for CI / SonarQube
+        csv.required  = false
+    }
+
+    // (Optional) exclude generated code / DTOs / config
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/LibraryReservationReviewHubApplication*',
+                    '**/*Config*',
+                    '**/*Dto*',
+                    '**/*Vo*',
+                    '**/*Exception*',
+                    '**/common/**'
+            ])
+        }))
+    }
 }
 
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }

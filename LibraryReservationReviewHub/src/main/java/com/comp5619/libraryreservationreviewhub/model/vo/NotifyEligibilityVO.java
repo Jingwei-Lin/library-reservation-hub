@@ -24,6 +24,7 @@ public class NotifyEligibilityVO {
 
     /** 库存与可用性 */
     private Integer quantity;
+    private Integer heldQuantity;
     private Boolean available;
 
     /** 当前已被通知的用户数量（status=notified） */

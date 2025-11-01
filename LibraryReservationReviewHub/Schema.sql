@@ -33,7 +33,6 @@ CREATE TABLE Book (
 	genre VARCHAR(50) NOT NULL,
 	description TEXT NULL,          -- 新增字段
 	quantity INT,
-    held_quantity INT DEFAULT 0,
 	available BOOLEAN DEFAULT TRUE,
 	`path` VARCHAR(255)
 );

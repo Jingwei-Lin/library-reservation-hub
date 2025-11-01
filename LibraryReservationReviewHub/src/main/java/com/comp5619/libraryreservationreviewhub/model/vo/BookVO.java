@@ -38,11 +38,6 @@ public class BookVO implements Serializable {
     private Integer quantity;
 
     /**
-     * on held quantity for waiting list
-     */
-    private Integer heldQuantity;
-
-    /**
      * 是否可用
      */
     private Boolean available;

@@ -67,11 +67,9 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         const initializeDashboard = async () => {
             console.log(sessionStorage);
             await fetchBooks();
-            await waitingListService.getEligibility();
             await fetchWaitingList();
             await fetchUser();
             await fetchTop10Books();
-
             setInitialLoadComplete(true);
         };
 

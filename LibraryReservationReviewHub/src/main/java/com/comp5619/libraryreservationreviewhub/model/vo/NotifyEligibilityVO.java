@@ -21,7 +21,6 @@ public class NotifyEligibilityVO {
 
     /** 库存与可用性 */
     private Integer quantity;
-    private Integer heldQuantity;
     private Boolean available;
 
     /** 是否可以通知给当前用户 */

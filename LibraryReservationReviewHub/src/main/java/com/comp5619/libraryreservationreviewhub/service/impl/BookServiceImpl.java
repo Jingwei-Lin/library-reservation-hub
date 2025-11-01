@@ -120,7 +120,6 @@ public class BookServiceImpl implements BookService {
         vo.setAuthor(book.getAuthor());
         vo.setGenre(book.getGenre());
         vo.setQuantity(book.getQuantity());
-        vo.setHeldQuantity(book.getHeldQuantity());
         vo.setAvailable(book.getAvailable());
         vo.setPath(book.getPath());
         vo.setDescription(book.getDescription());
@@ -163,20 +162,6 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public boolean incrementHeldQuantity(Long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        int rows = bookMapper.incrementHeldQuantity(id);
-        return rows > 0;
-    }
-
-    @Override
-    public boolean decrementHeldQuantity(Long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        int rows = bookMapper.decrementHeldQuantity(id);
-        return rows > 0;
-    }
-
-    @Override
     public boolean restoreBook(Long id, User operator) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
@@ -209,6 +194,5 @@ public class BookServiceImpl implements BookService {
         Collections.shuffle(list);
         return list.stream().limit(realLimit).collect(Collectors.toList());
     }
-
 
 }

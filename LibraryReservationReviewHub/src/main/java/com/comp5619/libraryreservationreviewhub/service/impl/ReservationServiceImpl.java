@@ -15,17 +15,12 @@ import com.comp5619.libraryreservationreviewhub.model.vo.ReservationVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReservationService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
-import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
-import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
-import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
-import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -40,7 +35,6 @@ public class ReservationServiceImpl implements ReservationService {
     private final BookService bookService;
     private final BookMapper bookMapper;
     private final UserService userService;
-    private final WaitingListService waitingListService;
 
     @Override
     @Transactional
@@ -90,7 +84,7 @@ public class ReservationServiceImpl implements ReservationService {
                 ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
 
         // Check if book is available
-        // ThrowUtils.throwIf(!bookService.isBookAvailable(bookId), ErrorCode.OPERATION_ERROR, "Book is not available");
+        ThrowUtils.throwIf(!bookService.isBookAvailable(bookId), ErrorCode.OPERATION_ERROR, "Book is not available");
 
         // Check if user already has an active reservation for this book
         List<Reservation> activeReservations = reservationMapper.selectActiveByBookId(bookId);
@@ -118,58 +112,18 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setCreateTime(new Date());
         log.info("Reservation object: {}", reservation);
 
-        // Check book availability with notified exception
+        // Decrease book quantity
         Book book = bookService.getBookById(bookId);
         ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
-
-        boolean isNotified = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, user.getId())
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .exists();
-
-        boolean publicAvailable = book.getAvailableQuantity() > 0;
-        ThrowUtils.throwIf(!isNotified && !publicAvailable, ErrorCode.OPERATION_ERROR, "No available copies");
+        book.setQuantity(book.getQuantity() - 1);
+        book.setAvailable(book.getQuantity() > 0);
+        bookMapper.updateBook(book);
+        log.info("Updated book quantity: {}", book.getQuantity());
 
         // Insert reservation
         int rows = reservationMapper.insertReservation(reservation);
         log.info("Inserted reservation, rows affected: {}", rows);
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to create reservation");
-
-        // Conditional decrement: held if notified, quantity otherwise
-        if (isNotified) {
-            bookService.decrementHeldQuantity(bookId);
-            log.info("Reserved held copy for notified user {} on book {} (decremented held_quantity).", user.getId(), bookId);
-        } else {
-            book.setQuantity(book.getQuantity() - 1);
-            int updateSuccess = bookMapper.updateBook(book);
-            ThrowUtils.throwIf(updateSuccess == 0, ErrorCode.OPERATION_ERROR, "Failed to update book quantity");
-        }
-
-        // Update waiting list status to 'fulfilled' if there's a 'notified' entry for this user/book
-        WaitingList notifiedEntry = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, user.getId())
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .one();
-
-        if (notifiedEntry != null) {
-            log.info("Fulfilling waiting list entry for userId: {}, bookId: {}, waitId: {}",
-                    user.getId(), bookId, notifiedEntry.getWaitId());
-
-            WaitingListUpdateDTO updateDto = new WaitingListUpdateDTO();
-            updateDto.setWaitId(notifiedEntry.getWaitId());
-            updateDto.setStatus(WaitingStatusEnum.FULFILLED);
-            // Optionally set other fields like notificationDate if needed
-            boolean updated = waitingListService.updateStatus(updateDto);
-            if (!updated) {
-                log.warn("Failed to update waiting list to fulfilled for userId: {}, bookId: {}", user.getId(), bookId);
-                // Don't throw here to avoid rolling back the reservation—treat as non-critical
-            }
-        }
-
-        log.info("Reservation created successfully with ID: {}", reservation.getReservationId());
-
         return reservation.getReservationId();
     }
 
@@ -221,44 +175,10 @@ public class ReservationServiceImpl implements ReservationService {
 
         if ("returned".equals(status) && "borrowed".equals(reservation.getReservationStatus())) {
             Book book = bookService.getBookById(reservation.getBookId());
-            ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
-
-            // Check for waiting users
-            long waitingCount = waitingListService.lambdaQuery()
-                    .eq(WaitingList::getBookId, book.getBookId())
-                    .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                    .count();
-
-            if (waitingCount > 0) {
-                // Hold the copy for waitlist
-                bookService.incrementHeldQuantity(book.getBookId());
-                log.info("Held copy for book {} (waitlist exists).", book.getBookId());
-
-                // Notify the next waiting user
-                WaitingList nextWaiting = waitingListService.lambdaQuery()
-                        .eq(WaitingList::getBookId, book.getBookId())
-                        .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                        .orderByAsc(WaitingList::getJoinDate)
-                        .last("LIMIT 1")
-                        .one();
-
-                if (nextWaiting != null) {
-                    // waitingListService.computeNotifyEligibilityForUser(user.getId());
-                    book.setHeldQuantity(book.getHeldQuantity() + 1);
-                    int updateSuccess = bookMapper.updateBook(book);
-                    reservation.setReturnTime(new Date());
-                    ThrowUtils.throwIf(updateSuccess == 0, ErrorCode.OPERATION_ERROR, "Failed to update book held quantity");
-                    log.info("Returned book {} incremented held quantity.", book.getBookId());
-                }
-            } else {
-                // No waitlist: Release to public availability
-                book.setQuantity(book.getQuantity() + 1);
-                book.setAvailable(true);
-                int updateSuccess = bookMapper.updateBook(book);
-                reservation.setReturnTime(new Date());
-                ThrowUtils.throwIf(updateSuccess == 0, ErrorCode.OPERATION_ERROR, "Failed to update book quantity");
-                log.info("Returned book {} incremented quantity (no waitlist).", book.getBookId());
-            }
+            book.setQuantity(book.getQuantity() + 1);
+            book.setAvailable(true);
+            bookMapper.updateBook(book);
+            reservation.setReturnTime(new Date());
         } else if ("borrowed".equals(status) && "reserved".equals(reservation.getReservationStatus())) {
             reservation.setPickupTime(new Date());
             long dueTimeMillis = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000;

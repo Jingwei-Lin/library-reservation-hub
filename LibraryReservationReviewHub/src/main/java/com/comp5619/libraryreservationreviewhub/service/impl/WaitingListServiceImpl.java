@@ -15,7 +15,6 @@ import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingLis
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
-import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,8 +43,6 @@ public class WaitingListServiceImpl
     private static final Set<String> SORT_WHITELIST = Set.of(
             "wait_id", "user_id", "book_id", "join_date", "notification_date", "is_notified", "status"
     );
-
-    private final BookService bookService;
 
     /** 计算分页与排序参数（默认 wait_id DESC） */
     private PageCalc calc(PageRequest pr) {

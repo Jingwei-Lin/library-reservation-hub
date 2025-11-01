@@ -104,12 +104,12 @@
         AND status = 'WAITING'
     </update>
 
-    <!-- 将 join_date 超过 7 天且仍为 waiting and notified 的条目设为 cancelled -->
+    <!-- 将 join_date 超过 7 天且仍为 waiting 的条目设为 cancelled -->
     <update id="cancelStaleWaiting">
         <![CDATA[
         UPDATE Waiting_list
         SET status = 'cancelled'
-        WHERE status = 'waiting' OR status = 'notified'
+        WHERE status = 'waiting'
           AND join_date < (CURRENT_TIMESTAMP - INTERVAL 7 DAY)
         ]]>
     </update>

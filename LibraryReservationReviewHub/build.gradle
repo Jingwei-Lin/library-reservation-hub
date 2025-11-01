@@ -149,7 +149,10 @@ jacocoTestReport {
                     '**/*Dto*',
                     '**/*Vo*',
                     '**/*Exception*',
-                    '**/common/**'
+                    '**/common/**',
+                    // 排除工具类（AI 调用类）
+                    'com/comp5619/libraryreservationreviewhub/tools/**',
+                    'com/comp5619/libraryreservationreviewhub/agent/**'
             ])
         }))
     }

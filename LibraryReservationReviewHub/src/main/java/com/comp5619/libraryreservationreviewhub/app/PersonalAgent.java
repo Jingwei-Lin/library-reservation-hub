@@ -111,18 +111,18 @@ public class PersonalAgent {
          * @param chatId
          * @return
          */
-        public String doChat(String message, String chatId) {
-            ChatResponse chatResponse = chatClient
-                    .prompt()
-                    .user(message)
-                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                    .toolCallbacks(allTools)
-                    .call()
-                    .chatResponse();
-            String content = chatResponse.getResult().getOutput().getText();
-            log.info("content: {}", content);
-            return content;
-        }
+//        public String doChat(String message, String chatId) {
+//            ChatResponse chatResponse = chatClient
+//                    .prompt()
+//                    .user(message)
+//                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
+//                    .toolCallbacks(allTools)
+//                    .call()
+//                    .chatResponse();
+//            String content = chatResponse.getResult().getOutput().getText();
+//            log.info("content: {}", content);
+//            return content;
+//        }
         /**
          * AI 基础对话
          * 支持多轮对话记忆，SSE 流式传输，工具调用

@@ -92,9 +92,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                     const waitResponse = await waitingListService.getMyWaitingList();
                     if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
                         const waitItem = waitResponse.data.find((item) => item.bookId === parseInt(id));
-                        const waitStatus = waitResponse.data.status;
                         if (waitItem) {
-                            setIsOnWaitingList(waitItem.status === "waiting" || waitItem.status === "notified");
+                            setIsOnWaitingList(true);
                             setIsNotified(waitItem.status === "notified");
                             setWaitingStatus(waitItem.status);
                         } else {

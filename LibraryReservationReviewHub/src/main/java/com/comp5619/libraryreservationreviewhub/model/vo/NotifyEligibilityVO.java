@@ -7,6 +7,9 @@ import java.time.LocalDateTime;
 
 @Data
 public class NotifyEligibilityVO {
+    private Long waitId;
+    private Long userId;
+
     private Long bookId;
     private String bookTitle;
 
@@ -22,6 +25,9 @@ public class NotifyEligibilityVO {
     /** 库存与可用性 */
     private Integer quantity;
     private Boolean available;
+
+    /** 当前已被通知的用户数量（status=notified） */
+    private Integer notifiedCount;
 
     /** 是否可以通知给当前用户 */
     private Boolean canNotify;

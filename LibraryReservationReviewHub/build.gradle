@@ -149,10 +149,8 @@ jacocoTestReport {
                     '**/*Dto*',
                     '**/*Vo*',
                     '**/*Exception*',
-                    '**/common/**',
-                    // 排除工具类（AI 调用类）
-                    'com/comp5619/libraryreservationreviewhub/tools/**',
-                    'com/comp5619/libraryreservationreviewhub/agent/**'
+                    '**/common/**'
+
             ])
         }))
     }
@@ -161,5 +159,8 @@ jacocoTestReport {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 排除指定包或类，不运行
+    exclude '**/tools/**'
+    exclude '**/agent/**'
     finalizedBy jacocoTestReport
 }

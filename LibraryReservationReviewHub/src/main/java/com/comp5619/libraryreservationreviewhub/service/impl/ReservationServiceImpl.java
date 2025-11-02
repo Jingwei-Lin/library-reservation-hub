@@ -122,11 +122,7 @@ public class ReservationServiceImpl implements ReservationService {
         Book book = bookService.getBookById(bookId);
         ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
 
-        boolean isNotified = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, user.getId())
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .exists();
+        boolean isNotified = isUserNotifiedForBook(user.getId(), bookId);
 
         boolean publicAvailable = book.getAvailableQuantity() > 0;
         ThrowUtils.throwIf(!isNotified && !publicAvailable, ErrorCode.OPERATION_ERROR, "No available copies");
@@ -147,11 +143,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         // Update waiting list status to 'fulfilled' if there's a 'notified' entry for this user/book
-        WaitingList notifiedEntry = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, user.getId())
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .one();
+        WaitingList notifiedEntry = getNotifiedWaitingEntry(user.getId(), bookId);
 
         if (notifiedEntry != null) {
             log.info("Fulfilling waiting list entry for userId: {}, bookId: {}, waitId: {}",
@@ -195,10 +187,7 @@ public class ReservationServiceImpl implements ReservationService {
             ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
 
             // Check for waiting users
-            long waitingCount = waitingListService.lambdaQuery()
-                    .eq(WaitingList::getBookId, book.getBookId())
-                    .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                    .count();
+            long waitingCount = getWaitingUserCount(book.getBookId());
 
             if (waitingCount > 0) {
                 // Hold the copy for waitlist
@@ -206,12 +195,7 @@ public class ReservationServiceImpl implements ReservationService {
                 log.info("Held copy for book {} (waitlist exists).", book.getBookId());
 
                 // Notify the next waiting user
-                WaitingList nextWaiting = waitingListService.lambdaQuery()
-                        .eq(WaitingList::getBookId, book.getBookId())
-                        .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                        .orderByAsc(WaitingList::getJoinDate)
-                        .last("LIMIT 1")
-                        .one();
+                WaitingList nextWaiting = getNextWaitingUser(book.getBookId());
 
                 if (nextWaiting != null) {
                     // waitingListService.computeNotifyEligibilityForUser(user.getId());
@@ -257,10 +241,7 @@ public class ReservationServiceImpl implements ReservationService {
             ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
 
             // Check for waiting users
-            long waitingCount = waitingListService.lambdaQuery()
-                    .eq(WaitingList::getBookId, book.getBookId())
-                    .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                    .count();
+            long waitingCount = getWaitingUserCount(book.getBookId());
 
             if (waitingCount > 0) {
                 // Hold the copy for waitlist
@@ -268,12 +249,7 @@ public class ReservationServiceImpl implements ReservationService {
                 log.info("Held copy for book {} (waitlist exists).", book.getBookId());
 
                 // Notify the next waiting user
-                WaitingList nextWaiting = waitingListService.lambdaQuery()
-                        .eq(WaitingList::getBookId, book.getBookId())
-                        .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                        .orderByAsc(WaitingList::getJoinDate)
-                        .last("LIMIT 1")
-                        .one();
+                WaitingList nextWaiting = getNextWaitingUser(book.getBookId());
 
                 if (nextWaiting != null) {
                     // waitingListService.computeNotifyEligibilityForUser(user.getId());
@@ -422,5 +398,37 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to update pickup time");
 
         return true;
+    }
+
+    boolean isUserNotifiedForBook(Long userId, Long bookId) {
+        return waitingListService.lambdaQuery()
+                .eq(WaitingList::getUserId, userId)
+                .eq(WaitingList::getBookId, bookId)
+                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
+                .exists();
+    }
+
+    WaitingList getNotifiedWaitingEntry(Long userId, Long bookId) {
+        return waitingListService.lambdaQuery()
+                .eq(WaitingList::getUserId, userId)
+                .eq(WaitingList::getBookId, bookId)
+                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
+                .one();
+    }
+
+    long getWaitingUserCount(Long bookId) {
+        return waitingListService.lambdaQuery()
+                .eq(WaitingList::getBookId, bookId)
+                .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
+                .count();
+    }
+
+    private WaitingList getNextWaitingUser(Long bookId) {
+        return waitingListService.lambdaQuery()
+                .eq(WaitingList::getBookId, bookId)
+                .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
+                .orderByAsc(WaitingList::getJoinDate)
+                .last("LIMIT 1")
+                .one();
     }
 }

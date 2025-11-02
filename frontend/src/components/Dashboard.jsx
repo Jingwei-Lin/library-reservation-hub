@@ -43,6 +43,12 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const [currentGenre, setCurrentGenre] = useState(initialGenre);
     const [currentView, setCurrentView] = useState(initialView);
 
+    const [totalStats, setTotalStats] = useState({
+        totalBooks: 0,
+        totalAvailable: 0,
+        totalCategories: 0
+    });
+
     const booksPerPage = 12;
 
     // Update URL when search/filter state changes
@@ -126,7 +132,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     waitingListService.getEligibility().catch(err => ({ code: -1, message: err.message })), // Graceful fail
                     waitingListService.getMyWaitingList().catch(err => ({ code: -1, message: err.message })),
                     validateSession().catch(err => ({ code: -1, message: err.message })),
-                    bookService.getTop10Books().catch(err => ({ code: -1, message: err.message }))
+                    bookService.getTop10Books().catch(err => ({ code: -1, message: err.message })),
+                    fetchTotalStats()
                 ]);
 
                 // Process responses (handle errors individually to not block everything)
@@ -294,6 +301,30 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             //     updateURL({ page: 1 });
             // }
             // setSelectedBookId(null);
+        }
+    };
+
+    const fetchTotalStats = async () => {
+        try {
+            const response = await bookService.getAllBooks();
+            if (response && response.code === 0 && response.data) {
+                const allBooks = response.data.records || response.data;
+                const totalBooks = allBooks.length;
+                const totalAvailable = allBooks.filter(book => book.available).length;
+
+                // Get unique genres
+                const uniqueGenres = new Set(
+                    allBooks.map(book => book.genre).filter(genre => genre && genre.trim() !== '')
+                );
+
+                setTotalStats({
+                    totalBooks: totalBooks,
+                    totalAvailable: totalAvailable,
+                    totalCategories: uniqueGenres.size
+                });
+            }
+        } catch (err) {
+            console.error("Error fetching total statistics:", err);
         }
     };
 
@@ -720,9 +751,9 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     <div className="right-panel">
                         <div className="stats-box">
                             <h3>Library Statistics</h3>
-                            <p>Total books: {books.length}</p>
-                            <p>Available books: {books.filter(book => book.available).length}</p>
-                            <p>Categories: 10</p>
+                            <p>Total books: {totalStats.totalBooks}</p>
+                            <p>Available books: {totalStats.totalAvailable}</p>
+                            <p>Categories: {totalStats.totalCategories}</p>
                         </div>
                         <div className="recommend-box">
                             <h3>Quick Actions</h3>

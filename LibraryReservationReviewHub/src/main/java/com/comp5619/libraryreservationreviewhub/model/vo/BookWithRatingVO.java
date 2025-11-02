@@ -13,6 +13,7 @@ public class BookWithRatingVO {
     private String description;
     private String path;
     private Integer quantity;
+    private Integer heldQuantity;
     private Boolean available;
 
     private BigDecimal avgRating; // 允许为 null

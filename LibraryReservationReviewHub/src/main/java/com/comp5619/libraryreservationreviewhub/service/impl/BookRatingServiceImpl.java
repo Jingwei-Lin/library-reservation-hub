@@ -121,6 +121,7 @@ public class BookRatingServiceImpl implements BookRatingService {
             vo.setDescription(book.getDescription());
             vo.setPath(book.getPath());
             vo.setQuantity(book.getQuantity());
+            vo.setHeldQuantity(book.getHeldQuantity());
             vo.setAvailable(book.getAvailable());
             vo.setAvgRating(r.getAvgRating());
             res.add(vo);

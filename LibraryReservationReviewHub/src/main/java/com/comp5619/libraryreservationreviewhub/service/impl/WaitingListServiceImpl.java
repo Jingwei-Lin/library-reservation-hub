@@ -231,7 +231,7 @@ public class WaitingListServiceImpl
             // 2. User's position is within available held copies (position <= heldQuantity)
             // 3. No other users are already notified for this book (notifiedCount == 0)
             boolean can = vo.getHeldQuantity() != null
-                    && vo.getHeldQuantity() > 0
+                    && (vo.getHeldQuantity() > 0 || vo.getQuantity() > 0)
                     && vo.getPosition() != null
                     && vo.getPosition() <= vo.getHeldQuantity()
                     && vo.getNotifiedCount() != null

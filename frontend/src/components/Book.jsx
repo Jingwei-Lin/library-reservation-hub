@@ -48,51 +48,60 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 setLoading(true);
                 setError("");
 
-                // Fetch book details
-                const bookResponse = await bookService.getBookById(id);
-                if (bookResponse && bookResponse.code === 0 && bookResponse.data) {
-                    setBook(bookResponse.data);
-                } else {
-                    setError(bookResponse.message || "Invalid response format");
-                    return;
+                const promises = [
+                    bookService.getBookById(id).catch(err => ({ code: -1, message: err.message })),
+                    bookService.getRatingByBookId(id).catch(err => ({ code: -1, message: err.message })),
+                    reviewService.getReviewsByBookId(id).catch(err => ({ code: -1, message: err.message }))
+                ];
+
+                if (isAuthenticated) {
+                    promises.push(reservationService.hasActiveReservation(id).catch(err => ({ code: -1, message: err.message })));
+                    promises.push(waitingListService.getMyWaitingList().catch(err => ({ code: -1, message: err.message })));
                 }
 
-                // Fetch book rating
-                const ratingResponse = await bookService.getRatingByBookId(id);
-                if (ratingResponse && ratingResponse.code === 0 && ratingResponse.data) {
-                    setBookRating(ratingResponse.data);
+                const responses = await Promise.all(promises);
+
+                let bookRes, ratingRes, reviewRes, reservationRes, waitRes;
+                [bookRes, ratingRes, reviewRes, reservationRes, waitRes] = responses.length === 5 ? responses : [...responses, null, null];
+
+                // Process book
+                if (bookRes && bookRes.code === 0 && bookRes.data) {
+                    setBook(bookRes.data);
                 } else {
-                    console.warn("No rating data:", ratingResponse?.message);
+                    console.warn("Book fetch failed:", bookRes?.message);
+                    setError(bookRes?.message || "Invalid response format for book");
+                    return; // Early return if book fails, as it's critical
+                }
+
+                // Process rating
+                if (ratingRes && ratingRes.code === 0 && ratingRes.data) {
+                    setBookRating(ratingRes.data);
+                } else {
+                    console.warn("No rating data:", ratingRes?.message);
                     setBookRating(null);
                 }
 
-                // Fetch all reviews (accessible to all users)
-                const reviewResponse = await reviewService.getReviewsByBookId(id);
-                if (reviewResponse && reviewResponse.code === 0 && reviewResponse.data) {
-                    setReviews(Array.isArray(reviewResponse.data) ? reviewResponse.data : []);
+                // Process reviews
+                if (reviewRes && reviewRes.code === 0 && reviewRes.data) {
+                    setReviews(Array.isArray(reviewRes.data) ? reviewRes.data : []);
                 } else {
-                    console.warn(reviewResponse.message || "No reviews found");
+                    console.warn(reviewRes?.message || "No reviews found");
                     setReviews([]);
                 }
 
-                // Fetch waiting list and reservation status if authenticated
+                // If authenticated, process reservation and waiting list
                 if (isAuthenticated) {
-                    // Check reservation status
-                    const reservationResponse = await reservationService.hasActiveReservation(id);
-                    console.log(reservationResponse)
-                    if (reservationResponse && reservationResponse.code === 0) {
-                        setHasActiveReservation(reservationResponse.data || false);
+                    // Process reservation
+                    if (reservationRes && reservationRes.code === 0) {
+                        setHasActiveReservation(reservationRes.data || false);
                     } else {
-                        console.warn(reservationResponse?.message || "Failed to check reservation status");
+                        console.warn(reservationRes?.message || "Failed to check reservation status");
                         setHasActiveReservation(false);
                     }
 
-                    // Fetch waiting list status
-                    await waitingListService.getEligibility();
-                    const waitResponse = await waitingListService.getMyWaitingList();
-                    if (waitResponse && waitResponse.code === 0 && waitResponse.data) {
-                        const waitItem = waitResponse.data.find((item) => item.bookId === parseInt(id));
-                        const waitStatus = waitResponse.data.status;
+                    // Process waiting list
+                    if (waitRes && waitRes.code === 0 && waitRes.data) {
+                        const waitItem = waitRes.data.find((item) => item.bookId === parseInt(id));
                         if (waitItem) {
                             setIsOnWaitingList(waitItem.status === "waiting" || waitItem.status === "notified");
                             setIsNotified(waitItem.status === "notified");
@@ -103,7 +112,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                             setWaitingStatus(null);
                         }
                     } else {
-                        console.warn(waitResponse?.message || "Failed to check waiting list status");
+                        console.warn(waitRes?.message || "Failed to check waiting list status");
                         setIsOnWaitingList(false);
                         setIsNotified(false);
                         setWaitingStatus(null);

@@ -55,9 +55,15 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSear
         };
     }, []);
 
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        handleSearch(e);
+        // The URL will be updated by the Dashboard component
+    };
+
     return (
         <header className={`header ${theme === "dark" ? "dark-mode" : ""}`}>
-            <form className="search-bar" onSubmit={handleSearch}>
+            <form className="search-bar" onSubmit={handleSearchSubmit}>
                 <input
                     type="text"
                     placeholder="Search books, authors, categories..."
@@ -65,7 +71,14 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSear
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <button type="submit">Search</button>
-                <button type="button" onClick={() => { setSearchTerm(""); handleSearch({ preventDefault: () => {} }); }} className="clear-btn">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setSearchTerm("");
+                        // This will trigger the URL update via useEffect
+                    }}
+                    className="clear-btn"
+                >
                     Clear
                 </button>
             </form>

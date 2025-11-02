@@ -67,6 +67,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         try {
             // 检查常见注入特征（单引号、注释、关键字等）
             SqlInjectionUtil.checkSqlInjection(userAccount, "userAccount");
+            SqlInjectionUtil.checkSqlInjection(userPassword, "userPassword");
+            SqlInjectionUtil.checkSqlInjection(checkPassword, "checkPassword");
             SqlInjectionUtil.checkSqlInjection(firstName, "firstName");
             SqlInjectionUtil.checkSqlInjection(lastName, "lastName");
             SqlInjectionUtil.checkSqlInjection(phone, "phone");

@@ -3,7 +3,6 @@ package com.comp5619.libraryreservationreviewhub.model.entity;
 import lombok.Data;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
 
 @Data

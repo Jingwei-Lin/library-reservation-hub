@@ -16,13 +16,21 @@ import "./Dashboard.css";
 const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Get initial state from URL parameters
+    const urlParams = new URLSearchParams(location.search);
+    const initialSearch = urlParams.get('search') || '';
+    const initialGenre = urlParams.get('genre') || '';
+    const initialView = urlParams.get('view') || '';
+    const initialPage = parseInt(urlParams.get('page')) || 1;
+
     const [books, setBooks] = useState([]);
     const [topBooks, setTopBooks] = useState([]);
     const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(initialPage);
     const [selectedBookId, setSelectedBookId] = useState(() => {
         const params = new URLSearchParams(location.search);
         const bookIdFromUrl = params.get('book');
@@ -32,7 +40,138 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const [hasNotification, setHasNotification] = useState(false);
+    const [currentGenre, setCurrentGenre] = useState(initialGenre);
+    const [currentView, setCurrentView] = useState(initialView);
+
     const booksPerPage = 12;
+
+    // Update URL when search/filter state changes
+    const updateURL = (updates = {}) => {
+        const params = new URLSearchParams();
+
+        // Only include book if explicitly provided in updates or if we're on a book page
+        if (updates.book !== undefined) {
+            // If updates explicitly sets book, use that value
+            if (updates.book) {
+                params.set('book', updates.book);
+            }
+            // If updates sets book to null/undefined, don't include it
+        } else if (selectedBookId) {
+            // If no book in updates but we have selectedBookId, include it
+            params.set('book', selectedBookId.toString());
+        }
+
+        if (searchTerm) params.set('search', searchTerm);
+        if (currentGenre) params.set('genre', currentGenre);
+        if (currentView) params.set('view', currentView);
+
+        if (updates.page !== undefined) {
+            if (updates.page > 1) {
+                params.set('page', updates.page.toString());
+            } else {
+                params.delete('page');
+            }
+        } else if (currentPage > 1) {
+            params.set('page', currentPage.toString());
+        }
+
+        // Apply updates
+        Object.keys(updates).forEach(key => {
+            if (updates[key]) {
+                params.set(key, updates[key]);
+            } else {
+                params.delete(key);
+            }
+        });
+
+        navigate(`/dashboard?${params.toString()}`, { replace: true });
+    };
+
+    // Initial data fetch
+    useEffect(() => {
+        const initializeDashboard = async () => {
+            console.log(sessionStorage);
+            console.log('Initializing dashboard with URL params:', {
+                search: initialSearch,
+                genre: initialGenre,
+                view: initialView,
+                book: selectedBookId
+            });
+
+            try {
+                // If we're on a book page, only load book-specific data
+                if (selectedBookId) {
+                    console.log('On book page, skipping list initialization');
+                }
+                // If we're on Top 10 view, load top 10 books directly
+                else if (initialView === 'top10') {
+                    console.log('Loading top 10 books from URL parameter');
+                    await loadTop10Books();
+                }
+                // If we have a search term, load search results
+                else if (initialSearch) {
+                    await fetchBooks(initialSearch);
+                }
+                // If we have a genre filter, load genre books
+                else if (initialGenre) {
+                    await loadGenreBooks(initialGenre);
+                }
+                // Otherwise load all books
+                else {
+                    await fetchBooks();
+                }
+
+                // Parallelize non-critical fetches (user, eligibility, waiting list, top books)
+                const [eligibilityRes, waitingListRes, userRes, topBooksRes] = await Promise.all([
+                    waitingListService.getEligibility().catch(err => ({ code: -1, message: err.message })), // Graceful fail
+                    waitingListService.getMyWaitingList().catch(err => ({ code: -1, message: err.message })),
+                    validateSession().catch(err => ({ code: -1, message: err.message })),
+                    bookService.getTop10Books().catch(err => ({ code: -1, message: err.message }))
+                ]);
+
+                // Process responses (handle errors individually to not block everything)
+                if (eligibilityRes.code !== 0) {
+                    console.warn('Eligibility check failed:', eligibilityRes.message);
+                }
+                if (waitingListRes.code === 0 && waitingListRes.data) {
+                    const hasNotified = waitingListRes.data.some(item => item.status === "notified");
+                    setHasNotification(hasNotified);
+                } else {
+                    console.warn('Waiting list fetch failed:', waitingListRes.message);
+                    setHasNotification(false);
+                }
+                if (userRes.code === 0 && userRes.data) {
+                    setUser(userRes.data);
+                    setIsAuthenticated(true);
+                } else {
+                    console.warn('User validation failed:', userRes.message);
+                    logoutUser();
+                    setIsAuthenticated(false);
+                    navigate("/login"); // Redirect if session invalid
+                    return; // Early exit if logged out
+                }
+                if (topBooksRes.code === 0 && topBooksRes.data) {
+                    const validBooks = topBooksRes.data.filter(book => {
+                        const bookId = Number(book.bookId);
+                        return book.bookId != null && !isNaN(bookId) && bookId > 0;
+                    });
+                    setTopBooks(validBooks);
+                } else {
+                    console.warn('Top books fetch failed:', topBooksRes.message);
+                    setTopBooks([]);
+                }
+                setInitialLoadComplete(true);
+                updateURL();
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                setError('Failed to initialize dashboard. Please try again.');
+            } finally {
+                setLoading(false); // Always stop loading, success or fail
+            }
+        };
+
+        initializeDashboard();
+    }, []);
 
     // Apply theme from localStorage
     useEffect(() => {
@@ -62,21 +201,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         };
     }, []);
 
-    // Initial data fetch
-    useEffect(() => {
-        const initializeDashboard = async () => {
-            console.log(sessionStorage);
-            await fetchBooks();
-            await waitingListService.getEligibility();
-            await fetchWaitingList();
-            await fetchUser();
-            await fetchTop10Books();
-            setInitialLoadComplete(true);
-        };
-
-        initializeDashboard();
-    }, []);
-
     // Revalidate and sync user session when dashboard loads
     const fetchUser = async () => {
         try {
@@ -96,18 +220,18 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         }
     };
 
-
     // Sync URL with selected book state
     useEffect(() => {
         // if (!initialLoadComplete) return; // Wait for initial data load
         const params = new URLSearchParams(location.search);
         const bookIdFromUrl = params.get('book');
+
         if (bookIdFromUrl) {
             const id = Number(bookIdFromUrl);
             if (!isNaN(id) && id > 0) {
                 setSelectedBookId(id);
             } else {
-                navigate('/dashboard', { replace: true });
+                updateURL({ book: null });
             }
         } else {
             setSelectedBookId(null);
@@ -119,6 +243,13 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         try {
             setLoading(true);
             setError("");
+
+            // if (keyword !== initialSearch) {
+            //     setSearchTerm(keyword);
+            //     setCurrentGenre('');
+            //     setCurrentView('');
+            // }
+
             const response = keyword
                 ? await bookService.searchBooks(keyword)
                 : await bookService.getAllBooks();
@@ -158,94 +289,109 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             }
         } finally {
             setLoading(false);
-            setCurrentPage(1);
+            // if (keyword !== initialSearch) {
+            //     setCurrentPage(1);
+            //     updateURL({ page: 1 });
+            // }
+            // setSelectedBookId(null);
         }
     };
 
-    // Fetch top 10 rated books
-    const fetchTop10Books = async () => {
+    const loadTop10Books = async () => {
         try {
+            setLoading(true);
             const response = await bookService.getTop10Books();
+
             if (response && response.code === 0 && response.data) {
                 const bookList = Array.isArray(response.data) ? response.data : [];
                 const validBooks = bookList.filter(book => {
                     const bookId = Number(book.bookId);
                     const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    if (!isValid) {
-                        console.warn('Invalid book detected in top 10:', JSON.stringify(book, null, 2));
-                    }
                     return isValid;
                 });
-                setTopBooks(validBooks);
-                if (bookList.length > 0 && validBooks.length === 0) {
-                    setError("All top books have missing or invalid IDs. Please contact support.");
+
+                if (validBooks.length === 0) {
+                    setError("No top-rated books available yet.");
+                    setBooks([]);
+                } else {
+                    setBooks(validBooks);
+                    setTopBooks(validBooks);
+                    setCurrentTitle("Top 10 Rated Books");
                 }
             } else {
-                setError("Invalid response format for top books");
-                setTopBooks([]);
+                setError("No top-rated books available yet.");
+                setBooks([]);
             }
         } catch (err) {
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
-                setError(err.message || "Failed to load top 10 books");
-                console.error("Error fetching top 10 books:", err);
-                setTopBooks([]);
-            }
+            console.error("Error loading top 10 books:", err);
+            setError("Failed to load top 10 books");
+            setBooks([]);
+        } finally {
+            setLoading(false);
+            // if (initialView !== 'top10') {
+            //     setCurrentPage(1);
+            //     updateURL({ page: 1 });
+            // }
+            // setSelectedBookId(null);
         }
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        fetchBooks(searchTerm);
-        setSelectedBookId(null);
-        navigate('/dashboard', { replace: true });
-    };
-
-    const handleGenreClick = async (genre) => {
+    // Helper function to load genre books without setting URL states
+    const loadGenreBooks = async (genre) => {
         try {
             setLoading(true);
-            setError("");
             const response = await bookService.getBooksByGenre(genre);
-
-            console.log('API Response (handleGenreClick):', JSON.stringify(response, null, 2));
 
             if (response && response.code === 0 && response.data) {
                 const bookList = Array.isArray(response.data) ? response.data : response.data.records || [];
                 const validBooks = bookList.filter(book => {
                     const bookId = Number(book.bookId);
                     const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    if (!isValid) {
-                        console.warn('Invalid book detected:', JSON.stringify(book, null, 2));
-                    }
-                    return true;
+                    return isValid;
                 });
                 setBooks(validBooks);
                 setCurrentTitle(`${genre} Books`);
-                if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
-                    setError(`All ${genre} books have missing or invalid IDs. Please contact support.`);
-                }
             } else {
                 setError("Invalid response format for genre");
                 setBooks([]);
             }
         } catch (err) {
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
-                setError(`Failed to load ${genre} books: ${err.message}`);
-                console.error("Error fetching books by genre:", err);
-                setBooks([]);
-            }
+            console.error("Error loading genre books:", err);
+            setError(`Failed to load ${genre} books: ${err.message}`);
+            setBooks([]);
         } finally {
             setLoading(false);
-            setCurrentPage(1);
+            // if (initialGenre !== genre) {
+            //     setCurrentPage(1);
+            //     updateURL({ page: 1 });
+            // }
+
+            // setSelectedBookId(null);
+        }
+    };
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        setSelectedBookId(null);
+        setCurrentGenre('');
+        setCurrentView('');
+        fetchBooks(searchTerm);
+        updateURL({ book: null, search: searchTerm, genre: '', view: '', page: 1 });
+        // navigate('/dashboard', { replace: true });
+    };
+
+    const handleGenreClick = async (genre) => {
+        try {
             setSelectedBookId(null);
-            navigate('/dashboard', { replace: true });
+            setCurrentGenre(genre);
+            setCurrentView('');
+            setSearchTerm('');
+            setCurrentPage(1); // Explicitly set page to 1
+            await loadGenreBooks(genre);
+            updateURL({ book: null, genre: genre, view: '', search: '', page: 1 });
+        } catch (err) {
+            console.error("Error in handleGenreClick:", err);
+            setError(`Failed to load ${genre} books`);
         }
     };
 
@@ -257,25 +403,38 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             return;
         }
         setSelectedBookId(id);
-        navigate(`/dashboard?book=${id}`, { replace: true });
+        setCurrentPage(1);
+        updateURL({ book: id.toString(), page: 1 });
     };
 
     const handleBackFromBook = () => {
         setSelectedBookId(null);
-        navigate('/dashboard', { replace: true });
+        updateURL({ book: null });
     };
 
-    const handleTop10Click = async() => {
-        await fetchTop10Books();
-        if (topBooks.length === 0) {
-            setError("No top-rated books available yet.");
-            return;
+    const handleTop10Click = async () => {
+        try {
+            setSelectedBookId(null);
+            setCurrentView('top10');
+            setCurrentGenre('');
+            setSearchTerm('');
+            setCurrentPage(1);
+            await loadTop10Books();
+            updateURL({ book: null, view: 'top10', genre: '', search: '', page: 1 });
+        } catch (err) {
+            console.error("Error in handleTop10Click:", err);
+            setError("Failed to load top 10 books");
         }
-        setBooks(topBooks);
-        setCurrentTitle("Top 10 Rated Books");
-        setCurrentPage(1);
+    };
+
+    const handleAllBooks = () => {
         setSelectedBookId(null);
-        navigate('/dashboard', { replace: true });
+        setSearchTerm("");
+        setCurrentGenre("");
+        setCurrentView("");
+        setCurrentPage(1);
+        fetchBooks();
+        updateURL({ book: null, search: '', genre: '', view: '', page: 1 });
     };
 
     // Fetch waiting list and check for notified status
@@ -308,9 +467,22 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const currentBooks = books.slice(indexOfFirstBook, indexOfLastBook);
     const totalPages = Math.ceil(books.length / booksPerPage);
 
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
-    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-    const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        updateURL({ page: pageNumber });
+    };
+
+    const nextPage = () => {
+        const next = Math.min(currentPage + 1, totalPages);
+        setCurrentPage(next);
+        updateURL({ page: next });
+    };
+
+    const prevPage = () => {
+        const prev = Math.max(currentPage - 1, 1);
+        setCurrentPage(prev);
+        updateURL({ page: prev });
+    };
 
     const getPaginationButtons = () => {
         const buttons = [];
@@ -346,23 +518,27 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             <nav className="sidebar">
                 <div className="logo">
                     <span className="logo-icon">📚</span>
-                    <span className="logo-text">LibraSys</span>
+                    <span className="logo-text">Library Hub</span>
                 </div>
                 <div className="nav-box">
                     <h3>Navigation</h3>
                     <ul>
-                        <li
-                            onClick={() => {
-                                fetchBooks();
-                                setSelectedBookId(null);
-                                navigate('/dashboard', { replace: true });
-                            }}
-                        >
+                        <li onClick={handleAllBooks}>
                             All Books
                         </li>
-                        <li onClick={() => navigate("/reservations")}>My Reservations</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            updateURL({ book: null });
+                            navigate("/reservations");
+                        }}>
+                            My Reservations
+                        </li>
                         <li
-                            onClick={() => navigate("/waitinglist")}
+                            onClick={() => {
+                                setSelectedBookId(null);
+                                updateURL({ book: null });
+                                navigate("/waitinglist");
+                            }}
                             className={hasNotification ? "shiny" : ""}
                         >
                             My Waiting List
@@ -373,16 +549,46 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                 <div className="category-box">
                     <h3>Categories</h3>
                     <ul>
-                        <li onClick={() => handleGenreClick("Fantasy")}>Fantasy</li>
-                        <li onClick={() => handleGenreClick("Science Fiction")}>Science Fiction</li>
-                        <li onClick={() => handleGenreClick("Mystery")}>Mystery</li>
-                        <li onClick={() => handleGenreClick("Romance")}>Romance</li>
-                        <li onClick={() => handleGenreClick("Historical Fiction")}>Historical Fiction</li>
-                        <li onClick={() => handleGenreClick("Horror")}>Horror</li>
-                        <li onClick={() => handleGenreClick("Thriller")}>Thriller</li>
-                        <li onClick={() => handleGenreClick("Young Adult")}>Young Adult</li>
-                        <li onClick={() => handleGenreClick("Non-Fiction")}>Non-Fiction</li>
-                        <li onClick={() => handleGenreClick("Poetry Classic")}>Poetry/Classic</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Fantasy");
+                        }}>Fantasy</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Science Fiction");
+                        }}>Science Fiction</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Mystery");
+                        }}>Mystery</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Romance");
+                        }}>Romance</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Historical Fiction");
+                        }}>Historical Fiction</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Horror");
+                        }}>Horror</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Thriller");
+                        }}>Thriller</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Young Adult");
+                        }}>Young Adult</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Non-Fiction");
+                        }}>Non-Fiction</li>
+                        <li onClick={() => {
+                            setSelectedBookId(null);
+                            handleGenreClick("Poetry Classic");
+                        }}>Poetry/Classic</li>
                     </ul>
                 </div>
             </nav>

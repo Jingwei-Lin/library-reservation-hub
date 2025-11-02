@@ -71,4 +71,20 @@ export const waitingListService = {
             throw new Error(error.response?.data?.message || error.message || 'Failed to check eligibility');
         }
     },
+
+    // 管理员按用户ID查看其所有等待记录（包含 CANCELLED）
+    getByUserAdmin: async (userId) => {
+        try {
+            const response = await api.get(`/waiting-list/user/${userId}`, { headers: getAuthHeader() });
+            console.log('getByUserAdmin response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('getByUserAdmin error:', error.response?.data, error.message);
+            if (error.response && [401, 403].includes(error.response.status)) {
+                logoutUser();
+                throw new Error('Session expired or user banned. Please log in again.');
+            }
+            throw new Error(error.response?.data?.message || error.message || 'Failed to load user waiting list');
+        }
+    },
 };

@@ -644,7 +644,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                         ) : (
                             <>
                                 <div className="welcome">
-                                    <h1>Welcome to our digital library</h1>
+                                    <h1>Welcome to our Digital Library</h1>
                                     <p>Explore our collection of {books.length} books</p>
                                 </div>
                                 <div className="book-listing">

@@ -265,7 +265,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         navigate('/dashboard', { replace: true });
     };
 
-    const handleTop10Click = () => {
+    const handleTop10Click = async() => {
+        await fetchTop10Books();
         if (topBooks.length === 0) {
             setError("No top-rated books available yet.");
             return;

@@ -193,10 +193,43 @@ public class ReservationServiceImpl implements ReservationService {
         if (status != null && List.of("reserved", "borrowed").contains(status)) {
             Book book = bookService.getBookById(reservation.getBookId());
             ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
-            book.setQuantity(book.getQuantity() + 1);
-            book.setAvailable(true);
-            bookMapper.updateBook(book);
-            log.info("Updated book quantity for bookId {}: {}", reservation.getBookId(), book.getQuantity());
+
+            // Check for waiting users
+            long waitingCount = waitingListService.lambdaQuery()
+                    .eq(WaitingList::getBookId, book.getBookId())
+                    .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
+                    .count();
+
+            if (waitingCount > 0) {
+                // Hold the copy for waitlist
+                bookService.incrementHeldQuantity(book.getBookId());
+                log.info("Held copy for book {} (waitlist exists).", book.getBookId());
+
+                // Notify the next waiting user
+                WaitingList nextWaiting = waitingListService.lambdaQuery()
+                        .eq(WaitingList::getBookId, book.getBookId())
+                        .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
+                        .orderByAsc(WaitingList::getJoinDate)
+                        .last("LIMIT 1")
+                        .one();
+
+                if (nextWaiting != null) {
+                    // waitingListService.computeNotifyEligibilityForUser(user.getId());
+                    book.setHeldQuantity(book.getHeldQuantity() + 1);
+                    int updateSuccess = bookMapper.updateBook(book);
+                    reservation.setReturnTime(new Date());
+                    ThrowUtils.throwIf(updateSuccess == 0, ErrorCode.OPERATION_ERROR, "Failed to update book held quantity");
+                    log.info("Returned book {} incremented held quantity.", book.getBookId());
+                }
+            } else {
+                // No waitlist: Release to public availability
+                book.setQuantity(book.getQuantity() + 1);
+                book.setAvailable(true);
+                int updateSuccess = bookMapper.updateBook(book);
+                reservation.setReturnTime(new Date());
+                ThrowUtils.throwIf(updateSuccess == 0, ErrorCode.OPERATION_ERROR, "Failed to update book quantity");
+                log.info("Updated book quantity for bookId {}: {}", reservation.getBookId(), book.getQuantity());
+            }
         } else {
             log.info("Reservation status {} does not require book quantity update", status);
         }

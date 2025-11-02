@@ -4,7 +4,9 @@ package com.comp5619.libraryreservationreviewhub.tools;
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
+import com.comp5619.libraryreservationreviewhub.model.vo.BookRatingVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
+import com.comp5619.libraryreservationreviewhub.service.BookRatingService;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class BookSearchTool {
 
     @Autowired
     private BookService bookService;
+    @Autowired
+    private BookRatingService bookRatingService;
 
 
     /**
@@ -69,13 +73,13 @@ public class BookSearchTool {
      */
     @Tool(
             name = "get_random_books",
-            description = "Return 5 random book recommendations from the entire library catalog. " +
+            description = "Return top 10 book recommendations from the entire library catalog. " +
                     "Use this when the user asks for general, non-specific book recommendations " +
                     "such as 'recommend me some books' or 'popular books' without giving any genre or author."
     )
-    public List<BookVO> getRandomBooks() {
+    public List<BookRatingVO> getRandomBooks() {
 
-        List<BookVO> books = bookService.getRandomBooks(5);
+        List<BookRatingVO> books = bookRatingService.top10();
         log.info("ToolCall: get_top_books "+books);
         return books;
     }

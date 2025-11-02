@@ -55,8 +55,8 @@ class ReviewServiceImplTest {
     void setUp() {
         testUser = new User();
         testUser.setId(1L);
-        testUser.setFirstName("John");
-        testUser.setLastName("Doe");
+        testUser.setFirstName("Jason");
+        testUser.setLastName("Wang");
 
         testAdmin = new User();
         testAdmin.setId(2L);
@@ -77,7 +77,7 @@ class ReviewServiceImplTest {
         testReviewVO.setRating(5);
         testReviewVO.setComment("Great book!");
         testReviewVO.setReviewDate(new java.sql.Date(System.currentTimeMillis()));
-        testReviewVO.setUserName("John Doe");
+        testReviewVO.setUserName("Jason Wang");
     }
 
     @Test
@@ -221,7 +221,7 @@ class ReviewServiceImplTest {
 
         assertNotNull(vo);
         assertEquals(1L, vo.getReviewId());
-        assertEquals("John Doe", vo.getUserName());
+        assertEquals("Jason Wang", vo.getUserName());
     }
 
     @Test
@@ -238,7 +238,7 @@ class ReviewServiceImplTest {
         List<ReviewVO> vos = reviewService.getReviewVOList(reviews);
 
         assertEquals(1, vos.size());
-        assertEquals("John Doe", vos.get(0).getUserName());
+        assertEquals("Jason Wang", vos.get(0).getUserName());
     }
 
     @Test
@@ -440,7 +440,7 @@ class ReviewServiceImplTest {
 
         assertEquals(1L, result.getTotal());
         assertEquals(1, result.getRecords().size());
-        assertEquals("John Doe", result.getRecords().get(0).getUserName());
+        assertEquals("Jason Wang", result.getRecords().get(0).getUserName());
     }
 
     @Test
@@ -466,7 +466,7 @@ class ReviewServiceImplTest {
 
         String userName = reviewService.getUserNameByReviewId(1L);
 
-        assertEquals("John Doe", userName);
+        assertEquals("Jason Wang", userName);
     }
 
     @Test

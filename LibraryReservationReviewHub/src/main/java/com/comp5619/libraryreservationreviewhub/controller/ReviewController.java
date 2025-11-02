@@ -43,8 +43,8 @@ public class ReviewController {
      */
     @PostMapping("/add/{bookId}")
     public BaseResponse<Long> addReview(@PathVariable Long bookId,
-                                                @RequestBody ReviewAddRequest req,
-                                                HttpServletRequest request) {
+                                        @RequestBody ReviewAddRequest req,
+                                        HttpServletRequest request) {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(reviewService.addReview(bookId, req, user));
     }

@@ -24,6 +24,7 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
         try {
             setLoading(true);
             setError("");
+            await waitingListService.getEligibility();
             const response = await waitingListService.getMyWaitingList();
             if (response && response.code === 0 && response.data) {
                 setWaitingItems(Array.isArray(response.data) ? response.data : []);

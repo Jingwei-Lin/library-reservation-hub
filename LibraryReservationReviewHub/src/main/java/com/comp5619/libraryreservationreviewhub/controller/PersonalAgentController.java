@@ -34,10 +34,10 @@ public class PersonalAgentController {
      * @param chatId
      * @return
      */
-    @GetMapping("/personal_agent/chat/sync")
-    public String doChatSync(String message, String chatId) {
-        return personalAgent.doChat(message, chatId);
-    }
+//    @GetMapping("/personal_agent/chat/sync")
+//    public String doChatSync(String message, String chatId) {
+//        return personalAgent.doChat(message, chatId);
+//    }
 
 
     /**
@@ -54,10 +54,14 @@ public class PersonalAgentController {
 
     /**
      * SSE 流式调用 Personal Agent
-     *
-     * @param message
-     * @param chatId
-     * @return
+     * 该方法使用 Server-Sent Events (SSE) 实现与 AI 助手的流式对话
+
+ *
+     * @param message 用户输入的消息内容
+     * @param chatId 对话的唯一标识符
+
+ * @param request HTTP 请求对象，用于获取会话信息
+     * @return 返回一个 Flux 流，包含 ServerSentEvent 类型的响应数据，用于流式传输 AI 的回复
      */
 //    @GetMapping(value = "/personal_agent/chat/server_sent_event")
 //    public Flux<ServerSentEvent<String>> doChatWithPersonalAppServerSentEvent(String message, String chatId) {

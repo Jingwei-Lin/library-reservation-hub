@@ -33,27 +33,61 @@
     <!-- 当前用户在其所有 WAITING 图书上的排队位置 + 总等待人数 + 图书库存/可用性 -->
     <select id="selectNotifyEligibilityForUser" resultType="com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">
         SELECT
-            q.book_id           AS bookId,
-            b.title             AS bookTitle,
-            q.join_date         AS joinDate,
-            q.pos               AS position,
-      q.total_waiting     AS totalWaiting,
-      b.quantity          AS quantity,
-      b.available         AS available
-        FROM (
-            SELECT
-            wl.book_id,
-            wl.user_id,
-            wl.join_date,
-            ROW_NUMBER() OVER (PARTITION BY wl.book_id ORDER BY wl.join_date ASC, wl.wait_id ASC) AS pos,
-            COUNT(*)    OVER (PARTITION BY wl.book_id)                                         AS total_waiting
-            FROM waiting_list wl
-            WHERE wl.status = 'waiting'
-            ) q
-            JOIN Book b ON b.book_id = q.book_id
-        WHERE q.user_id = #{userId}
-        ORDER BY q.join_date ASC
+        wl.wait_id as waitId,
+        wl.user_id as userId,
+        wl.book_id as bookId,
+        wl.join_date as joinDate,
+        b.title as bookTitle,
+        b.quantity,
+        b.held_quantity as heldQuantity,
+        b.available,
+        <!-- Calculate position in queue (only waiting users) -->
+        (SELECT COUNT(*) + 1
+        FROM waiting_list wl2
+        WHERE wl2.book_id = wl.book_id
+        AND wl2.status = 'WAITING'
+        AND wl2.join_date &lt; wl.join_date) as position,
+        <!-- Total waiting users for this book -->
+        (SELECT COUNT(*)
+        FROM waiting_list wl3
+        WHERE wl3.book_id = wl.book_id
+        AND wl3.status = 'WAITING') as totalWaiting,
+        <!-- Count of already notified users for this book -->
+        (SELECT COUNT(*)
+        FROM waiting_list wl4
+        WHERE wl4.book_id = wl.book_id
+        AND wl4.status = 'NOTIFIED') as notifiedCount
+        FROM waiting_list wl
+        JOIN book b ON wl.book_id = b.book_id
+        WHERE wl.user_id = #{userId}
+        AND wl.status = 'WAITING'
+        ORDER BY wl.join_date ASC
     </select>
+
+<!--    <select id="selectNotifyEligibilityForUser" resultType="com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">-->
+<!--        SELECT-->
+<!--            q.book_id           AS bookId,-->
+<!--            b.title             AS bookTitle,-->
+<!--            q.join_date         AS joinDate,-->
+<!--            q.pos               AS position,-->
+<!--      q.total_waiting     AS totalWaiting,-->
+<!--      b.quantity          AS quantity,-->
+<!--      b.held_quantity     AS heldQuantity,-->
+<!--      b.available         AS available-->
+<!--        FROM (-->
+<!--            SELECT-->
+<!--            wl.book_id,-->
+<!--            wl.user_id,-->
+<!--            wl.join_date,-->
+<!--            ROW_NUMBER() OVER (PARTITION BY wl.book_id ORDER BY wl.join_date ASC, wl.wait_id ASC) AS pos,-->
+<!--            COUNT(*)    OVER (PARTITION BY wl.book_id)                                         AS total_waiting-->
+<!--            FROM waiting_list wl-->
+<!--            WHERE wl.status = 'waiting'-->
+<!--            ) q-->
+<!--            JOIN Book b ON b.book_id = q.book_id-->
+<!--        WHERE q.user_id = #{userId}-->
+<!--        ORDER BY q.join_date ASC-->
+<!--    </select>-->
 
 
     <!-- 2) 批量将该用户对这些书的 waiting 记录改为 notified -->
@@ -63,19 +97,19 @@
         is_notified = 1,
         notification_date = NOW()
         WHERE user_id = #{userId}
-        AND status = 'waiting'
         AND book_id IN
-        <foreach collection="bookIds" item="bid" open="(" close=")" separator=",">
-            #{bid}
+        <foreach collection="bookIds" item="bookId" open="(" separator="," close=")">
+            #{bookId}
         </foreach>
+        AND status = 'WAITING'
     </update>
 
-    <!-- 将 join_date 超过 7 天且仍为 waiting 的条目设为 cancelled -->
+    <!-- 将 join_date 超过 7 天且仍为 notified 的条目设为 cancelled -->
     <update id="cancelStaleWaiting">
         <![CDATA[
         UPDATE Waiting_list
         SET status = 'cancelled'
-        WHERE status = 'waiting'
+        WHERE status = 'notified'
           AND join_date < (CURRENT_TIMESTAMP - INTERVAL 7 DAY)
         ]]>
     </update>

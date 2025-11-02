@@ -15,6 +15,7 @@ import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingLis
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
+import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,8 @@ public class WaitingListServiceImpl
     private static final Set<String> SORT_WHITELIST = Set.of(
             "wait_id", "user_id", "book_id", "join_date", "notification_date", "is_notified", "status"
     );
+
+    private final BookService bookService;
 
     /** 计算分页与排序参数（默认 wait_id DESC） */
     private PageCalc calc(PageRequest pr) {
@@ -214,31 +217,40 @@ public class WaitingListServiceImpl
     public List<NotifyEligibilityVO> computeNotifyEligibilityForUser(Long userId) {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
 
-        // 查询当前用户所有 WAITING 状态的记录 + 库存信息 + 排队位置
+        // Query current user's WAITING records with position and notified count info
         List<NotifyEligibilityVO> rows = baseMapper.selectNotifyEligibilityForUser(userId);
         if (rows == null || rows.isEmpty()) {
             return List.of();
         }
 
-        // 判断哪些可以通知（position ≤ quantity 且库存>0）
+        // Determine which books can notify the current user
         List<Long> eligibleBookIds = new ArrayList<>();
         for (var vo : rows) {
-            boolean can = Boolean.TRUE.equals(vo.getAvailable())
-                    && vo.getQuantity() != null && vo.getQuantity() > 0
-                    && vo.getPosition() != null && vo.getPosition() <= vo.getQuantity();
+            // Check conditions for notification:
+            // 1. Book has available copies on hold (heldQuantity > 0)
+            // 2. User's position is within available held copies (position <= heldQuantity)
+            // 3. No other users are already notified for this book (notifiedCount == 0)
+            boolean can = vo.getHeldQuantity() != null
+                    && vo.getHeldQuantity() > 0
+                    && vo.getPosition() != null
+                    && vo.getPosition() <= vo.getHeldQuantity()
+                    && vo.getNotifiedCount() != null
+                    && vo.getNotifiedCount() < vo.getHeldQuantity();
             vo.setCanNotify(can);
             if (can) {
                 eligibleBookIds.add(vo.getBookId());
             }
         }
 
-        // 批量更新：对这些书的 waiting_list 设置为 NOTIFIED
+        // Batch update: set these waiting records to NOTIFIED
         if (!eligibleBookIds.isEmpty()) {
             int updated = baseMapper.batchNotifyByBooks(userId, eligibleBookIds);
             ThrowUtils.throwIf(updated <= 0, ErrorCode.OPERATION_ERROR, "Failed to update the notification status");
         }
 
-        // 返回结果
+        // Log the notification
+        log.info("Notified user {} for books: {}", userId, eligibleBookIds);
+
         return rows;
     }
 

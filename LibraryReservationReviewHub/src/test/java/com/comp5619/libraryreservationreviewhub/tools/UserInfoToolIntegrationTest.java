@@ -1,8 +1,6 @@
 package com.comp5619.libraryreservationreviewhub.tools;
 
 import cn.hutool.json.JSONUtil;
-import com.comp5619.libraryreservationreviewhub.model.entity.User;
-import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +52,7 @@ class UserInfoToolIntegrationTest {
     @Test
     void testGetUserInfo_ValidUser_NoReservations() {
         long id = userService.userRegister(
-                "no_resv_user@example.com", "password123", "password123", "Tom", "Lee", "0412"
+                "no_resv_user@example.com", "password123", "password123", "Tom", "Lee", "0412345678"
         );
 
         String result = userInfoTool.getUserInfo(id);

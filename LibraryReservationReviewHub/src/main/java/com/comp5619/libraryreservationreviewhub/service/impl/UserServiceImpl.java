@@ -18,6 +18,8 @@ import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
+import com.comp5619.libraryreservationreviewhub.utils.SqlInjectionUtil;
+import com.comp5619.libraryreservationreviewhub.utils.ValidCheckUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -61,7 +63,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Passwords do not match");
         }
-
+        // ========== 新增：输入安全检查（防 SQL 注入 / 格式校验） ==========
+        try {
+            // 检查常见注入特征（单引号、注释、关键字等）
+            SqlInjectionUtil.checkSqlInjection(userAccount, "userAccount");
+            SqlInjectionUtil.checkSqlInjection(firstName, "firstName");
+            SqlInjectionUtil.checkSqlInjection(lastName, "lastName");
+            SqlInjectionUtil.checkSqlInjection(phone, "phone");
+        } catch (RuntimeException ex) {
+            // 把工具类的异常转换为业务异常，保持统一错误类型
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Illegal input detected");
+        }
+        // 简单邮箱格式校验（最小严格性）
+        if (!ValidCheckUtil.isValidEmail(userAccount)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid email format");
+        }
+        // 电话格式校验（只允许 8-15 位数字，可按需调整）
+        if (StrUtil.isNotBlank(phone) && !ValidCheckUtil.isValidPhone(phone)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid phone format");
+        }
         // 2. 检查用户账号 (email) 是否和数据库中已有的重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);

@@ -154,7 +154,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     console.warn('User validation failed:', userRes.message);
                     logoutUser();
                     setIsAuthenticated(false);
-                    navigate("/login"); // Redirect if session invalid
                     return; // Early exit if logged out
                 }
                 if (topBooksRes.code === 0 && topBooksRes.data) {

@@ -34,7 +34,7 @@ I owned the reservation and waiting-list workflow, end to end:
 - **Back end:** `ReservationServiceImpl` and `WaitingListServiceImpl`, and their controllers and mappers.
   - Reserving a copy checks availability and fulfils the user's waiting-list entry.
   - Cancelling a reservation either holds the copy for the next waiting user or releases it to the public.
-  - The changes run in transactions, so stock counts and the queue stay consistent.
+  - The stock and waiting-list changes for each request run in one transaction.
 - **Front end:** the main book dashboard (search, genre browsing and top-rated books), the book detail page, and
   the reservation and waiting-list screens.
 - **Testing:**
@@ -43,6 +43,20 @@ I owned the reservation and waiting-list workflow, end to end:
 - **Database:** the schema and seed data for books, reservations and the waiting list.
 
 Teammates built user management, reviews and ratings, the admin pages and the AI assistant.
+
+## After the course
+
+- **Fixed a race condition in reservations.**
+  - Problem: the service read a book's stock, checked it in Java and wrote the new count back. Concurrent
+    requests could deadlock or overwrite each other's counts.
+  - Fix: stock now changes through single conditional `UPDATE`s, for example
+    `SET quantity = quantity - 1 WHERE quantity - held_quantity > 0`. The copy is taken before the
+    reservation row is inserted, so the book row is always locked first.
+  - Test: `ReservationConcurrencyIntegrationTest` runs against MySQL and failed before the fix.
+    - Eight users try to reserve the last copy at once, and exactly one succeeds.
+    - Three concurrent cancellations all put their copies back.
+- **Added CI and Docker:** GitHub Actions, Docker Compose, and fixes for running on Linux (case-sensitive
+  table names, UTF-8 seed data, configurable CORS origins).
 
 ## Architecture
 
@@ -75,7 +89,8 @@ Compose starts three containers:
 
 **Requirements:** JDK 17, MySQL 8, Node.js 20.19+
 
-1. **Create the database.** Run `LibraryReservationReviewHub/Schema.sql` in MySQL.
+1. **Create the database.** Run `LibraryReservationReviewHub/Schema.sql` in MySQL. On Linux or macOS, start
+   MySQL with `lower_case_table_names=1`, which is already the default on Windows.
 2. **Set environment variables.** The back end reads them through `application.yml`:
 
    | Variable | Default | Purpose |
@@ -83,7 +98,8 @@ Compose starts three containers:
    | `DB_URL` | `jdbc:mysql://localhost:3306/library_reservation` | JDBC URL |
    | `DB_USERNAME` | `root` | Database user |
    | `DB_PASSWORD` | *(empty)* | Database password |
-   | `DASHSCOPE_API_KEY` | *(empty)* | Only needed for the AI assistant |
+   | `DASHSCOPE_API_KEY` | *(empty)* | Must be non-empty for the app to start; a real key is only needed for the AI assistant |
+   | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:5174` | Front-end origins allowed to call the API |
 
 3. **Start the back end:**
 
@@ -102,9 +118,12 @@ Compose starts three containers:
 
 ## Tests and coverage
 
-There are 174 JUnit tests: Mockito unit tests for the services and controllers, and Spring Boot integration tests
-that run against MySQL. CI runs all of them on every push, with a MySQL service container, and uploads the
-JaCoCo coverage report.
+There are 180 JUnit tests:
+- Mockito unit tests for the services and controllers;
+- Spring Boot integration tests that run against MySQL, including the concurrency tests.
+
+CI runs all of them on every push, in a MySQL container, and uploads the JaCoCo coverage report. Line coverage is
+81% overall and 96% for the service layer.
 
 ```bash
 cd LibraryReservationReviewHub

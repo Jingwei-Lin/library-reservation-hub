@@ -60,22 +60,51 @@ public interface BookMapper {
     @Update("UPDATE book SET available = TRUE WHERE book_id = #{id}")
     int restoreById(@Param("id") Long id);
 
-    /* NEW: Increment/Decrement held_quantity and recompute available */
+    /*
+     * Stock changes are single atomic UPDATEs rather than read-modify-write in Java, so concurrent
+     * reservations and returns cannot overwrite each other's counts.
+     * MySQL applies single-table SET assignments left to right, so `available` below is computed
+     * from the values that were just updated.
+     */
+
+    /** Increments held_quantity and recomputes available */
     @Update("""
-        UPDATE book 
+        UPDATE book
         SET held_quantity = held_quantity + 1,
-            available = (quantity - (held_quantity + 1) > 0)
+            available = (quantity - held_quantity > 0)
         WHERE book_id = #{id}
         """)
     int incrementHeldQuantity(@Param("id") Long id);
 
+    /** Decrements held_quantity and recomputes available; returns 0 when no copy is held */
     @Update("""
-        UPDATE book 
+        UPDATE book
         SET held_quantity = held_quantity - 1,
-            available = (quantity - (held_quantity - 1) > 0)
+            available = (quantity - held_quantity > 0)
         WHERE book_id = #{id} AND held_quantity > 0
         """)
     int decrementHeldQuantity(@Param("id") Long id);
+
+    /**
+     * Takes one publicly available copy. Returns 0 when none is left, so two people can never
+     * both get the last copy.
+     */
+    @Update("""
+        UPDATE book
+        SET quantity = quantity - 1,
+            available = (quantity - held_quantity > 0)
+        WHERE book_id = #{id} AND quantity - held_quantity > 0
+        """)
+    int takeAvailableCopy(@Param("id") Long id);
+
+    /** Puts one copy back on the shelf */
+    @Update("""
+        UPDATE book
+        SET quantity = quantity + 1,
+            available = (quantity - held_quantity > 0)
+        WHERE book_id = #{id}
+        """)
+    int returnCopy(@Param("id") Long id);
 
     /* ================== 分页 / 搜索 ================== */
 

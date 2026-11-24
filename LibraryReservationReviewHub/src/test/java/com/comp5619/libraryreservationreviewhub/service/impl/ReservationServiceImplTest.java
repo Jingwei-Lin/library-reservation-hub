@@ -96,7 +96,7 @@ class ReservationServiceImplTest {
             r.setReservationId(1L);
             return 1;
         });
-        when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
+        when(bookMapper.takeAvailableCopy(1L)).thenReturn(1);
 
         // Mock the private helper method calls using spy
         ReservationServiceImpl spyService = spy(reservationService);
@@ -108,31 +108,51 @@ class ReservationServiceImplTest {
         Long reservationId = spyService.createReservation(1L, req, testUser);
 
         assertEquals(1L, reservationId);
-        verify(bookMapper).updateBook(any(Book.class));
+        // the copy is taken with one atomic UPDATE, not by writing back a quantity read earlier
+        verify(bookMapper).takeAvailableCopy(1L);
+        verify(bookMapper, never()).updateBook(any(Book.class));
     }
 
-//    @Test
-//    void createReservation_BookNotAvailable_ThrowsException() {
-//        ReservationAddRequest req = new ReservationAddRequest();
-//        req.setPickupTime(new Date());
-//        req.setDueTime(new Date(System.currentTimeMillis() + 86400000));
-//
-//        // Mock waiting list service calls
-//        when(bookService.getBookById(1L)).thenReturn(testBook);
-//        when(reservationMapper.selectActiveByBookId(1L)).thenReturn(Collections.emptyList());
-//
-//        // Mock the private helper method calls using spy
-//        ReservationServiceImpl spyService = spy(reservationService);
-//        doReturn(false).when(spyService).isUserNotifiedForBook(1L, 1L);
-//
-//        // Set book to be unavailable
-//        testBook.setAvailable(false);
-//
-//        BusinessException exception = assertThrows(BusinessException.class,
-//                () -> spyService.createReservation(1L, req, testUser));
-//        assertEquals(ErrorCode.OPERATION_ERROR.getCode(), exception.getCode());
-//        assertEquals("No available copies", exception.getMessage());
-//    }
+    @Test
+    void createReservation_NoCopyLeft_ThrowsAndDoesNotInsert() {
+        ReservationAddRequest req = new ReservationAddRequest();
+        req.setPickupTime(testReservation.getPickupTime());
+        req.setDueTime(testReservation.getDueTime());
+
+        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(reservationMapper.selectActiveByBookId(1L)).thenReturn(Collections.emptyList());
+        when(bookMapper.takeAvailableCopy(1L)).thenReturn(0);   // someone else got the last copy
+
+        ReservationServiceImpl spyService = spy(reservationService);
+        doReturn(false).when(spyService).isUserNotifiedForBook(1L, 1L);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> spyService.createReservation(1L, req, testUser));
+        assertEquals(ErrorCode.OPERATION_ERROR.getCode(), exception.getCode());
+        assertEquals("No available copies", exception.getMessage());
+        verify(reservationMapper, never()).insertReservation(any(Reservation.class));
+    }
+
+    @Test
+    void createReservation_NotifiedUser_TakesTheHeldCopy() {
+        ReservationAddRequest req = new ReservationAddRequest();
+        req.setPickupTime(testReservation.getPickupTime());
+        req.setDueTime(testReservation.getDueTime());
+
+        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(reservationMapper.selectActiveByBookId(1L)).thenReturn(Collections.emptyList());
+        when(reservationMapper.insertReservation(any(Reservation.class))).thenReturn(1);
+        when(bookService.decrementHeldQuantity(1L)).thenReturn(true);
+
+        ReservationServiceImpl spyService = spy(reservationService);
+        doReturn(true).when(spyService).isUserNotifiedForBook(1L, 1L);
+        doReturn(null).when(spyService).getNotifiedWaitingEntry(1L, 1L);
+
+        spyService.createReservation(1L, req, testUser);
+
+        verify(bookService).decrementHeldQuantity(1L);
+        verify(bookMapper, never()).takeAvailableCopy(anyLong());
+    }
 //
 //    @Test
 //    void createReservation_UserHasActiveReservation_ThrowsException() {
@@ -172,23 +192,36 @@ class ReservationServiceImplTest {
         assertEquals("Due date must be after pickup date", exception.getMessage());
     }
 
-//    @Test
-//    void cancelReservation_Success() {
-//        when(reservationMapper.selectById(1L)).thenReturn(testReservation);
-//        when(userService.isAdmin(testUser)).thenReturn(false);
-//        when(reservationMapper.cancelById(1L)).thenReturn(1);
-//        when(bookService.getBookById(1L)).thenReturn(testBook);
-//        when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
-//
-//        // Mock the private helper method calls using spy
-//        ReservationServiceImpl spyService = spy(reservationService);
-//        doReturn(0L).when(spyService).getWaitingUserCount(1L);
-//
-//        boolean result = spyService.cancelReservation(1L, testUser);
-//
-//        assertTrue(result);
-//        verify(bookMapper).updateBook(any(Book.class));
-//    }
+    @Test
+    void cancelReservation_NoWaitlist_ReturnsCopyToShelf() {
+        when(reservationMapper.selectById(1L)).thenReturn(testReservation);
+        when(reservationMapper.cancelById(1L)).thenReturn(1);
+        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(bookMapper.returnCopy(1L)).thenReturn(1);
+
+        ReservationServiceImpl spyService = spy(reservationService);
+        doReturn(0L).when(spyService).getWaitingUserCount(1L);
+
+        assertTrue(spyService.cancelReservation(1L, testUser));
+        verify(bookMapper).returnCopy(1L);
+        verify(bookService, never()).incrementHeldQuantity(anyLong());
+        verify(bookMapper, never()).updateBook(any(Book.class));
+    }
+
+    @Test
+    void cancelReservation_WithWaitlist_HoldsCopyForWaitingUser() {
+        when(reservationMapper.selectById(1L)).thenReturn(testReservation);
+        when(reservationMapper.cancelById(1L)).thenReturn(1);
+        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(bookService.incrementHeldQuantity(1L)).thenReturn(true);
+
+        ReservationServiceImpl spyService = spy(reservationService);
+        doReturn(2L).when(spyService).getWaitingUserCount(1L);
+
+        assertTrue(spyService.cancelReservation(1L, testUser));
+        verify(bookService).incrementHeldQuantity(1L);
+        verify(bookMapper, never()).returnCopy(anyLong());
+    }
 
     @Test
     void cancelReservation_NotOwner_ThrowsException() {

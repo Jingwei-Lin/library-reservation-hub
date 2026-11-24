@@ -2,6 +2,8 @@
 services:
   db:
     image: mysql:8.4
+    # the schema uses Book/Users while the queries use book/users; Windows MySQL ignores case, Linux does not
+    command: --lower-case-table-names=1
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-library}
     volumes:
@@ -19,6 +21,7 @@ services:
       DB_URL: jdbc:mysql://db:3306/library_reservation
       DB_USERNAME: root
       DB_PASSWORD: ${DB_PASSWORD:-library}
+      CORS_ALLOWED_ORIGINS: http://localhost:8080,http://localhost:5173
       # the app needs a non-empty value to start; set a real key in .env to use the AI assistant
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-not-set}
     depends_on:

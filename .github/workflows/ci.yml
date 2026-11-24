@@ -9,16 +9,6 @@ jobs:
   backend:
     name: Back end tests and coverage
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: ci-pass
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-pass --silent"
-          --health-interval=5s --health-timeout=5s --health-retries=30
     env:
       DB_URL: jdbc:mysql://127.0.0.1:3306/library_reservation
       DB_USERNAME: root
@@ -35,8 +25,15 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+      # Started by hand rather than as a service container, because it needs a server flag:
+      # the schema uses Book/Users while the queries use book/users, and Linux MySQL is case-sensitive
+      - name: Start MySQL
+        run: |
+          docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=ci-pass -p 3306:3306 mysql:8.4 --lower-case-table-names=1
+          # TCP only answers once initialisation has finished and the real server is up
+          until docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-pass --silent >/dev/null 2>&1; do sleep 2; done
       - name: Load the database schema
-        run: mysql -h 127.0.0.1 -uroot -pci-pass < Schema.sql
+        run: docker exec -i mysql mysql -uroot -pci-pass < Schema.sql
       - name: Run tests with JaCoCo coverage
         run: ./gradlew test jacocoTestReport --no-daemon
       - name: Upload test and coverage reports

@@ -7,7 +7,13 @@ is taken, and share reviews. Built by a team of five for ELEC5619 (Object-Orient
 the University of Sydney, Aug – Nov 2025.
 
 **Stack:** Java 17 · Spring Boot 3.5 · MyBatis-Plus · MySQL · Quartz · JWT · React 19 · Vite ·
-JUnit 5 · Mockito · JaCoCo
+JUnit 5 · Mockito · JaCoCo · Docker · GitHub Actions
+
+| Browse the catalogue | Book details |
+|---|---|
+| ![Dashboard with search, genres and library statistics](docs/screenshots/dashboard.png) | ![Book detail page with availability and Reserve Now](docs/screenshots/book-detail.png) |
+| **Reserve a copy** | **My reservations** |
+| ![Reservation dialog with pickup and due dates](docs/screenshots/reserve.png) | ![Reservations table with edit and cancel actions](docs/screenshots/my-reservations.png) |
 
 ## Features
 
@@ -57,7 +63,10 @@ cp .env.example .env      # optional: add a DashScope key to try the AI assistan
 docker compose up --build
 ```
 
-Open http://localhost:8080. Compose starts three containers:
+Open http://localhost:8080 and sign in with a demo account (password `123456789`):
+`jingwei.lin2@example.com`, or `admin@admin.com` at `/admin` for the admin panel.
+
+Compose starts three containers:
 - MySQL, with the schema and 101 sample books loaded;
 - the Spring Boot API;
 - the React app, served by nginx, which proxies `/api` to the API.

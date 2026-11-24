@@ -102,8 +102,10 @@ public interface UserService extends IService<User> {
     boolean updateUserProfile(UserUpdateRequest req, User user);
 
     /**
-     * Admin edit of another user's name, e-mail, phone, role or status. An admin can't change their own role or
-     * status, so at least one admin always remains.
+     * Admin edit of a user's name, e-mail, phone, role or status, with the same field checks as registration.
+     * An admin can't change their own role or status, so an admin can't remove the last admin by themselves (two
+     * admins demoting each other at the same moment is not prevented). An admin changing their own e-mail must
+     * send their current password in {@code currentPassword}.
      *
      * @param req      the fields to change (null fields are left as they are)
      * @param operator the logged-in admin

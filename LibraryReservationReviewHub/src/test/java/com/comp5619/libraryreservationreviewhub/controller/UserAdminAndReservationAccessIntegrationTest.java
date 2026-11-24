@@ -83,6 +83,32 @@ class UserAdminAndReservationAccessIntegrationTest {
     }
 
     @Test
+    void anAdminChangingTheirOwnEmailNeedsTheirCurrentPassword() throws Exception {
+        update("{\"id\":3,\"email\":\"new.admin@example.com\",\"isAdmin\":true}")
+                .andExpect(jsonPath("$.code").value(40000));
+        update("{\"id\":3,\"email\":\"new.admin@example.com\",\"isAdmin\":true,\"currentPassword\":\"wrong-password\"}")
+                .andExpect(jsonPath("$.code").value(40000))
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+        assertThat(jdbc.queryForObject("SELECT email FROM users WHERE user_id = 3", String.class)).isEqualTo(ADMIN);
+
+        update("{\"id\":3,\"email\":\"new.admin@example.com\",\"isAdmin\":true,\"currentPassword\":\"" + PASSWORD + "\"}")
+                .andExpect(jsonPath("$.code").value(0));
+        assertThat(jdbc.queryForObject("SELECT email FROM users WHERE user_id = 3", String.class))
+                .isEqualTo("new.admin@example.com");
+    }
+
+    @Test
+    void anAdminEditWithInvalidFieldsIsRefused() throws Exception {
+        update("{\"id\":1,\"firstName\":\"  \"}").andExpect(jsonPath("$.code").value(40000));
+        update("{\"id\":1,\"lastName\":\"\"}").andExpect(jsonPath("$.code").value(40000));
+        update("{\"id\":1,\"email\":\"not-an-email\"}").andExpect(jsonPath("$.code").value(40000));
+        update("{\"id\":1,\"email\":\"\"}").andExpect(jsonPath("$.code").value(40000));
+        update("{\"id\":1,\"phone\":\"04xx\"}").andExpect(jsonPath("$.code").value(40000));
+        assertThat(jdbc.queryForObject("SELECT CONCAT(first_name, '|', last_name, '|', email) FROM users WHERE user_id = 1",
+                String.class)).isEqualTo("Jingwei|Lin|" + USER);
+    }
+
+    @Test
     void anUnknownStatusIsRefused() throws Exception {
         update("{\"id\":1,\"status\":5}").andExpect(jsonPath("$.code").value(40000));
     }

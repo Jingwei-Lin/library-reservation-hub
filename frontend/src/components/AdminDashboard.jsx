@@ -40,6 +40,8 @@ useEffect(() => {
   const [usersError, setUsersError] = useState('');
   const [usersSuccess, setUsersSuccess] = useState('');
   const [usersOriginal, setUsersOriginal] = useState([]);
+  // asked for when the signed-in admin changes their own e-mail (the login), as on the profile page
+  const [ownCurrentPassword, setOwnCurrentPassword] = useState('');
   const [usersQuery, setUsersQuery] = useState('');
   const filteredUsers = React.useMemo(() => {
     const q = usersQuery.trim().toLowerCase();
@@ -136,11 +138,26 @@ useEffect(() => {
   };
 
   /**
+   * Whether this row is the signed-in admin's own and its e-mail differs from the loaded one
+   */
+  const isOwnEmailChange = (u) => {
+    if (user?.id == null || u.id !== user.id) return false;
+    const orig = usersOriginal.find(o => o.id === u.id);
+    return !!orig && (u.userAccount || '') !== (orig.userAccount || '');
+  };
+
+  /**
    * 保存用户编辑：含二次确认、角色处理（admin）、错误/成功提示与数据刷新
    */
   const handleUserUpdate = async (u) => {
     if (isUserUnchanged(u)) {
       alert('No changes made');
+      return;
+    }
+    const ownEmailChange = isOwnEmailChange(u);
+    if (ownEmailChange && !ownCurrentPassword) {
+      setUsersSuccess('');
+      setUsersError('Enter your current password to change your own e-mail.');
       return;
     }
     const confirmed = window.confirm('Are you sure you want to save the changes?');
@@ -158,17 +175,21 @@ useEffect(() => {
         lastName: u.lastName,
         email: u.userAccount,
       };
+      if (ownEmailChange) {
+        payload.currentPassword = ownCurrentPassword;
+      }
       if (typeof u.userRole === 'string') {
         const role = u.userRole.toLowerCase();
         payload.isAdmin = role === 'admin';
       }
       const res = await adminUserService.updateUser(payload);
       if (res && res.code === 0) {
+        setOwnCurrentPassword('');
         setUsersSuccess('User updated successfully');
         await fetchUsers();
         setTimeout(() => setUsersSuccess(''), 2000);
       } else {
-        setUsersError(res?.msg || 'Update failed');
+        setUsersError(res?.message || res?.msg || 'Update failed');
       }
     } catch (err) {
       setUsersError(err.message || 'Update failed');
@@ -206,7 +227,7 @@ useEffect(() => {
         await fetchUsers();
         setTimeout(() => setUsersSuccess(''), 2000);
       } else {
-        setUsersError(res?.msg || 'Failed to update user status');
+        setUsersError(res?.message || res?.msg || 'Failed to update user status');
       }
     } catch (err) {
       setUsersError(err.message || 'Failed to update user status');
@@ -799,7 +820,21 @@ useEffect(() => {
             ) : filteredUsers.map((u, idx) => (
               <tr key={u.id || idx}>
                 <td>{u.id}</td>
-                <td><input className="input" value={u.userAccount || ''} onChange={(e) => handleUserFieldChange(u.id, 'userAccount', e.target.value)} /></td>
+                <td>
+                  <input className="input" value={u.userAccount || ''} onChange={(e) => handleUserFieldChange(u.id, 'userAccount', e.target.value)} />
+                  {isOwnEmailChange(u) && (
+                    <input
+                      className="input"
+                      type="password"
+                      placeholder="Your current password"
+                      aria-label="Your current password"
+                      autoComplete="current-password"
+                      value={ownCurrentPassword}
+                      onChange={(e) => setOwnCurrentPassword(e.target.value)}
+                      style={{ marginTop: 6 }}
+                    />
+                  )}
+                </td>
                 <td><input className="input" value={u.firstName || ''} onChange={(e) => handleUserFieldChange(u.id, 'firstName', e.target.value)} /></td>
                 <td><input className="input" value={u.lastName || ''} onChange={(e) => handleUserFieldChange(u.id, 'lastName', e.target.value)} /></td>
                 <td><input className="input" value={u.userRole || ''} onChange={(e) => handleUserFieldChange(u.id, 'userRole', e.target.value)} /></td>

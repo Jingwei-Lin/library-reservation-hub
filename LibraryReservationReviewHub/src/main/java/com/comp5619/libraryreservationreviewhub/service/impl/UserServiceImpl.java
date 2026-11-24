@@ -395,6 +395,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     ErrorCode.OPERATION_ERROR, "You can't change your own account status");
         }
 
+        // the same rules as registration for the fields this request changes (null = leave as is)
+        ThrowUtils.throwIf(req.getFirstName() != null && StrUtil.isBlank(req.getFirstName()), ErrorCode.PARAMS_ERROR,
+                "First name cannot be blank");
+        ThrowUtils.throwIf(req.getLastName() != null && StrUtil.isBlank(req.getLastName()), ErrorCode.PARAMS_ERROR,
+                "Last name cannot be blank");
+        ThrowUtils.throwIf(req.getEmail() != null && StrUtil.isBlank(req.getEmail()), ErrorCode.PARAMS_ERROR,
+                "Email cannot be blank");
+        ThrowUtils.throwIf(StrUtil.isNotBlank(req.getPhone()) && !ValidCheckUtil.isValidPhone(req.getPhone()),
+                ErrorCode.PARAMS_ERROR, "Invalid phone format");
+
         User update = new User();
         update.setId(target.getId());
         update.setFirstName(req.getFirstName());
@@ -404,6 +414,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         update.setStatus(req.getStatus());
         // the request calls the e-mail `email`; the entity calls it `userAccount`
         if (StrUtil.isNotBlank(req.getEmail()) && !req.getEmail().equals(target.getUserAccount())) {
+            ThrowUtils.throwIf(!ValidCheckUtil.isValidEmail(req.getEmail()), ErrorCode.PARAMS_ERROR,
+                    "Invalid email format");
+            // the e-mail is the login: an admin changing their own needs their current password, as on the
+            // profile page, so an admin session left open can't be used to take the account over
+            if (target.getId().equals(operator.getId())) {
+                ThrowUtils.throwIf(!PasswordUtil.matches(req.getCurrentPassword(), target.getUserPassword()),
+                        ErrorCode.PARAMS_ERROR, "Current password is incorrect");
+            }
             QueryWrapper<User> sameEmail = new QueryWrapper<>();
             sameEmail.eq("email", req.getEmail()).ne("user_id", target.getId());
             ThrowUtils.throwIf(this.baseMapper.selectCount(sameEmail) > 0, ErrorCode.PARAMS_ERROR,

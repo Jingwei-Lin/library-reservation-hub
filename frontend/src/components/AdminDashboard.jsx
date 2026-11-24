@@ -12,9 +12,8 @@ import NumericStepper from './NumericStepper';
  * 组件入参
  * - user: 当前登录用户信息（含 isAdmin / userRole）
  * - isAuthenticated: 是否已登录
- * - setIsAuthenticated: 可用于更新登录态（本组件暂未使用）
  */
-const AdminDashboard = ({ user, isAuthenticated, setIsAuthenticated }) => {
+const AdminDashboard = ({ user, isAuthenticated }) => {
   const navigate = useNavigate();
 
   // helper: case-insensitive substring match

@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.ToString;
 
 /**
  * 用户
@@ -27,9 +30,11 @@ public class User implements Serializable {
     private String userAccount;
 
     /**
-     * password
+     * password hash: never serialised into API responses or written to logs
      */
     @TableField("password")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @ToString.Exclude
     private String userPassword;
 
     /**

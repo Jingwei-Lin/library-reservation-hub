@@ -23,20 +23,11 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
 
-#    datasource:
-#      url: jdbc:postgresql://localhost:5433/library_reservation
-#      username: postgres
-#      password: ${DB_PASSWORD:}
-#      driver-class-name: org.postgresql.Driver
   h2:
     console:
-      enabled: true
-      path: /h2-console
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-# springdoc-openapi项目配置
+      enabled: false
+
+# springdoc / OpenAPI
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -48,7 +39,7 @@ springdoc:
     - group: 'default'
       paths-to-match: '/**'
       packages-to-scan: com.comp5619.libraryreservationreviewhub.controller
-# knife4j的增强配置，不需要增强可以不配
+# Knife4j UI on top of springdoc
 knife4j:
   enable: true
   setting:
@@ -58,19 +49,19 @@ mybatis-plus:
   configuration:
     # MyBatis configuration
     map-underscore-to-camel-case: true
-    # print log info
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # SQL goes through SLF4J: set logging.level.com.comp5619.libraryreservationreviewhub.mapper=DEBUG to see it
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# INFO by default. For local debugging, override with environment variables, e.g.
+# LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG or LOGGING_LEVEL_COM_COMP5619_LIBRARYRESERVATIONREVIEWHUB_MAPPER=DEBUG
 logging:
   level:
-    org.springframework.web: DEBUG
-    org.springframework.web.servlet.resource: DEBUG
-    com.comp5619.libraryreservationreviewhub.app: DEBUG
+    root: INFO
 
 
 

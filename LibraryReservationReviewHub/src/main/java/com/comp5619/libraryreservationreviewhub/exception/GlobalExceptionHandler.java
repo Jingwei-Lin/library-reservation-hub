@@ -21,9 +21,11 @@ public class GlobalExceptionHandler {
     public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);
         if (e instanceof DataIntegrityViolationException) {
-            String message = e.getCause() != null && e.getCause().getMessage().contains("Data truncated for column 'status'")
+            // The full exception (SQL text, table and column names) is logged above; clients get a generic message
+            String cause = e.getCause() != null ? e.getCause().getMessage() : null;
+            String message = cause != null && cause.contains("Data truncated for column 'status'")
                     ? "Invalid reservation status provided"
-                    : "Database error: " + e.getMessage();
+                    : "The request conflicts with existing data";
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR, message);
         }
         if (e instanceof NullPointerException) {

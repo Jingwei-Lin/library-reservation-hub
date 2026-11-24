@@ -18,7 +18,7 @@ const Profile = ({ user, setIsAuthenticated }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    const [theme, setTheme] = useState(getTheme());
+    const [theme] = useState(getTheme());
 
     useEffect(() => {
         const fetchProfile = async () => {

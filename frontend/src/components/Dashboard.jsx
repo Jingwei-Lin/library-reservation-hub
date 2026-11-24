@@ -25,6 +25,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
     const initialPage = parseInt(urlParams.get('page')) || 1;
 
     const [books, setBooks] = useState([]);
+    // eslint-disable-next-line no-unused-vars -- fetched but never rendered; removal tracked in specs roadmap (P2 dead code)
     const [topBooks, setTopBooks] = useState([]);
     const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
@@ -37,6 +38,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         const id = Number(bookIdFromUrl);
         return (!isNaN(id) && id > 0) ? id : null;
     });
+    // eslint-disable-next-line no-unused-vars -- set but never read; removal tracked in specs roadmap (P2 dead code)
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const [hasNotification, setHasNotification] = useState(false);
@@ -207,24 +209,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         };
     }, []);
 
-    // Revalidate and sync user session when dashboard loads
-    const fetchUser = async () => {
-        try {
-            const response = await validateSession();
-            console.log("revalidate:", response.data);
-            if (response && response.code === 0 && response.data) {
-                setUser(response.data);
-                setIsAuthenticated(true);
-            } else {
-                logoutUser();
-                setIsAuthenticated(false);
-            }
-        } catch (err) {
-            logoutUser();
-            setIsAuthenticated(false);
-            console.warn("Failed to fetchUser");
-        }
-    };
 
     // Sync URL with selected book state
     useEffect(() => {
@@ -467,29 +451,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
         updateURL({ book: null, search: '', genre: '', view: '', page: 1 });
     };
 
-    // Fetch waiting list and check for notified status
-    const fetchWaitingList = async () => {
-        try {
-            const response = await waitingListService.getMyWaitingList();
-            if (response && response.code === 0 && response.data) {
-                // Check if any waiting list item has status "notified"
-                const hasNotified = response.data.some(item => item.status === "notified");
-                setHasNotification(hasNotified);
-            } else {
-                setHasNotification(false); // No notifications if response is invalid
-            }
-        } catch (err) {
-            console.error("fetchWaitingList error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
-                console.warn("Failed to check waiting list notifications");
-                setHasNotification(false); // Safe default on error
-            }
-        }
-    };
 
     // Pagination logic
     const indexOfLastBook = currentPage * booksPerPage;

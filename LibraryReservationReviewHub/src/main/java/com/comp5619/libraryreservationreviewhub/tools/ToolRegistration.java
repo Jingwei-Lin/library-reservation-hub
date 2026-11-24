@@ -7,29 +7,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 集中的工具注册类
+ * Registers the tools the AI assistant may call.
+ * A file read/write tool used to be registered here; it was removed because the model could be talked into
+ * reading or writing any file on the server (path traversal).
  */
 @Configuration
 public class ToolRegistration {
 
-
     @Bean
     public UserInfoTool userInfoTool() {
-        return new UserInfoTool(); // 单独交给spring管理，里面的 @Autowired 会生效
+        return new UserInfoTool(); // a Spring bean, so its @Autowired fields are injected
     }
 
     @Bean
     public ToolCallback[] allTools(UserInfoTool userInfoTool, BookSearchTool bookSearchTool) {
-        FileOperationTool fileOperationTool = new FileOperationTool();
-
-
-
-        // 使用 Spring 管理的 bookSearchTool，避免 @Autowired 为空
-        return ToolCallbacks.from(
-                fileOperationTool,
-
-                userInfoTool,
-                bookSearchTool
-        );
+        // use the Spring-managed BookSearchTool so its @Autowired fields are not null
+        return ToolCallbacks.from(userInfoTool, bookSearchTool);
     }
 }

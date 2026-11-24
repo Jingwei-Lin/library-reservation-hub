@@ -50,17 +50,11 @@ public class UserController {
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userRegisterRequest.getUserAccount(); // email
-        System.out.println(userAccount);
         String userPassword = userRegisterRequest.getUserPassword();
-        System.out.println(userPassword);
         String checkPassword = userRegisterRequest.getCheckPassword();
-        System.out.println(checkPassword);
         String firstName = userRegisterRequest.getFirstName();
-        System.out.println(firstName);
         String lastName = userRegisterRequest.getLastName();
-        System.out.println(lastName);
         String phone = userRegisterRequest.getPhone();
-        System.out.println(phone);
         long result = userService.userRegister(userAccount, userPassword, checkPassword, firstName, lastName, phone);
         return ResultUtils.success(result);
     }
@@ -71,8 +65,8 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
             HttpServletRequest request) {
-        log.info("Login request: {}", userLoginRequest);
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
+        log.info("Login request for account: {}", userLoginRequest.getUserAccount());
         String userAccount = userLoginRequest.getUserAccount(); // email
         String userPassword = userLoginRequest.getUserPassword();
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);

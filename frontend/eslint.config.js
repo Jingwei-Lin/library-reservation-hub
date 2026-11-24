@@ -20,4 +20,22 @@ export default tseslint.config([
       globals: globals.browser,
     },
   },
+  {
+    // most of the app is plain JSX; lint it too
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    rules: {
+      // components are used in JSX, which the core rule can't see (same setting as Vite's JS template)
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', caughtErrors: 'none' }],
+    },
+  },
 ])

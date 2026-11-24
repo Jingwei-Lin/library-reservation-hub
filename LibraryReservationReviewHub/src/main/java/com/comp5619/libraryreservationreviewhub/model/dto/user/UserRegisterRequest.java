@@ -1,11 +1,12 @@
 package com.comp5619.libraryreservationreviewhub.model.dto.user;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.io.Serializable;
 
 /**
- * 用户注册请求
+ * Registration request
  */
 @Data
 public class UserRegisterRequest implements Serializable {
@@ -16,13 +17,15 @@ public class UserRegisterRequest implements Serializable {
     private String userAccount;
 
     /**
-     * 密码
+     * Password (kept out of toString so it is never logged)
      */
+    @ToString.Exclude
     private String userPassword;
 
     /**
-     * 校验密码
+     * Password confirmation
      */
+    @ToString.Exclude
     private String checkPassword;
 
     /**

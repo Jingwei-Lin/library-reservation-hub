@@ -6,7 +6,7 @@ A full-stack library web app where members can browse books, reserve copies, joi
 is taken, and share reviews. Built by a team of five for ELEC5619 (Object-Oriented Application Frameworks) at
 the University of Sydney, Aug – Nov 2025.
 
-**Stack:** Java 17 · Spring Boot 3.5 · MyBatis-Plus · MySQL · Quartz · JWT · React 19 · Vite ·
+**Stack:** Java 17 · Spring Boot 3.5 · MyBatis-Plus · MySQL · Spring AI · React 19 · Vite ·
 JUnit 5 · Mockito · JaCoCo · Docker · GitHub Actions
 
 | Browse the catalogue | Book details |
@@ -24,7 +24,7 @@ JUnit 5 · Mockito · JaCoCo · Docker · GitHub Actions
   being held for a waiting user cannot be reserved by someone else.
 - **Books and search:** keyword, genre and availability filters, with pagination and sorting.
 - **Reviews and ratings:** users write and edit reviews; average ratings are kept up to date by MySQL triggers.
-- **Accounts:** registration, login and role-based admin access with JWT.
+- **Accounts:** registration and session-based login, with an admin role for the admin panel.
 - **AI assistant:** a chat panel that streams book recommendations over Server-Sent Events (Spring AI).
 
 ## My contribution
@@ -34,7 +34,7 @@ I owned the reservation and waiting-list workflow, end to end:
 - **Back end:** `ReservationServiceImpl` and `WaitingListServiceImpl`, and their controllers and mappers.
   - Reserving a copy checks availability and fulfils the user's waiting-list entry.
   - Cancelling a reservation either holds the copy for the next waiting user or releases it to the public.
-  - The stock and waiting-list changes for each request run in one transaction.
+  - Creating, cancelling and returning a reservation each run in one transaction.
 - **Front end:** the main book dashboard (search, genre browsing and top-rated books), the book detail page, and
   the reservation and waiting-list screens.
 - **Testing:**
@@ -49,7 +49,7 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
 - **Fixed a race condition in reservations.**
   - Problem: the service read a book's stock, checked it in Java and wrote the new count back. Concurrent
     requests could deadlock or overwrite each other's counts.
-  - Fix: stock now changes through single conditional `UPDATE`s, for example
+  - Fix: reserving, cancelling and returning now change stock through single conditional `UPDATE`s, for example
     `SET quantity = quantity - 1 WHERE quantity - held_quantity > 0`. The copy is taken before the
     reservation row is inserted, so the book row is always locked first.
   - Test: `ReservationConcurrencyIntegrationTest` runs against MySQL and failed before the fix.
@@ -63,7 +63,7 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
 ```
 React (Vite, :5173)  ──REST / SSE──▶  Spring Boot API (:8432/api)  ──MyBatis-Plus──▶  MySQL
                                         ├─ controllers → services → mappers
-                                        ├─ Quartz / @Scheduled jobs (stale waiting-list cleanup)
+                                        ├─ @Scheduled job (nightly stale waiting-list cleanup)
                                         └─ Spring AI (DashScope) for the chat assistant
 ```
 
@@ -118,19 +118,23 @@ Compose starts three containers:
 
 ## Tests and coverage
 
-There are 180 JUnit tests:
+`./gradlew test` runs 180 JUnit tests:
 - Mockito unit tests for the services and controllers;
 - Spring Boot integration tests that run against MySQL, including the concurrency tests.
 
-CI runs all of them on every push, in a MySQL container, and uploads the JaCoCo coverage report. Line coverage is
-81% overall and 96% for the service layer.
+CI runs the same command on every push, in a MySQL container, and uploads the JaCoCo report.
+- **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
+  real key.
+- **Not run by default:** the 12 AI-tool tests in `src/test/.../tools/`, which `build.gradle` excludes.
+- **Coverage:** line coverage is 81% overall and 96% for the service layer. The report excludes configuration,
+  DTO/VO, exception and `common/` classes.
 
 ```bash
 cd LibraryReservationReviewHub
 ./gradlew test jacocoTestReport   # HTML report: build/reports/jacoco/test/html/index.html
 ```
 
-The integration tests need the database from step 1. `PersonalAgentTest` calls the real AI model, so it is
-skipped unless `DASHSCOPE_API_KEY` holds a real key.
+The integration tests need the database from step 1.
 
-The full design notes are in [docs/DESIGN.md](docs/DESIGN.md).
+The original design notes from the start of the course are in [docs/DESIGN.md](docs/DESIGN.md). They describe
+the initial idea (an online bookstore) rather than the app as built.

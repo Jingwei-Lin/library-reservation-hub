@@ -56,3 +56,6 @@ Thumbs.db
 **/build/
 !**/gradle/wrapper/gradle-wrapper.jar
 LibraryReservationReviewHub/src/main/resources/application-dev.yml
+
+# Local specs, reviews and working notes (not published)
+/specs/

@@ -200,8 +200,12 @@ class UserControllerTest {
     @Test
     void testUpdateUser_AsAdmin_Success() throws Exception {
 
-        // 模拟 Service 更新成功
-        when(userService.updateById(any(User.class))).thenReturn(true);
+        // the update goes through the admin-guarded service method
+        User admin = new User();
+        admin.setId(3L);
+        admin.setIsAdmin(true);
+        when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(admin);
+        when(userService.adminUpdateUser(any(UserUpdateRequest.class), eq(admin))).thenReturn(true);
 
         UserUpdateRequest request = new UserUpdateRequest();
         request.setId(1L);
@@ -226,6 +230,10 @@ class UserControllerTest {
         user.setLastName("User");
 
         when(userService.getById(1L)).thenReturn(user);
+        // the endpoint returns the view, not the entity
+        UserVO view = new UserVO();
+        view.setId(1L);
+        when(userService.getUserVO(user)).thenReturn(view);
 
         mockMvc.perform(get("/user/get")
                         .param("id", "1"))

@@ -47,6 +47,11 @@ public class UserVO implements Serializable {
     private String phone;
 
     /**
+     * status: 1 active, 0 banned (the admin page shows and toggles it)
+     */
+    private Integer status;
+
+    /**
      * create_time
      */
     private Date createTime;

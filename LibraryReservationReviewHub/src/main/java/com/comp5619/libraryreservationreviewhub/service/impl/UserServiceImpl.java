@@ -329,4 +329,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return true;
     }
 
+    @Override
+    public boolean adminUpdateUser(UserUpdateRequest req, User operator) {
+        ThrowUtils.throwIf(req == null || req.getId() == null, ErrorCode.PARAMS_ERROR);
+        User target = this.getById(req.getId());
+        ThrowUtils.throwIf(target == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(req.getStatus() != null && req.getStatus() != 0 && req.getStatus() != 1,
+                ErrorCode.PARAMS_ERROR, "Status must be 0 (banned) or 1 (active)");
+
+        // An admin can't change their own role or status. The caller is an admin, so this also means the
+        // last admin can never be demoted or banned. Sending the current value unchanged is fine.
+        if (target.getId().equals(operator.getId())) {
+            ThrowUtils.throwIf(req.getIsAdmin() != null && !req.getIsAdmin().equals(target.getIsAdmin()),
+                    ErrorCode.OPERATION_ERROR, "You can't change your own admin role");
+            ThrowUtils.throwIf(req.getStatus() != null && !req.getStatus().equals(target.getStatus()),
+                    ErrorCode.OPERATION_ERROR, "You can't change your own account status");
+        }
+
+        User update = new User();
+        update.setId(target.getId());
+        update.setFirstName(req.getFirstName());
+        update.setLastName(req.getLastName());
+        update.setPhone(req.getPhone());
+        update.setIsAdmin(req.getIsAdmin());
+        update.setStatus(req.getStatus());
+        // the request calls the e-mail `email`; the entity calls it `userAccount`
+        if (StrUtil.isNotBlank(req.getEmail()) && !req.getEmail().equals(target.getUserAccount())) {
+            QueryWrapper<User> sameEmail = new QueryWrapper<>();
+            sameEmail.eq("email", req.getEmail()).ne("user_id", target.getId());
+            ThrowUtils.throwIf(this.baseMapper.selectCount(sameEmail) > 0, ErrorCode.PARAMS_ERROR,
+                    "Email already in use");
+            update.setUserAccount(req.getEmail());
+        }
+
+        boolean result = this.updateById(update);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return true;
+    }
+
 }

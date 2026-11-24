@@ -6,6 +6,8 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Reservation;
@@ -51,8 +53,13 @@ public class ReservationController {
     }
 
     @GetMapping("/{reservationId}")
-    public BaseResponse<ReservationVO> getReservation(@PathVariable Long reservationId) {
+    @AuthCheck
+    public BaseResponse<ReservationVO> getReservation(@PathVariable Long reservationId, HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
         Reservation reservation = reservationService.getReservationById(reservationId);
+        // a reservation is personal: only its owner or an admin may read it
+        ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
+                ErrorCode.NO_AUTH_ERROR);
         return ResultUtils.success(reservationService.toReservationVO(reservation));
     }
 

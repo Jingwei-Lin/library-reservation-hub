@@ -107,4 +107,13 @@ public interface UserService extends IService<User> {
     String getUserNameById(Long userId);
 
     boolean updateUserProfile(UserUpdateRequest req, User user);
+
+    /**
+     * Admin edit of another user's name, e-mail, phone, role or status. An admin can't change their own role or
+     * status, so at least one admin always remains.
+     *
+     * @param req      the fields to change (null fields are left as they are)
+     * @param operator the logged-in admin
+     */
+    boolean adminUpdateUser(UserUpdateRequest req, User operator);
 }

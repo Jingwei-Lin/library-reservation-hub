@@ -114,6 +114,8 @@ class ReservationControllerTest {
 
     @Test
     void getReservation_Success() throws Exception {
+        // the owner (testUser, id 1) reads their own reservation
+        when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(testUser);
         when(reservationService.getReservationById(1L)).thenReturn(testReservation);
         when(reservationService.toReservationVO(testReservation)).thenReturn(testReservationVO);
 

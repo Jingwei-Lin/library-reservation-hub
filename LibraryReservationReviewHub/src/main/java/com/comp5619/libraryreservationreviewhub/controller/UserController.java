@@ -18,7 +18,6 @@ import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -131,11 +130,12 @@ public class UserController {
      */
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<User> getUserById(long id) {
+    public BaseResponse<UserVO> getUserById(long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(user);
+        // the view, not the entity: no password hash or internal columns
+        return ResultUtils.success(userService.getUserVO(user));
     }
 
     // /**
@@ -167,16 +167,13 @@ public class UserController {
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest,
+                                            HttpServletRequest request) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest, user);
-        user.setCreateTime(user.getCreateTime()); // Preserve if updating
-        boolean result = userService.updateById(user);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(true);
+        User operator = userService.getLoginUser(request);
+        return ResultUtils.success(userService.adminUpdateUser(userUpdateRequest, operator));
     }
 
     //

@@ -1,8 +1,11 @@
 package com.comp5619.libraryreservationreviewhub.controller;
 
 import com.comp5619.libraryreservationreviewhub.app.PersonalAgent;
+import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
 import com.comp5619.libraryreservationreviewhub.common.UserContextHolder;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -76,6 +79,10 @@ public class PersonalAgentController {
             String chatId,
             HttpServletRequest request
     ) {
+        // the UI sends a uuidv4(); anything else (e.g. "../../x") would name a file outside the chat-memory folder
+        ThrowUtils.throwIf(!FileBasedChatMemory.isValidConversationId(chatId), ErrorCode.PARAMS_ERROR,
+                "chatId must be a UUID");
+
         // 1. 从 Session 中获取当前用户
         User currentUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         if (currentUser != null) {
@@ -97,7 +104,10 @@ public class PersonalAgentController {
         }
 
         // 3. 把 userContext 一起传给 AI（比如拼接 message 或放到参数中）
-        return personalAgent.doChatByStream(message, chatId, userContext)
+        // The user id also goes to the tools through ToolContext, set by the server, so get_user_info can only
+        // read the signed-in user (null for a guest), whatever the model or the message asks for.
+        Long userId = currentUser == null ? null : currentUser.getId();
+        return personalAgent.doChatByStream(message, chatId, userContext, userId)
                 .map(chunk -> ServerSentEvent.<String>builder().data(chunk).build());
     }
 

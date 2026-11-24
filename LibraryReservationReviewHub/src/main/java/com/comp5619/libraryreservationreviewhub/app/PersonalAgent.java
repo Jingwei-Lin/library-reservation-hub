@@ -3,6 +3,7 @@ package com.comp5619.libraryreservationreviewhub.app;
 
 import com.comp5619.libraryreservationreviewhub.advisor.MyLoggerAdvisor;
 import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
+import com.comp5619.libraryreservationreviewhub.tools.UserInfoTool;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -133,8 +134,11 @@ public class PersonalAgent {
          */
     /**
      * SSE 流式对话 + 用户上下文
+     *
+     * @param userId the signed-in user's id, taken from the session by the caller, or null for a guest. It reaches
+     *               the tools through {@link UserInfoTool#toolContextFor(Long)}, never through the model.
      */
-    public Flux<String> doChatByStream(String message, String chatId, String userContext) {
+    public Flux<String> doChatByStream(String message, String chatId, String userContext, Long userId) {
         String finalPrompt = buildPromptWithUserContext(message, userContext);
 
         return chatClient
@@ -142,6 +146,7 @@ public class PersonalAgent {
                 .user(finalPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .toolCallbacks(allTools)
+                .toolContext(UserInfoTool.toolContextFor(userId))
                 .stream()
                 .content();
     }

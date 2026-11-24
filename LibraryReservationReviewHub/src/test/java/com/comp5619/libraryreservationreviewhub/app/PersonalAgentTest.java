@@ -33,7 +33,7 @@ class PersonalAgentTest {
 
 
         // 调用流式聊天方法
-        Flux<String> flux = personalAgent.doChatByStream(message1, chatId, userContext);
+        Flux<String> flux = personalAgent.doChatByStream(message1, chatId, userContext, 1L);
 
         // 同步等待所有响应完成，并把流收集成 List
         List<String> chunks = flux
@@ -50,7 +50,7 @@ class PersonalAgentTest {
         assertThat(fullResponse).containsIgnoringCase("The Hobbit");
 
         // 调用流式聊天方法
-        Flux<String> flux2 = personalAgent.doChatByStream(message2, chatId, userContext);
+        Flux<String> flux2 = personalAgent.doChatByStream(message2, chatId, userContext, 1L);
 
         // 同步等待所有响应完成，并把流收集成 List
         List<String> chunks2 = flux2

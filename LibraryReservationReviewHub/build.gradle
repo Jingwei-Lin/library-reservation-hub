@@ -95,11 +95,10 @@ dependencies {
     // 添加 Alibaba AI Starter
     implementation "com.alibaba.cloud.ai:spring-ai-alibaba-starter-dashscope"
     // ====== Spring AI 依赖（升级正式版，由 BOM 管理） ======
-    implementation "org.springframework.ai:spring-ai-starter-model-ollama"
+    // (the unused Ollama model and MCP client/server starters were removed: the MCP server exposed
+    // an endpoint nothing used, and Ollama added a second ChatModel)
     implementation "org.springframework.ai:spring-ai-markdown-document-reader"
     implementation "org.springframework.ai:spring-ai-pgvector-store"
-    implementation "org.springframework.ai:spring-ai-starter-mcp-client"
-    implementation "org.springframework.ai:spring-ai-starter-mcp-server-webmvc"
     // JSON schema生成依赖
     implementation 'com.github.victools:jsonschema-generator:4.38.0'
     // 支持文件会话记忆持久化的序列化

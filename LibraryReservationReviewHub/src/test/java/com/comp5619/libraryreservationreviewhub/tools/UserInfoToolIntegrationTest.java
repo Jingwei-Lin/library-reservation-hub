@@ -3,6 +3,7 @@ package com.comp5619.libraryreservationreviewhub.tools;
 import cn.hutool.json.JSONUtil;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import org.junit.jupiter.api.*;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,7 @@ class UserInfoToolIntegrationTest {
      */
     @Test
     void testGetUserInfo_NullUserId_ReturnsNotLoggedIn() {
-        String result = userInfoTool.getUserInfo(null);
+        String result = userInfoTool.getUserInfo(context(null));
         System.out.println("Result for null userId: " + result);
         assertThat(result).contains("not_logged_in");
     }
@@ -41,7 +42,7 @@ class UserInfoToolIntegrationTest {
      */
     @Test
     void testGetUserInfo_UserNotExist_ReturnsNotLoggedIn() {
-        String result = userInfoTool.getUserInfo(99999L);
+        String result = userInfoTool.getUserInfo(context(99999L));
         System.out.println("Result for non-existent user: " + result);
         assertThat(result).contains("not_logged_in");
     }
@@ -55,7 +56,7 @@ class UserInfoToolIntegrationTest {
                 "no_resv_user@example.com", "password123", "password123", "Tom", "Lee", "0412345678"
         );
 
-        String result = userInfoTool.getUserInfo(id);
+        String result = userInfoTool.getUserInfo(context(id));
         System.out.println("Result for valid user with no reservations: " + result);
 
         Map<String, Object> json = JSONUtil.toBean(result, Map.class);
@@ -70,8 +71,12 @@ class UserInfoToolIntegrationTest {
     void testGetUserInfo_ExceptionPath_ReturnsError() {
         UserInfoTool brokenTool = new UserInfoTool();
         // 没注入任何 service，会抛出 NullPointerException
-        String result = brokenTool.getUserInfo(1L);
+        String result = brokenTool.getUserInfo(context(1L));
         System.out.println("Result for exception path: " + result);
         assertThat(result).contains("status").contains("error");
+    }
+
+    private static ToolContext context(Long userId) {
+        return new ToolContext(UserInfoTool.toolContextFor(userId));
     }
 }

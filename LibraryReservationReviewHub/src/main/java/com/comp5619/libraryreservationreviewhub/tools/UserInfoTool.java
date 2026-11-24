@@ -10,6 +10,7 @@ import com.comp5619.libraryreservationreviewhub.service.ReservationService;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import cn.hutool.json.JSONUtil;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -35,16 +36,38 @@ public class UserInfoTool {
     @Autowired
     private BookService bookService;
 
+    /** ToolContext key for the signed-in user's id. */
+    public static final String CONTEXT_USER_ID = "userId";
+    /** ToolContext key set for guests: a tool that takes a ToolContext is refused an empty one by Spring AI. */
+    private static final String CONTEXT_GUEST = "guest";
+
+    /**
+     * The ToolContext the chat passes to the tools: the signed-in user's id from the session, or a guest marker.
+     */
+    public static Map<String, Object> toolContextFor(Long userId) {
+        return userId == null ? Map.of(CONTEXT_GUEST, true) : Map.of(CONTEXT_USER_ID, userId);
+    }
+
     /**
      * 查询当前登录用户的详细信息
-     * 如果未登录或 userId 无效，返回 {"status":"not_logged_in"}
+     * 如果未登录，返回 {"status":"not_logged_in"}
+     * <p>
+     * The user id comes from the ToolContext the server sets for the request, not from a tool argument, so the
+     * model can't be asked to read another user's data. A ToolContext parameter is left out of the tool's JSON
+     * schema, so the model sees a tool without parameters.
      */
     @Tool(
             name = "get_user_info",
             description = "Retrieve the currently logged-in user's profile, borrowing history, and reviews. " +
-                    "If the user is not logged in or userId is invalid, return {\"status\":\"not_logged_in\"}."
+                    "Takes no arguments: it always returns the user who is signed in to this chat. " +
+                    "If the user is not logged in, return {\"status\":\"not_logged_in\"}."
     )
-    public String getUserInfo(Long userId) {
+    public String getUserInfo(ToolContext toolContext) {
+        Object id = toolContext == null ? null : toolContext.getContext().get(CONTEXT_USER_ID);
+        return getUserInfo(id instanceof Long userId ? userId : null);
+    }
+
+    private String getUserInfo(Long userId) {
         try {
             // 未登录或未传 userId
             if (userId == null) {

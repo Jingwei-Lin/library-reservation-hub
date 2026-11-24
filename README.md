@@ -57,6 +57,14 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
     - Three concurrent cancellations all put their copies back.
 - **Added CI and Docker:** GitHub Actions, Docker Compose, and fixes for running on Linux (case-sensitive
   table names, UTF-8 seed data, configurable CORS origins).
+- **Closed the security holes found in a code review**, each with a test that failed before the fix:
+  - `@AuthCheck` is enforced by an interceptor (it was declared but never read, so admin routes were open);
+    a reservation is readable only by its owner or an admin;
+  - user-list sort fields go through a whitelist instead of into `ORDER BY` as raw SQL;
+  - the AI assistant's user tool reads only the signed-in user, set by the server rather than by the model,
+    and chat ids must be UUIDs (they named the memory file, so `../` reached other files);
+  - passwords are BCrypt (old MD5 hashes are upgraded at the next login), the session id changes at login,
+    and changing your e-mail or password needs your current password.
 
 ## Architecture
 

@@ -126,10 +126,16 @@ public class WaitingListServiceImpl
         QueryWrapper<WaitingList> wrapper = buildWrapper(dto);
 
         if (dto.getOrderBy() != null && !dto.getOrderBy().isBlank()) {
-            String ob = dto.getOrderBy().trim().toLowerCase(Locale.ROOT);
-            String field = ob.split("\\s+")[0];
-            if (SORT_WHITELIST.contains(field)) {
-                wrapper.last("ORDER BY " + ob);
+            // Parsed into (column, direction) pairs: only whitelisted columns and ASC/DESC reach the SQL.
+            // The old check looked at the first word only and appended the whole string.
+            for (String part : dto.getOrderBy().split(",")) {
+                String[] tokens = part.trim().toLowerCase(Locale.ROOT).split("\\s+");
+                ThrowUtils.throwIf(tokens.length == 0 || tokens.length > 2 || !SORT_WHITELIST.contains(tokens[0]),
+                        ErrorCode.PARAMS_ERROR, "Unsupported orderBy");
+                String direction = tokens.length == 2 ? tokens[1] : "asc";
+                ThrowUtils.throwIf(!direction.equals("asc") && !direction.equals("desc"),
+                        ErrorCode.PARAMS_ERROR, "Unsupported orderBy");
+                wrapper.orderBy(true, direction.equals("asc"), tokens[0]);
             }
         } else {
             wrapper.orderByDesc("wait_id");

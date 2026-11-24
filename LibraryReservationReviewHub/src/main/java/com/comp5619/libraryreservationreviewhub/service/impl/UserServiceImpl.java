@@ -263,19 +263,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq(ObjUtil.isNotNull(id), "id", id);
-        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "isAdmin", isAdmin);
+        // database column names (the entity's property names are not columns)
+        queryWrapper.eq(ObjUtil.isNotNull(id), "user_id", id);
+        queryWrapper.eq(ObjUtil.isNotNull(isAdmin), "is_admin", isAdmin);
         queryWrapper.like(StrUtil.isNotBlank(userAccount), "email", userAccount);
         queryWrapper.like(StrUtil.isNotBlank(phone), "phone", phone);
         // Search across firstName or lastName if either is provided
         if (StrUtil.isNotBlank(firstName) || StrUtil.isNotBlank(lastName)) {
             queryWrapper.and(wrapper ->
-                    wrapper.like(StrUtil.isNotBlank(firstName), "firstName", firstName)
-                            .or().like(StrUtil.isNotBlank(lastName), "lastName", lastName));
+                    wrapper.like(StrUtil.isNotBlank(firstName), "first_name", firstName)
+                            .or().like(StrUtil.isNotBlank(lastName), "last_name", lastName));
         }
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        // sortField goes into ORDER BY as raw SQL, so it may only name a known column
+        if (StrUtil.isNotEmpty(sortField)) {
+            String column = USER_SORT_COLUMNS.get(sortField);
+            ThrowUtils.throwIf(column == null, ErrorCode.PARAMS_ERROR, "Unsupported sort field");
+            boolean ascending = "ascend".equalsIgnoreCase(sortOrder) || "asc".equalsIgnoreCase(sortOrder);
+            queryWrapper.orderBy(true, ascending, column);
+        }
         return queryWrapper;
     }
+
+    /** Sortable fields of the admin user list: request name → column. */
+    private static final java.util.Map<String, String> USER_SORT_COLUMNS = java.util.Map.of(
+            "id", "user_id",
+            "userAccount", "email",
+            "firstName", "first_name",
+            "lastName", "last_name",
+            "phone", "phone",
+            "isAdmin", "is_admin",
+            "status", "status",
+            "createTime", "create_time");
 
     @Override
     public boolean isAdmin(User user) {

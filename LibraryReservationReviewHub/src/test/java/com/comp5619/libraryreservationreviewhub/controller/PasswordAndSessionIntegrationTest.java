@@ -118,6 +118,30 @@ class PasswordAndSessionIntegrationTest {
     }
 
     @Test
+    void changingThePasswordSignsOutOtherSessionsButKeepsThisOne() throws Exception {
+        MockHttpSession thisDevice = loggedIn();
+        MockHttpSession otherDevice = loggedIn();
+        String idBefore = thisDevice.getId();
+
+        updateProfile(thisDevice, ACCOUNT, "newPassword123", PASSWORD).andExpect(jsonPath("$.code").value(0));
+
+        mockMvc.perform(get("/user/get/login").session(otherDevice)).andExpect(jsonPath("$.code").value(40100));
+        mockMvc.perform(get("/user/get/login").session(thisDevice)).andExpect(jsonPath("$.code").value(0));
+        assertThat(thisDevice.getId()).isNotEqualTo(idBefore);
+        // and this session can change it again with the new password
+        updateProfile(thisDevice, ACCOUNT, "thirdPassword123", "newPassword123").andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
+    void editsThatKeepThePasswordSignNobodyOut() throws Exception {
+        MockHttpSession thisDevice = loggedIn();
+        MockHttpSession otherDevice = loggedIn();
+        updateProfile(thisDevice, "renamed@example.com", null, PASSWORD).andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(get("/user/get/login").session(otherDevice)).andExpect(jsonPath("$.code").value(0));
+        mockMvc.perform(get("/user/get/login").session(thisDevice)).andExpect(jsonPath("$.code").value(0));
+    }
+
+    @Test
     void changingOnlyTheLetterCaseOfTheEmailWorks() throws Exception {
         // e-mails compare case-insensitively in MySQL, so the uniqueness check used to find the user's own row
         updateProfile(loggedIn(), "Legacy.MD5@example.com", null, PASSWORD).andExpect(jsonPath("$.code").value(0));

@@ -1,6 +1,7 @@
 package com.comp5619.libraryreservationreviewhub.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.comp5619.libraryreservationreviewhub.annotation.AuthCheck;
@@ -100,7 +101,15 @@ public class UserController {
     @PutMapping("/updateProfile")
     public BaseResponse<Boolean> updateUserProfile(@RequestBody UserUpdateRequest req, HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-        return ResultUtils.success(userService.updateUserProfile(req, user));
+        boolean result = userService.updateUserProfile(req, user);
+        if (StrUtil.isNotBlank(req.getPassword())) {
+            // the new password signs out the account's other sessions (getLoginUser compares the hash);
+            // this one stays signed in, with a new id and the new hash
+            request.getSession();
+            request.changeSessionId();
+            request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, userService.getById(user.getId()));
+        }
+        return ResultUtils.success(result);
     }
 
     // /**

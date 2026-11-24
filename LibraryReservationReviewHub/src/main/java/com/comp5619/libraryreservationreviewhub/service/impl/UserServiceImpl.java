@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -144,11 +146,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // an account still on the old MD5 hash gets a BCrypt hash now that the password is known
         if (PasswordUtil.needsUpgrade(userPassword, user.getUserPassword())) {
-            User upgrade = new User();
-            upgrade.setId(user.getId());
-            upgrade.setUserPassword(PasswordUtil.encode(userPassword));
-            this.updateById(upgrade);
-            user.setUserPassword(upgrade.getUserPassword());
+            String bcrypt = PasswordUtil.encode(userPassword);
+            // only if the stored hash is still the old one: two first logins at once must not each write their
+            // own hash, or the session holding the overwritten one would be signed out (getLoginUser compares)
+            boolean upgraded = this.update(new UpdateWrapper<User>().set("password", bcrypt)
+                    .eq("user_id", user.getId()).eq("password", user.getUserPassword()));
+            if (upgraded) {
+                user.setUserPassword(bcrypt);
+            } else {
+                user = this.getById(user.getId());
+                ThrowUtils.throwIf(user == null || !PasswordUtil.matches(userPassword, user.getUserPassword()),
+                        ErrorCode.PARAMS_ERROR, "Incorrect password");
+            }
         }
         // 4. 获取脱敏后的用户信息
         LoginUserVO loginUserVO = getLoginUserVO(user);
@@ -177,9 +186,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 从数据库中查询
         Long userId = currentUser.getId();
+        String passwordAtLogin = currentUser.getUserPassword();
         currentUser = this.getById(userId);
         // user is not exist
         if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // the password has changed since this session logged in: the session is signed out, so a session someone
+        // else holds stops working when the owner changes their password
+        if (!Objects.equals(passwordAtLogin, currentUser.getUserPassword())) {
+            request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         // user is banned

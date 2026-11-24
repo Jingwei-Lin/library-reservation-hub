@@ -672,18 +672,18 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                                                     <div className="book-cover">
                                                         {book.path ? (
                                                             <img
-                                                                src={`http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`}
+                                                                src={`/api/images/books/${encodeURIComponent(book.path)}`}
                                                                 alt={book.title}
                                                                 onError={(e) => {
                                                                     console.error('Image failed to load:', {
                                                                         bookTitle: book.title,
                                                                         databasePath: book.path,
-                                                                        imageSrc: `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`,
+                                                                        imageSrc: `/api/images/books/${encodeURIComponent(book.path)}`,
                                                                         timestamp: new Date().toISOString(),
                                                                     });
                                                                     e.target.src = '/placeholder-book-cover.jpg';
                                                                 }}
-                                                                onLoad={() => console.log('Image loaded successfully:', `http://localhost:8432/api/images/books/${encodeURIComponent(book.path)}`)}
+                                                                onLoad={() => console.log('Image loaded successfully:', `/api/images/books/${encodeURIComponent(book.path)}`)}
                                                             />
                                                         ) : (
                                                             <div className="book-cover-placeholder">📖</div>

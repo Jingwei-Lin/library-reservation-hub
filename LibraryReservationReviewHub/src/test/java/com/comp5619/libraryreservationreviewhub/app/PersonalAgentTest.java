@@ -2,6 +2,7 @@ package com.comp5619.libraryreservationreviewhub.app;
 
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
 import reactor.core.publisher.Flux;
 
@@ -16,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 不使用 StepVerifier，直接收集 Flux 输出。
  */
 @SpringBootTest
+// Calls the real model, so it only runs when a real DashScope key is provided
+@EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = "sk-.+")
 class PersonalAgentTest {
 
     @Resource

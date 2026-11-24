@@ -1,5 +1,7 @@
 # Library Reservation & Review Hub
 
+[![CI](https://github.com/Jingwei-Lin/library-reservation-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/Jingwei-Lin/library-reservation-hub/actions/workflows/ci.yml)
+
 A full-stack library web app where members can browse books, reserve copies, join a waiting list when every copy
 is taken, and share reviews. Built by a team of five for ELEC5619 (Object-Oriented Application Frameworks) at
 the University of Sydney, Aug – Nov 2025.
@@ -48,9 +50,21 @@ React (Vite, :5173)  ──REST / SSE──▶  Spring Boot API (:8432/api)  ─
 API documentation is served by Knife4j / springdoc at `http://localhost:8432/api/swagger-ui.html` when the
 back end is running.
 
-## Running locally
+## Quick start with Docker
 
-**Requirements:** JDK 17, MySQL 8, Node.js 18+
+```bash
+cp .env.example .env      # optional: add a DashScope key to try the AI assistant
+docker compose up --build
+```
+
+Open http://localhost:8080. Compose starts three containers:
+- MySQL, with the schema and 101 sample books loaded;
+- the Spring Boot API;
+- the React app, served by nginx, which proxies `/api` to the API.
+
+## Running locally without Docker
+
+**Requirements:** JDK 17, MySQL 8, Node.js 20.19+
 
 1. **Create the database.** Run `LibraryReservationReviewHub/Schema.sql` in MySQL.
 2. **Set environment variables.** The back end reads them through `application.yml`:
@@ -79,10 +93,16 @@ back end is running.
 
 ## Tests and coverage
 
+There are 174 JUnit tests: Mockito unit tests for the services and controllers, and Spring Boot integration tests
+that run against MySQL. CI runs all of them on every push, with a MySQL service container, and uploads the
+JaCoCo coverage report.
+
 ```bash
 cd LibraryReservationReviewHub
 ./gradlew test jacocoTestReport   # HTML report: build/reports/jacoco/test/html/index.html
 ```
 
-The full design notes are in
-[Project Development Documentation](Online%20Bookstore%20%26%20Review%20Hub%20%E2%80%93%20Project%20Development%20Documentation.md).
+The integration tests need the database from step 1. `PersonalAgentTest` calls the real AI model, so it is
+skipped unless `DASHSCOPE_API_KEY` holds a real key.
+
+The full design notes are in [docs/DESIGN.md](docs/DESIGN.md).

@@ -55,13 +55,13 @@ const useChat = () => {
         }
 
         // 使用 EventSourcePolyfill 代替 EventSource
-        const url = `http://localhost:8432/api/ai/personal_agent/chat/server_sent_event?message=${encodeURIComponent(content)}&chatId=${chatId}`;
+        const url = `/api/ai/personal_agent/chat/server_sent_event?message=${encodeURIComponent(content)}&chatId=${chatId}`;
         const eventSource = new EventSourcePolyfill(url, {
             withCredentials: true  // ✅ 关键：让浏览器带上 cookie
         });
         eventSourceRef.current = eventSource as unknown as EventSource;
 
-        eventSource.onmessage = (event) => {
+        eventSource.onmessage = (event: MessageEvent) => {
             const chunk = event.data;
             setMessages(prev =>
                 prev.map(msg =>

@@ -18,13 +18,14 @@ import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.UserVO;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
+import com.comp5619.libraryreservationreviewhub.utils.PasswordUtil;
 import com.comp5619.libraryreservationreviewhub.utils.SqlInjectionUtil;
 import com.comp5619.libraryreservationreviewhub.utils.ValidCheckUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,7 +93,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Account already exists");
         }
         // 3. 密码一定要加密
-        String encryptPassword = getEncryptPassword(userPassword);
+        String encryptPassword = PasswordUtil.encode(userPassword);
         // 4. 插入数据到数据库中
         User user = new User();
         user.setUserAccount(userAccount);
@@ -134,12 +135,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "User does not exist");
         }
         // 3. 密码校验
-        if (!user.getUserPassword().equals(getEncryptPassword(userPassword))) {
+        if (!PasswordUtil.matches(userPassword, user.getUserPassword())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Incorrect password");
         }
         // user is banned
         if (user.getStatus().equals(0)) {
             throw new BusinessException(ErrorCode.USER_BANNED);
+        }
+        // an account still on the old MD5 hash gets a BCrypt hash now that the password is known
+        if (PasswordUtil.needsUpgrade(userPassword, user.getUserPassword())) {
+            User upgrade = new User();
+            upgrade.setId(user.getId());
+            upgrade.setUserPassword(PasswordUtil.encode(userPassword));
+            this.updateById(upgrade);
+            user.setUserPassword(upgrade.getUserPassword());
         }
         // 4. 获取脱敏后的用户信息
         LoginUserVO loginUserVO = getLoginUserVO(user);
@@ -151,14 +160,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
 
         // 5. 记录用户的登录态
+        // a new session id at login, so an id set or seen before login (session fixation) is not signed in
+        request.getSession();
+        request.changeSessionId();
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
         return loginUserVO;
-    }
-
-    @Override
-    public String getEncryptPassword(String userPassword) {
-        final String SALT = "password";
-        return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
     }
 
     @Override
@@ -240,12 +246,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean userLogout(HttpServletRequest request) {
         // 判断是否已经登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
-        if (userObj == null) {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute(UserConstant.USER_LOGIN_STATE) == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "Not logged in");
         }
-        // 移除登录态
-        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        // 移除登录态: invalidate the whole session, so its id can't be used again
+        session.invalidate();
         return true;
     }
 
@@ -321,8 +327,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             ThrowUtils.throwIf(!req.getPassword().equals(req.getConfirmPassword()), ErrorCode.PARAMS_ERROR, "Passwords do not match");
         }
 
+        // Changing the e-mail (the login) or the password needs the current password, so a session left open
+        // elsewhere can't take the account over
+        boolean emailChanged = !req.getEmail().equals(user.getUserAccount());
+        if (emailChanged || StrUtil.isNotBlank(req.getPassword())) {
+            ThrowUtils.throwIf(!PasswordUtil.matches(req.getCurrentPassword(), user.getUserPassword()),
+                    ErrorCode.PARAMS_ERROR, "Current password is incorrect");
+        }
+
         // 2. Check if email is already in use by another user
-        if (!req.getEmail().equals(user.getUserAccount())) {
+        if (emailChanged) {
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("email", req.getEmail());
             long count = this.baseMapper.selectCount(queryWrapper);
@@ -337,7 +351,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         updatedUser.setUserAccount(req.getEmail());
         updatedUser.setPhone(req.getPhone());
         if (StrUtil.isNotBlank(req.getPassword())) {
-            updatedUser.setUserPassword(getEncryptPassword(req.getPassword()));
+            updatedUser.setUserPassword(PasswordUtil.encode(req.getPassword()));
         }
 
         // 4. Update in database

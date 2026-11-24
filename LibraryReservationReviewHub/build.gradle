@@ -81,6 +81,9 @@ dependencies {
     
     // 数据验证
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // BCrypt password hashing only (no Spring Security filters or auto-configuration)
+    implementation 'org.springframework.security:spring-security-crypto'
     
     // 邮件发送 (等待列表通知)
     implementation 'org.springframework.boot:spring-boot-starter-mail'

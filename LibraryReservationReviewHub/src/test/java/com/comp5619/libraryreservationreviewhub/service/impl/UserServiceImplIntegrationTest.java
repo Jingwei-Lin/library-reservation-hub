@@ -241,6 +241,7 @@ class UserServiceImplIntegrationTest {
         req.setEmail("changepw@example.com");
         req.setPassword("newPassword123");
         req.setConfirmPassword("newPassword123");
+        req.setCurrentPassword("password123"); // a password change needs the current password (D11)
 
         assertTrue(userService.updateUserProfile(req, user));
     }
@@ -344,10 +345,5 @@ class UserServiceImplIntegrationTest {
         assertEquals("Tom Lee", name);
     }
 
-    @Test
-    void testGetEncryptPassword_Consistency() {
-        String encrypted1 = userService.getEncryptPassword("password123");
-        String encrypted2 = userService.getEncryptPassword("password123");
-        assertEquals(encrypted1, encrypted2);
-    }
+    // getEncryptPassword (unsalted MD5) was replaced by PasswordUtil (BCrypt): see PasswordUtilTest
 }

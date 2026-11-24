@@ -13,8 +13,11 @@ const Profile = ({ user, setIsAuthenticated }) => {
         email: "",
         phone: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        currentPassword: ""
     });
+    // the e-mail as loaded or last saved: changing it (or the password) asks for the current password
+    const [savedEmail, setSavedEmail] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -36,8 +39,10 @@ const Profile = ({ user, setIsAuthenticated }) => {
                         email: response.data.userAccount,
                         phone: response.data.phone,
                         password: "",
-                        confirmPassword: ""
+                        confirmPassword: "",
+                        currentPassword: ""
                     });
+                    setSavedEmail(response.data.userAccount);
                 } else {
                     setError(response?.message || "Failed to load profile");
                 }
@@ -58,6 +63,9 @@ const Profile = ({ user, setIsAuthenticated }) => {
         fetchProfile();
     }, [setIsAuthenticated, navigate]);
 
+    const needsCurrentPassword =
+        profileData.email.trim() !== savedEmail || profileData.password !== "";
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setProfileData((prev) => ({ ...prev, [name]: value }));
@@ -73,7 +81,8 @@ const Profile = ({ user, setIsAuthenticated }) => {
             email: profileData.email.trim(),
             phone: profileData.phone ? profileData.phone.trim() : "",
             password: profileData.password,
-            confirmPassword: profileData.confirmPassword
+            confirmPassword: profileData.confirmPassword,
+            currentPassword: needsCurrentPassword ? profileData.currentPassword : ""
         };
 
         // Re-validate after trimming
@@ -112,8 +121,10 @@ const Profile = ({ user, setIsAuthenticated }) => {
                 setProfileData({
                     ...trimmedData,
                     password: "",
-                    confirmPassword: ""
+                    confirmPassword: "",
+                    currentPassword: ""
                 });
+                setSavedEmail(trimmedData.email);
             } else {
                 setError(response?.message || "Failed to update profile.");
             }
@@ -203,6 +214,20 @@ const Profile = ({ user, setIsAuthenticated }) => {
                             onChange={handleInputChange}
                         />
                     </div>
+                    {needsCurrentPassword && (
+                        <div className="form-group">
+                            <label htmlFor="currentPassword">Current Password (required to change e-mail or password):</label>
+                            <input
+                                type="password"
+                                id="currentPassword"
+                                name="currentPassword"
+                                value={profileData.currentPassword}
+                                onChange={handleInputChange}
+                                autoComplete="current-password"
+                                required
+                            />
+                        </div>
+                    )}
                     <button type="submit" className="update-button">Update Profile</button>
                 </form>
             )}

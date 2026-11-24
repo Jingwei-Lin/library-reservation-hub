@@ -1,6 +1,7 @@
 package com.comp5619.libraryreservationreviewhub.model.dto.user;
 
 import lombok.Data;
+import lombok.ToString;
 import java.util.Date;
 
 /**
@@ -37,12 +38,20 @@ public class UserUpdateRequest {
     /**
      * New password (optional, leave blank to keep current password)
      */
+    @ToString.Exclude
     private String password;
 
     /**
      * Confirm password (required if password is provided)
      */
+    @ToString.Exclude
     private String confirmPassword;
+
+    /**
+     * Current password (required on the profile route when the e-mail or the password changes)
+     */
+    @ToString.Exclude
+    private String currentPassword;
 
     /**
      * Admin status (optional, typically only updatable by super admins)

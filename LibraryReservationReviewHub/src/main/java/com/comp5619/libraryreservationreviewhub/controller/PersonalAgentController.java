@@ -3,10 +3,11 @@ package com.comp5619.libraryreservationreviewhub.controller;
 import com.comp5619.libraryreservationreviewhub.app.PersonalAgent;
 import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
 import com.comp5619.libraryreservationreviewhub.common.UserContextHolder;
-import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
+import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,9 @@ public class PersonalAgentController {
 
     @Resource
     private PersonalAgent personalAgent;
+
+    @Resource
+    private UserService userService;
 
 
 
@@ -84,7 +88,14 @@ public class PersonalAgentController {
                 "chatId must be a UUID");
 
         // 1. 从 Session 中获取当前用户
-        User currentUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        // Through getLoginUser, like every other route: it reloads the user from the database, so a user who has
+        // since been banned or deleted chats as a guest and the tools can't read their data. Guests keep the chat.
+        User currentUser;
+        try {
+            currentUser = userService.getLoginUser(request);
+        } catch (BusinessException e) {
+            currentUser = null;
+        }
         if (currentUser != null) {
             log.info("[SSE] 已从 Session 取到用户: id={}, name={}", currentUser.getId(), currentUser.getFirstName());
         } else {

@@ -50,6 +50,59 @@ class FileBasedChatMemoryTest {
         assertThat(dir.resolve(id + ".kryo")).exists();
     }
 
+    @Test
+    void concurrentAddsToOneConversationLoseNothing() throws Exception {
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        String id = UUID.randomUUID().toString();
+        runConcurrently(8, t -> {
+            for (int i = 0; i < 25; i++) {
+                memory.add(id, List.of(new UserMessage("t" + t + "-" + i)));
+            }
+        });
+        assertThat(memory.get(id)).hasSize(8 * 25);
+    }
+
+    @Test
+    void concurrentConversationsDoNotCorruptEachOther() throws Exception {
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        String[] ids = new String[16];
+        for (int t = 0; t < ids.length; t++) {
+            ids[t] = UUID.randomUUID().toString();
+        }
+        runConcurrently(ids.length, t -> {
+            for (int i = 0; i < 30; i++) {
+                memory.add(ids[t], List.of(new UserMessage("m" + i), new AssistantMessage("r" + i)));
+                memory.get(ids[t]);
+            }
+        });
+        for (String id : ids) {
+            assertThat(memory.get(id)).hasSize(60);
+        }
+    }
+
+    /** Starts {@code threads} workers together and rethrows the first failure. */
+    private static void runConcurrently(int threads, java.util.function.IntConsumer work) throws Exception {
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<?>> futures = new java.util.ArrayList<>();
+            for (int t = 0; t < threads; t++) {
+                int worker = t;
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    work.accept(worker);
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (var f : futures) {
+                f.get(60, java.util.concurrent.TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
     @ParameterizedTest(name = "\"{0}\" is refused")
     @ValueSource(strings = {"../outside", "../../etc/x", "..\\outside", "sub/" + LEGACY_ID, "default", ""})
     void anIdThatIsNotAUuidCannotReadWriteOrDelete(String id) throws Exception {

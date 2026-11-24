@@ -118,6 +118,14 @@ class PasswordAndSessionIntegrationTest {
     }
 
     @Test
+    void changingOnlyTheLetterCaseOfTheEmailWorks() throws Exception {
+        // e-mails compare case-insensitively in MySQL, so the uniqueness check used to find the user's own row
+        updateProfile(loggedIn(), "Legacy.MD5@example.com", null, PASSWORD).andExpect(jsonPath("$.code").value(0));
+        assertThat(jdbc.queryForObject("SELECT email FROM users WHERE email = ?", String.class, ACCOUNT))
+                .isEqualTo("Legacy.MD5@example.com");
+    }
+
+    @Test
     void changingOnlyNameOrPhoneStillNeedsNoPassword() throws Exception {
         mockMvc.perform(put("/user/updateProfile").session(loggedIn()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"firstName\":\"Renamed\",\"lastName\":\"User\",\"email\":\"" + ACCOUNT

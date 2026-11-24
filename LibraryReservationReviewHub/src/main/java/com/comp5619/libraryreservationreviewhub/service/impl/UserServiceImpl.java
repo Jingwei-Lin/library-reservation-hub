@@ -338,7 +338,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 2. Check if email is already in use by another user
         if (emailChanged) {
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("email", req.getEmail());
+            // not the user's own row: e-mails compare case-insensitively, so a case-only change would find it
+            queryWrapper.eq("email", req.getEmail()).ne("user_id", user.getId());
             long count = this.baseMapper.selectCount(queryWrapper);
             ThrowUtils.throwIf(count > 0, ErrorCode.PARAMS_ERROR, "Email already in use");
         }

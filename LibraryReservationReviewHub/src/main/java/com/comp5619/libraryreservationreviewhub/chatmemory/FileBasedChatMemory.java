@@ -30,12 +30,30 @@ public class FileBasedChatMemory implements ChatMemory {
             Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private final String BASE_DIR;
-    private static final Kryo kryo = new Kryo();
 
-    static {
+    /** Kryo is not thread-safe, so each thread gets its own instance; the settings (and so the format) are unchanged. */
+    private static final ThreadLocal<Kryo> KRYO = ThreadLocal.withInitial(() -> {
+        Kryo kryo = new Kryo();
         kryo.setRegistrationRequired(false);
         // 设置实例化策略
         kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
+        return kryo;
+    });
+
+    /**
+     * Reads and writes of one conversation are serialised, so add() (read, append, write) can't lose messages
+     * and a read never sees a half-written file. Striped: a fixed set of locks, picked by the id's hash.
+     */
+    private static final Object[] LOCKS = new Object[64];
+
+    static {
+        for (int i = 0; i < LOCKS.length; i++) {
+            LOCKS[i] = new Object();
+        }
+    }
+
+    private static Object lockFor(String conversationId) {
+        return LOCKS[Math.floorMod(conversationId.hashCode(), LOCKS.length)];
     }
 
     // 构造对象时，指定文件保存目录
@@ -56,30 +74,37 @@ public class FileBasedChatMemory implements ChatMemory {
 
     @Override
     public void add(String conversationId, List<Message> messages) {
-        List<Message> conversationMessages = getOrCreateConversation(conversationId);
-        conversationMessages.addAll(messages);
-        saveConversation(conversationId, conversationMessages);
+        File file = getConversationFile(conversationId);
+        synchronized (lockFor(conversationId)) {
+            List<Message> conversationMessages = readConversation(file);
+            conversationMessages.addAll(messages);
+            saveConversation(file, conversationMessages);
+        }
     }
 
     @Override
     public List<Message> get(String conversationId) {
-        return getOrCreateConversation(conversationId);
+        File file = getConversationFile(conversationId);
+        synchronized (lockFor(conversationId)) {
+            return readConversation(file);
+        }
     }
 
     @Override
     public void clear(String conversationId) {
         File file = getConversationFile(conversationId);
-        if (file.exists()) {
-            file.delete();
+        synchronized (lockFor(conversationId)) {
+            if (file.exists()) {
+                file.delete();
+            }
         }
     }
 
-    private List<Message> getOrCreateConversation(String conversationId) {
-        File file = getConversationFile(conversationId);
+    private List<Message> readConversation(File file) {
         List<Message> messages = new ArrayList<>();
         if (file.exists()) {
             try (Input input = new Input(new FileInputStream(file))) {
-                messages = kryo.readObject(input, ArrayList.class);
+                messages = KRYO.get().readObject(input, ArrayList.class);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -87,10 +112,9 @@ public class FileBasedChatMemory implements ChatMemory {
         return messages;
     }
 
-    private void saveConversation(String conversationId, List<Message> messages) {
-        File file = getConversationFile(conversationId);
+    private void saveConversation(File file, List<Message> messages) {
         try (Output output = new Output(new FileOutputStream(file))) {
-            kryo.writeObject(output, messages);
+            KRYO.get().writeObject(output, messages);
         } catch (IOException e) {
             e.printStackTrace();
         }

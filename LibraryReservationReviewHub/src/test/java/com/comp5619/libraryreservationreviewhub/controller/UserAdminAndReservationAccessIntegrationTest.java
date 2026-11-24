@@ -122,6 +122,14 @@ class UserAdminAndReservationAccessIntegrationTest {
         mockMvc.perform(get(path).session(admin)).andExpect(jsonPath("$.code").value(0));
     }
 
+    @Test
+    void aMissingReservationLooksTheSameAsSomeoneElsesToANonAdmin() throws Exception {
+        long missing = insertReservationForUserOne() + 1_000_000;
+        // the same answer as for another user's reservation, so a user can't tell which ids exist
+        mockMvc.perform(get("/reservation/" + missing).session(login(OTHER_USER))).andExpect(jsonPath("$.code").value(40101));
+        mockMvc.perform(get("/reservation/" + missing).session(admin)).andExpect(jsonPath("$.code").value(40400));
+    }
+
     private org.springframework.test.web.servlet.ResultActions update(String body) throws Exception {
         return mockMvc.perform(post("/user/update").contentType(MediaType.APPLICATION_JSON).content(body).session(admin));
     }

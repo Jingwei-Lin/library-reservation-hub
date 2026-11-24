@@ -6,6 +6,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
@@ -56,10 +57,21 @@ public class ReservationController {
     @AuthCheck
     public BaseResponse<ReservationVO> getReservation(@PathVariable Long reservationId, HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-        Reservation reservation = reservationService.getReservationById(reservationId);
-        // a reservation is personal: only its owner or an admin may read it
-        ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
-                ErrorCode.NO_AUTH_ERROR);
+        if (userService.isAdmin(user)) {
+            return ResultUtils.success(reservationService.toReservationVO(reservationService.getReservationById(reservationId)));
+        }
+        // a reservation is personal: only its owner may read it. A missing one gets the same answer as someone
+        // else's, so ids can't be probed
+        Reservation reservation;
+        try {
+            reservation = reservationService.getReservationById(reservationId);
+        } catch (BusinessException e) {
+            if (e.getCode() != ErrorCode.NOT_FOUND_ERROR.getCode()) {
+                throw e;
+            }
+            reservation = null;
+        }
+        ThrowUtils.throwIf(reservation == null || !reservation.getUserId().equals(user.getId()), ErrorCode.NO_AUTH_ERROR);
         return ResultUtils.success(reservationService.toReservationVO(reservation));
     }
 

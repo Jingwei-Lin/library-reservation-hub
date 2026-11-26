@@ -10,6 +10,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -17,7 +18,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * The AI assistant can only read the signed-in user's own data, and a chat id must be a UUID.
@@ -66,6 +69,16 @@ class AiChatSecurityIntegrationTest {
     @ValueSource(strings = {"../../x", "..\\..\\x", "../tmp/chat-memory/0b5f8c3e-6d1a-4f2b-9c7e-3a8d2e1f4b6c", "abc", ""})
     void aChatIdThatIsNotAUuidIsRefused(String chatId) throws Exception {
         mockMvc.perform(get("/ai/personal_agent/chat/server_sent_event").param("message", "hi").param("chatId", chatId))
+                .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    /** The browser's EventSource asks for text/event-stream; the refusal must still come back as JSON, not a 500 */
+    @Test
+    void aRefusedChatRequestIsJsonEvenWhenTheClientAsksForAStream() throws Exception {
+        mockMvc.perform(get("/ai/personal_agent/chat/server_sent_event").param("message", "hi").param("chatId", "../../x")
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(40000));
     }
 

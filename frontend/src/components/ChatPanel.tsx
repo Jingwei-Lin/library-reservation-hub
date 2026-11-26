@@ -1,8 +1,18 @@
 import React, { useState, useRef, type KeyboardEvent, useEffect } from 'react';
 import useChat from '../hooks/useChat';
 import './ChatPanel.css';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+// An image in a reply becomes a link: nothing loads by itself, so a reply can't send chat text to another
+// server through an image address.
+const MARKDOWN_COMPONENTS: Components = {
+  img: ({ src, alt }) => (
+    <a href={typeof src === 'string' ? src : undefined} target="_blank" rel="noopener noreferrer">
+      {alt || 'image'}
+    </a>
+  ),
+};
 
 const ChatPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +79,7 @@ const ChatPanel: React.FC = () => {
                 className={`message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}
               >
                 <div className="message-content markdown">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
                     {message.content || ''}
                   </ReactMarkdown>
                 </div>

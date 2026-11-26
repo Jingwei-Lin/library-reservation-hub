@@ -9,6 +9,8 @@ interface Message {
     timestamp: Date;
 }
 
+const CHAT_FAILED = "Sorry, the assistant couldn't answer. Please try again.";
+
 const useChat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -59,7 +61,9 @@ const useChat = () => {
         });
         eventSourceRef.current = eventSource as unknown as EventSource;
 
+        let received = false;
         eventSource.onmessage = (event: MessageEvent) => {
+            received = true;
             const chunk = event.data;
             setMessages(prev =>
                 prev.map(msg =>
@@ -70,17 +74,20 @@ const useChat = () => {
             );
         };
 
+        // The server ends every reply by closing the stream, which arrives here too. Without a single chunk, the
+        // request failed (a network error, the model unavailable), so the empty bubble says so.
         eventSource.onerror = () => {
             setIsTyping(false);
             eventSource.close();
             eventSourceRef.current = null;
+            if (!received) {
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg.id === aiMessageId ? { ...msg, content: CHAT_FAILED } : msg
+                    )
+                );
+            }
         };
-
-        eventSource.addEventListener('complete', () => {
-            setIsTyping(false);
-            eventSource.close();
-            eventSourceRef.current = null;
-        });
 
         return aiMessageId;
     }, [chatId]);

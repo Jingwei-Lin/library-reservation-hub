@@ -164,16 +164,16 @@ class WaitingListControllerTest {
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(normalUser);
         when(userService.isAdmin(eq(normalUser))).thenReturn(false);
 
-        PageResult<WaitingListVO> page =
-                new PageResult<>(1L, 10L, 2L, List.of(waitingVO, cancelledVO));
-
-        when(waitingListService.pageByQuery(any(WaitingListQueryDTO.class), any(PageRequest.class)))
-                .thenReturn(page);
+        // the finished entries are left out by the query itself, so the total matches the rows
+        PageResult<WaitingListVO> page = new PageResult<>(1L, 10L, 1L, List.of(waitingVO));
+        when(waitingListService.pageByQuery(argThat(q -> Boolean.TRUE.equals(q.getActiveOnly()) && q.getUserId() == 1L),
+                any(PageRequest.class))).thenReturn(page);
 
         mockMvc.perform(get("/waiting-list/my/page")
                         .param("current", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.records.length()").value(1))
                 .andExpect(jsonPath("$.data.records[0].status").value("waiting"));
     }

@@ -148,20 +148,12 @@ public class WaitingListController {
         User current = userService.getLoginUser(request);
         ThrowUtils.throwIf(current == null, ErrorCode.NOT_LOGIN_ERROR);
 
-        // 仅查当前用户
+        // the current user's entries; like /my, a user sees only those still in the queue (an admin sees all).
+        // Filtered in the query, so the total matches the rows
         WaitingListQueryDTO query = new WaitingListQueryDTO();
         query.setUserId(current.getId());
-        PageResult<WaitingListVO> page = waitingListService.pageByQuery(query, pageReq);
-
-        // 普通用户不显示 CANCELLED（仅过滤当前页记录）
-        if (!userService.isAdmin(current) && page.getRecords() != null) {
-            var filtered = page.getRecords().stream()
-                    .filter(vo -> vo.getStatus() != WaitingStatusEnum.CANCELLED)
-                    .toList();
-            page.setRecords(filtered);
-        }
-
-        return ResultUtils.success(page);
+        query.setActiveOnly(!userService.isAdmin(current));
+        return ResultUtils.success(waitingListService.pageByQuery(query, pageReq));
     }
 
     /**

@@ -219,6 +219,10 @@ public class WaitingListServiceImpl
         if (dto.getIsNotified() != null) {
             wrapper.eq("is_notified", dto.getIsNotified());
         }
+        if (Boolean.TRUE.equals(dto.getActiveOnly())) {
+            // in the query, so the page and its total count the same rows
+            wrapper.notIn("status", WaitingStatusEnum.CANCELLED.getValue(), WaitingStatusEnum.FULFILLED.getValue());
+        }
         return wrapper;
     }
 

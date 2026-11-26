@@ -16,7 +16,6 @@ const useChat = () => {
     const eventSourceRef = useRef<EventSource | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    // 滚动到最新消息
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, []);
@@ -25,11 +24,10 @@ const useChat = () => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
-    // 发送消息并接收流式响应
+    // send a message and stream the reply in
     const sendMessage = useCallback((content: string) => {
         if (!content.trim()) return;
 
-        // 添加用户消息
         const userMessage: Message = {
             id: uuidv4(),
             sender: 'user',
@@ -39,7 +37,7 @@ const useChat = () => {
         setMessages(prev => [...prev, userMessage]);
         setIsTyping(true);
 
-        // 创建AI消息占位符
+        // an empty AI message, filled in as the reply arrives
         const aiMessageId = uuidv4();
         const aiMessage: Message = {
             id: aiMessageId,
@@ -49,15 +47,15 @@ const useChat = () => {
         };
         setMessages(prev => [...prev, aiMessage]);
 
-        // 关闭之前的连接
+        // close the previous connection, if any
         if (eventSourceRef.current) {
             eventSourceRef.current.close();
         }
 
-        // 使用 EventSourcePolyfill 代替 EventSource
+        // EventSourcePolyfill instead of the browser's EventSource
         const url = `/api/ai/personal_agent/chat/server_sent_event?message=${encodeURIComponent(content)}&chatId=${chatId}`;
         const eventSource = new EventSourcePolyfill(url, {
-            withCredentials: true  // ✅ 关键：让浏览器带上 cookie
+            withCredentials: true  // send the session cookie
         });
         eventSourceRef.current = eventSource as unknown as EventSource;
 
@@ -87,7 +85,7 @@ const useChat = () => {
         return aiMessageId;
     }, [chatId]);
 
-    // 组件卸载时关闭连接
+    // close the connection when the component unmounts
     useEffect(() => {
         return () => {
             if (eventSourceRef.current) {

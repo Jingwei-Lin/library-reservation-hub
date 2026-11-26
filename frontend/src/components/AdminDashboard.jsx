@@ -9,9 +9,9 @@ import './AdminDashboard.css';
 import NumericStepper from './NumericStepper';
 
 /**
- * 组件入参
- * - user: 当前登录用户信息（含 isAdmin / userRole）
- * - isAuthenticated: 是否已登录
+ * Props:
+ * - user: the signed-in user (with isAdmin / userRole)
+ * - isAuthenticated: whether someone is signed in
  */
 const AdminDashboard = ({ user, isAuthenticated, onSignOut }) => {
   const navigate = useNavigate();
@@ -20,8 +20,8 @@ const AdminDashboard = ({ user, isAuthenticated, onSignOut }) => {
   const includesQuery = (value, q) => String(value ?? '').toLowerCase().includes(q);
 
   /**
- * 进入页面时校验管理员权限
- * 非管理员或未登录，统一跳转到后台登录页
+ * On entry, checks that the user is an admin;
+ * anyone else goes to the admin sign-in page
  */
 useEffect(() => {
     const isAdmin = user?.isAdmin === true || user?.userRole === 'admin';
@@ -32,7 +32,7 @@ useEffect(() => {
   }, [user, isAuthenticated, navigate]);
 
   // ====== Users ======
-  // 用户管理：分页查询、状态标记（封禁/正常）、内联编辑保存
+  // a page of users, ban and unban, edit in place
   const [users, setUsers] = useState([]);
   const [usersPage, setUsersPage] = useState(1);
   const USERS_PAGE_SIZE = 10;
@@ -57,8 +57,8 @@ useEffect(() => {
   }, [users, usersQuery]);
 
   /**
-   * 根据用户ID补充用户状态（status：0 正常 / 1 封禁）
-   * 并保持一份原始数据 usersOriginal 以便比较是否被修改
+   * Adds each user's status (1 = active, 0 = banned),
+   * and keeps a copy in usersOriginal to tell whether a row was edited
    */
   const enrichUsersWithStatus = async (list) => {
     if (!Array.isArray(list) || list.length === 0) {
@@ -85,8 +85,8 @@ useEffect(() => {
   };
 
   /**
-   * 分页拉取用户列表，并调用 enrichUsersWithStatus 补充状态
-   * 同步维护加载/错误/成功提示
+   * Loads a page of users, then their status (enrichUsersWithStatus),
+   * with the loading, error and success messages
    */
   const fetchUsers = async () => {
     try {
@@ -109,7 +109,7 @@ useEffect(() => {
   };
 
   /**
-   * 本地修改某个用户的一列字段（不直接提交后端）
+   * Changes one field of a user here; nothing is saved until Save
    */
   const handleUserFieldChange = (id, field, value) => {
     setUsers(prev => {
@@ -123,7 +123,7 @@ useEffect(() => {
   };
 
   /**
-   * 比较当前用户与原始数据，判断是否有改动（避免无意义保存）
+   * Whether the user differs from the original, so an unchanged row isn't saved
    */
   const isUserUnchanged = (u) => {
     const orig = usersOriginal.find(o => o.id === u.id);
@@ -148,7 +148,7 @@ useEffect(() => {
   };
 
   /**
-   * 保存用户编辑：含二次确认、角色处理（admin）、错误/成功提示与数据刷新
+   * Saves a user's edits: asks first, handles the admin role, shows the result and reloads
    */
   const handleUserUpdate = async (u) => {
     if (isUserUnchanged(u)) {
@@ -198,7 +198,7 @@ useEffect(() => {
   };
 
   /**
-   * 切换封禁状态：status 0→1 封禁 / 1→0 解禁，二次确认与刷新
+   * Bans or unbans (status 1 → 0 bans, 0 → 1 unbans), after asking, then reloads
    */
   const handleToggleBan = async (u) => {
     const nextStatus = u.status === 0 ? 1 : 0;
@@ -243,7 +243,7 @@ useEffect(() => {
   }, [usersPage]);
 
   // ====== Books ======
-  // 图书管理：分页查询、内联编辑保存、删除与恢复
+  // a page of books, edit in place, delete and restore
   const [books, setBooks] = useState([]);
   const [booksPage, setBooksPage] = useState(1);
   const BOOKS_PAGE_SIZE = 10;
@@ -267,7 +267,7 @@ useEffect(() => {
   }, [books, booksQuery]);
 
   /**
-   * 分页拉取图书列表，并维护加载/错误/成功提示
+   * Loads a page of books, with the loading, error and success messages
    */
   const fetchBooks = async () => {
     try {
@@ -290,7 +290,7 @@ useEffect(() => {
   };
 
   /**
-   * 本地修改图书的某个字段（不直接提交后端）
+   * Changes one field of a book here; nothing is saved until Save
    */
   const handleBookFieldChange = (bookId, field, value) => {
     setBooks(prev => {
@@ -322,7 +322,7 @@ useEffect(() => {
   };
 
   /**
-   * 保存图书编辑（内联保存），成功后刷新列表
+   * Saves a book's edits, then reloads the list
    */
   const handleBookUpdate = async (b) => {
     if (isBookUnchanged(b)) {
@@ -352,7 +352,7 @@ useEffect(() => {
   };
 
   /**
-   * 删除图书（软删除），成功后刷新列表
+   * Deletes a book (it is only marked deleted), then reloads the list
    */
   const handleBookDelete = async (bookId) => {
     try {
@@ -371,7 +371,7 @@ useEffect(() => {
   };
 
   /**
-   * 恢复已删除图书，成功后刷新列表
+   * Restores a deleted book, then reloads the list
    */
   const handleBookRestore = async (bookId) => {
     try {
@@ -391,7 +391,7 @@ useEffect(() => {
 
 
   // ====== Reviews ======
-  // 评论管理：分页查询、内联编辑评分与评论、保存与删除
+  // a page of reviews, edit the rating and comment in place, save and delete
   const [reviews, setReviews] = useState([]);
   const [reviewsOriginal, setReviewsOriginal] = useState([]);
   const [rvLoading, setRvLoading] = useState(false);
@@ -415,7 +415,7 @@ useEffect(() => {
   }, [reviews, reviewsQuery]);
 
   /**
-   * 为评论记录批量补充书名与用户名，避免逐条请求造成性能问题
+   * Adds the book titles and user names, fetching each book and user once rather than once per review
    */
   const enrichReviewsWithNames = async (list) => {
     if (!Array.isArray(list) || list.length === 0) return list || [];
@@ -454,7 +454,7 @@ useEffect(() => {
   };
 
   /**
-   * 分页拉取评论列表，保存原始数据用于修改比较
+   * Loads a page of reviews, keeping the originals to tell what was edited
    */
   const fetchAllReviews = async () => {
     try {
@@ -479,7 +479,7 @@ useEffect(() => {
   };
 
   /**
-   * 本地修改评论的某个字段（如评分/评论内容）
+   * Changes the rating or comment of a review here; nothing is saved until Save
    */
   const handleReviewFieldChange = (reviewId, field, value) => {
     setReviews(prev => {
@@ -493,7 +493,7 @@ useEffect(() => {
   };
 
   /**
-   * 比较当前评论与原始记录，判断是否有改动
+   * Whether the review differs from the original
    */
   const isReviewUnchanged = (rv) => {
     const orig = reviewsOriginal.find(o => o.reviewId === rv.reviewId);
@@ -506,7 +506,7 @@ useEffect(() => {
   };
 
   /**
-   * 保存评论编辑：二次确认、评分范围校验（1-5）、非空校验、成功后刷新
+   * Saves a review's edits: asks first, checks the rating is 1 to 5 and the comment isn't empty, then reloads
    */
   const handleReviewUpdate = async (rv) => {
     if (isReviewUnchanged(rv)) {
@@ -548,7 +548,7 @@ useEffect(() => {
   };
 
   /**
-   * 删除评论：二次确认，成功后刷新
+   * Deletes a review after asking, then reloads
    */
   const handleReviewDelete = async (reviewId) => {
     const confirmed = window.confirm('Are you sure you want to delete this review?');
@@ -572,10 +572,10 @@ useEffect(() => {
     if (isAuthenticated && (user?.isAdmin || user?.userRole === 'admin')) {
       fetchAllReviews();
     }
-  }, [rvPage]); // 仅在评论分页变化时触发
+  }, [rvPage]); // only when the review page changes
 
   // ====== Waiting List ======
-  // 等待列表：仅展示（按所有用户汇总），不提供任何操作
+  // read-only: every user's entries, no actions
   const [waitingLists, setWaitingLists] = useState([]);
   const [wlLoading, setWlLoading] = useState(false);
   const [wlError, setWlError] = useState('');
@@ -595,9 +595,9 @@ useEffect(() => {
     ));
   }, [waitingLists, wlQuery]);
 
-  // 拉取所有用户（跨页）
+  // every user, page by page
   const fetchAllUsers = async () => {
-    const PAGE_SIZE = 100; // 提高每页数量，减少请求次数
+    const PAGE_SIZE = 100; // large pages, fewer requests
     const first = await adminUserService.listUsersPage({ current: 1, pageSize: PAGE_SIZE });
     if (!(first && first.code === 0 && first.data)) {
       throw new Error(first?.message || 'Failed to load users');
@@ -636,7 +636,7 @@ useEffect(() => {
         return [];
       }));
       const rows = rowsByUser.flat();
-      // 排序：先按用户ID，再按等待ID倒序
+      // by user id, then newest entry first (wait id descending)
       rows.sort((a, b) => {
         const ua = Number(a.userId ?? 0); const ub = Number(b.userId ?? 0);
         if (ua !== ub) return ua - ub;
@@ -793,7 +793,7 @@ useEffect(() => {
         <button className="btn btn-secondary admin-sign-out" onClick={() => onSignOut('/admin/login')}>Sign out</button>
       </div>
 
-      {/* 用户管理区块 */}
+      {/* Users */}
       <div className="admin-section">
         <h3>Users</h3>
         <div className="admin-controls">
@@ -866,7 +866,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* 评论管理区块 */}
+      {/* Reviews */}
       <div className="admin-section">
         <h3>Reviews</h3>
         <div className="admin-controls">
@@ -924,7 +924,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* 等待列表展示区块（只读） */}
+      {/* Waiting list (read-only) */}
       <div className="admin-section">
         <h3>Waiting List</h3>
         <div className="admin-controls">
@@ -983,7 +983,7 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* 图书管理区块 */}
+      {/* Books */}
       <div className="admin-section">
         <h3>Books</h3>
         <div className="admin-controls">
@@ -1044,7 +1044,7 @@ useEffect(() => {
           >Next</button>
         </div>
       </div>
-      {/* 预约管理区块 */}
+      {/* Reservations */}
       <div className="admin-section">
         <h3>Reservations</h3>
         <div className="admin-controls">

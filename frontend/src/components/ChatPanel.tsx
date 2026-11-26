@@ -41,7 +41,7 @@ const ChatPanel: React.FC = () => {
 
   return (
     <div className={`chat-panel-container ${isOpen ? 'open' : 'closed'}`}>
-      {/* 👇 这个按钮使用自定义样式，不受全局 button 干扰 */}
+      {/* its own class, so the global button styles don't apply */}
       <button
         className="chat-slide-toggle"
         type="button"
@@ -100,7 +100,7 @@ const ChatPanel: React.FC = () => {
             disabled={isTyping}
             rows={1}
           />
-          {/* 👇 发送按钮也单独覆盖全局按钮 */}
+          {/* the send button has its own class too */}
           <button
             className="chat-send-button"
             type="button"

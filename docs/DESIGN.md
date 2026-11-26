@@ -10,7 +10,7 @@ React 19 + Vite  ──REST, SSE──▶  Spring Boot 3.5 (/api)  ──MyBatis
                                   └─ Spring AI ──▶ DashScope (qwen-max)
 ```
 
-**Back end** (`com.comp5619.libraryreservationreviewhub`):
+**Back end** (`com.elec5619.libraryreservationreviewhub`):
 
 | Package | What it holds |
 |---|---|

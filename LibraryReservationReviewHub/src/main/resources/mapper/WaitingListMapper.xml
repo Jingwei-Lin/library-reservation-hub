@@ -3,10 +3,10 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper">
+<mapper namespace="com.elec5619.libraryreservationreviewhub.mapper.WaitingListMapper">
 
     <!-- Result mapping -->
-    <resultMap id="WaitingListVOMap" type="com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO">
+    <resultMap id="WaitingListVOMap" type="com.elec5619.libraryreservationreviewhub.model.vo.WaitingListVO">
         <id property="waitId" column="wait_id"/>
         <result property="userId" column="user_id"/>
         <result property="bookId" column="book_id"/>
@@ -31,7 +31,7 @@
     </select>
 
     <!-- The user's WAITING entries: place in the queue (ties on wait_id), people waiting, stock. Read-only. -->
-    <select id="selectNotifyEligibilityForUser" resultType="com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">
+    <select id="selectNotifyEligibilityForUser" resultType="com.elec5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">
         SELECT
         wl.wait_id as waitId,
         wl.user_id as userId,

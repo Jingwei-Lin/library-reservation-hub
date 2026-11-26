@@ -1,2 +1,2 @@
 org.springframework.context.ApplicationContextInitializer=\
-com.comp5619.libraryreservationreviewhub.support.TestDatabase
+com.elec5619.libraryreservationreviewhub.support.TestDatabase

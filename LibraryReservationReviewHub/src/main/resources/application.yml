@@ -35,7 +35,7 @@ springdoc:
   group-configs:
     - group: 'default'
       paths-to-match: '/**'
-      packages-to-scan: com.comp5619.libraryreservationreviewhub.controller
+      packages-to-scan: com.elec5619.libraryreservationreviewhub.controller
 # Knife4j UI on top of springdoc
 knife4j:
   enable: true
@@ -46,7 +46,7 @@ mybatis-plus:
   configuration:
     # MyBatis configuration
     map-underscore-to-camel-case: true
-    # SQL goes through SLF4J: set logging.level.com.comp5619.libraryreservationreviewhub.mapper=DEBUG to see it
+    # SQL goes through SLF4J: set logging.level.com.elec5619.libraryreservationreviewhub.mapper=DEBUG to see it
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
@@ -55,7 +55,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 # INFO by default. For local debugging, override with environment variables, e.g.
-# LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG or LOGGING_LEVEL_COM_COMP5619_LIBRARYRESERVATIONREVIEWHUB_MAPPER=DEBUG
+# LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG or LOGGING_LEVEL_COM_ELEC5619_LIBRARYRESERVATIONREVIEWHUB_MAPPER=DEBUG
 logging:
   level:
     root: INFO

@@ -5,9 +5,18 @@ import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
 import { waitingListService } from "../services/waitingListService";
 import { isSessionEnded } from "../services/api";
-import Portal from './Portal';
+import ReservationDialog from "./book/ReservationDialog";
+import DeleteReviewDialog from "./book/DeleteReviewDialog";
+import RatingSummary from "./book/RatingSummary";
+import AvailabilityActions from "./book/AvailabilityActions";
+import ReviewForm from "./book/ReviewForm";
+import ReviewList from "./book/ReviewList";
 import "./Book.css";
 
+/**
+ * A book's page: its details and rating, what the user can do (reserve, or the waiting list), and the reviews.
+ * ?reserve=true opens the Reserve dialog once the book has loaded, if the user may reserve it.
+ */
 const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -15,32 +24,19 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
     const [isOnWaitingList, setIsOnWaitingList] = useState(false);
     const [isNotified, setIsNotified] = useState(false);
     const [holdExpiresAt, setHoldExpiresAt] = useState(null);
     const [waitingStatus, setWaitingStatus] = useState(null);
     const [hasActiveReservation, setHasActiveReservation] = useState(false);
     const [autoOpenReserve, setAutoOpenReserve] = useState(false);
+    const [bookRating, setBookRating] = useState(null);
 
-    // State for delete review popup
+    // the delete-review dialog, and the review it is about
     const [showDeletePopup, setShowDeletePopup] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
 
-    // State for reservation popup
     const [showReservationPopup, setShowReservationPopup] = useState(false);
-    const [reservationForm, setReservationForm] = useState({
-        pickupTime: "",
-        dueTime: ""
-    });
-    const [reservationLoading, setReservationLoading] = useState(false);
-    const [reservationError, setReservationError] = useState("");
-    const [reservationSuccess, setReservationSuccess] = useState("");
-
-    // Review submission feedback
-    const [reviewSuccess, setReviewSuccess] = useState("");
-    const [reviewError, setReviewError] = useState("");
-    const [bookRating, setBookRating] = useState(null);
 
     useEffect(() => {
         const fetchBookAndReviews = async () => {
@@ -135,18 +131,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
         fetchBookAndReviews();
     }, [id, setIsAuthenticated, isAuthenticated, hasActiveReservation, setHasActiveReservation]);
 
-    useEffect(() => {
-        if (showReservationPopup) {
-            document.body.classList.add('popup-open');
-        } else {
-            document.body.classList.remove('popup-open');
-        }
-
-        return () => {
-            document.body.classList.remove('popup-open');
-        };
-    }, [showReservationPopup]);
-
     // Check for ?reserve=true in URL and set flag to auto-open popup
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -161,7 +145,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     // Auto-open the reservation popup after data is loaded if flag is set
     useEffect(() => {
         if (autoOpenReserve && !loading && book && !error) {
-            // Optional: Add eligibility check (e.g., if notified or available)
+            // only when the user may reserve: a copy on the shelf, or one held for them
             if (!hasActiveReservation && (book.available || isNotified)) {
                 setShowReservationPopup(true);
             }
@@ -184,78 +168,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             return;
         }
         setShowReservationPopup(true);
-    };
-
-    const handleReservationSubmit = async (e) => {
-        e.preventDefault();
-        if (!isAuthenticated) {
-            navigate("/login");
-            return;
-        }
-
-        setReservationLoading(true);
-        setReservationError("");
-        setReservationSuccess("");
-
-        try {
-            const pickupDate = new Date(reservationForm.pickupTime);
-            const dueDate = new Date(reservationForm.dueTime);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            if (pickupDate < today) {
-                throw new Error("Pickup date cannot be in the past");
-            }
-            if (dueDate <= pickupDate) {
-                throw new Error("Due date must be after pickup date");
-            }
-
-            // Calculate maximum allowed due date (7 days from pickup)
-            const maxDueDate = new Date(pickupDate);
-            maxDueDate.setDate(pickupDate.getDate() + 30);
-
-            if (dueDate > maxDueDate) {
-                throw new Error("Reservation period cannot exceed 30 days");
-            }
-
-            const response = await reservationService.createReservation(id, {
-                pickupTime: reservationForm.pickupTime,
-                dueTime: reservationForm.dueTime
-            });
-
-            if (response && response.code === 0) {
-                setReservationSuccess("Reservation created successfully!");
-                setHasActiveReservation(true);
-                setTimeout(() => {
-                    setShowReservationPopup(false);
-                    setReservationForm({ pickupTime: "", dueTime: "" });
-                    navigate("/reservations");
-                }, 2000);
-            } else if (response && response.code === 50001) {
-                setReservationError(response.message);
-            } else {
-                setReservationError(response?.message || "Failed to create reservation");
-            }
-        } catch (err) {
-            if (isSessionEnded(err)) {
-                setShowReservationPopup(false);   // the app shows the notice; the page stays, as a guest
-            } else {
-                setReservationError(err.message || "Failed to create reservation");
-            }
-        } finally {
-            setReservationLoading(false);
-        }
-    };
-
-    const handleReservationFormChange = (e) => {
-        setReservationForm({ ...reservationForm, [e.target.name]: e.target.value });
-    };
-
-    const handleCloseReservationPopup = () => {
-        setShowReservationPopup(false);
-        setReservationForm({ pickupTime: "", dueTime: "" });
-        setReservationError("");
-        setReservationSuccess("");
     };
 
     const handleJoinWaiting = async () => {
@@ -299,48 +211,28 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
         }
     };
 
-    const handleAddReview = async (e) => {
-        e.preventDefault();
-        setReviewSuccess("");
-        setReviewError("");
-
-        if (!isAuthenticated) {
-            navigate("/login");
-            return;
-        }
-        if (newReview.rating < 1 || newReview.rating > 5) {
-            setReviewError("Rating must be between 1 and 5.");
-            return;
-        }
-        if (!newReview.comment.trim()) {
-            setReviewError("Comment cannot be empty.");
-            return;
-        }
-
+    const fetchBookRating = async () => {
         try {
-            setError("");
-            const reviewData = { rating: newReview.rating, comment: newReview.comment };
-            await reviewService.addReview(parseInt(id), reviewData);
-
-            setReviewSuccess("✅ Review submitted successfully!");
-
-            setNewReview({ rating: 0, comment: "" });
-
-            // Update reviews immediately
-            const updatedReviews = await reviewService.getReviewsByBookId(id);
-            if (updatedReviews && updatedReviews.code === 0 && Array.isArray(updatedReviews.data)) {
-                setReviews(updatedReviews.data);
-                await fetchBookRating();
+            const response = await bookService.getRatingByBookId(id);
+            if (response && response.code === 0 && response.data) {
+                setBookRating(response.data);
             } else {
-                console.warn("No updated reviews found");
+                setBookRating(null);
             }
-
         } catch (err) {
-            window.alert(err.message || "Failed to add review");
-            console.error("Error adding review:", err);
+            console.warn("Failed to refresh rating:", err);
+            setBookRating(null);
         }
     };
 
+    // the reviews and the rating again, after a review is added or deleted
+    const refreshReviews = async () => {
+        const reviewResponse = await reviewService.getReviewsByBookId(id);
+        if (reviewResponse && reviewResponse.code === 0 && Array.isArray(reviewResponse.data)) {
+            setReviews(reviewResponse.data);
+            await fetchBookRating();
+        }
+    };
 
     const handleDeleteReview = async (reviewId) => {
         if (!isAuthenticated) {
@@ -358,13 +250,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             await reviewService.deleteReview(reviewToDelete);
             setShowDeletePopup(false);
             setReviewToDelete(null);
-
-            // Refresh the reviews after deletion
-            const reviewResponse = await reviewService.getReviewsByBookId(id);
-            if (reviewResponse && reviewResponse.code === 0 && Array.isArray(reviewResponse.data)) {
-                setReviews(reviewResponse.data);
-                await fetchBookRating();
-            }
+            await refreshReviews();
         } catch (err) {
             console.error("Error deleting review:", err);
             setShowDeletePopup(false);
@@ -377,151 +263,20 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
         setReviewToDelete(null);
     };
 
-    const handleStarClick = (rating) => {
-        setNewReview({ ...newReview, rating });
-    };
-
-    const fetchBookRating = async () => {
-        try {
-            const response = await bookService.getRatingByBookId(id);
-            if (response && response.code === 0 && response.data) {
-                setBookRating(response.data);
-            } else {
-                setBookRating(null);
-            }
-        } catch (err) {
-            console.warn("Failed to refresh rating:", err);
-            setBookRating(null);
-        }
-    };
-
     return (
         <div className="book-detail-container">
-            {/* Delete Review Popup */}
             {showDeletePopup && (
-                <Portal>
-                    <div className="popup-overlay">
-                        <div className="delete-popup">
-                            <div className="popup-header">
-                                <h3>Delete Review</h3>
-                                <button
-                                    className="close-popup"
-                                    onClick={cancelDeleteReview}
-                                    aria-label="Close delete popup"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div className="popup-body">
-                                <p>Are you sure you want to delete this review <strong>permanently</strong>?</p>
-                            </div>
-                            <div className="popup-actions">
-                                <button
-                                    className="cancel-btn"
-                                    onClick={cancelDeleteReview}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="confirm-btn"
-                                    onClick={confirmDeleteReview}
-                                >
-                                    Yes, Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </Portal>
+                <DeleteReviewDialog onCancel={cancelDeleteReview} onConfirm={confirmDeleteReview} />
             )}
 
-            {/* Reservation Popup */}
             {showReservationPopup && (
-                <Portal>
-                    <div className="popup-overlay">
-                        <div className="reservation-popup">
-                            <div className="popup-header">
-                                <h3>Reserve "{book?.title}"</h3>
-                                <button
-                                    className="close-popup"
-                                    onClick={handleCloseReservationPopup}
-                                    aria-label="Close reservation popup"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <form onSubmit={handleReservationSubmit} className="reservation-form">
-                                <div className="form-group">
-                                    <label htmlFor="pickupTime">Pickup Date:</label>
-                                    <input
-                                        type="date"
-                                        id="pickupTime"
-                                        name="pickupTime"
-                                        value={reservationForm.pickupTime}
-                                        onChange={handleReservationFormChange}
-                                        required
-                                        min={new Date().toISOString().split("T")[0]}
-                                        max={(() => {
-                                            const maxDate = new Date();
-                                            maxDate.setDate(maxDate.getDate() + 7);
-                                            return maxDate.toISOString().split("T")[0];
-                                        })()}
-                                    />
-                                    <small className="date-hint">Select a date within the next 7 days</small>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="dueTime">Due Date:</label>
-                                    <input
-                                        type="date"
-                                        id="dueTime"
-                                        name="dueTime"
-                                        value={reservationForm.dueTime}
-                                        onChange={handleReservationFormChange}
-                                        required
-                                        min={reservationForm.pickupTime || new Date().toISOString().split("T")[0]}
-                                        max={(() => {
-                                            if (reservationForm.pickupTime) {
-                                                const maxDueDate = new Date(reservationForm.pickupTime);
-                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
-                                                return maxDueDate.toISOString().split("T")[0];
-                                            }
-                                            const maxDate = new Date();
-                                            maxDate.setDate(maxDate.getDate() + 30);
-                                            return maxDate.toISOString().split("T")[0];
-                                        })()}
-                                    />
-                                    <small className="date-hint">
-                                        {reservationForm.pickupTime
-                                            ? `Due date must be within 30 days of pickup (max: ${(() => {
-                                                const maxDueDate = new Date(reservationForm.pickupTime);
-                                                maxDueDate.setDate(maxDueDate.getDate() + 30);
-                                                return maxDueDate.toISOString().split("T")[0];
-                                            })()})`
-                                            : "Select pickup date first"
-                                        }
-                                    </small>
-                                </div>
-                                {reservationError && <p className="error">{reservationError}</p>}
-                                {reservationSuccess && <p className="success">{reservationSuccess}</p>}
-                                <div className="popup-actions">
-                                    <button
-                                        type="button"
-                                        onClick={handleCloseReservationPopup}
-                                        className="cancel-btn"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={reservationLoading}
-                                        className="confirm-btn"
-                                    >
-                                        {reservationLoading ? "Reserving..." : "Confirm Reservation"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </Portal>
+                <ReservationDialog
+                    book={book}
+                    bookId={id}
+                    isAuthenticated={isAuthenticated}
+                    onClose={() => setShowReservationPopup(false)}
+                    onReserved={() => setHasActiveReservation(true)}
+                />
             )}
             <button className="book-back-button" onClick={handleBack} aria-label="Back to dashboard">
                 ← Back
@@ -563,34 +318,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                         <p className="book-author">by {book.author}</p>
                         <p className="book-genre">{book.genre}</p>
 
-                        {bookRating && (
-                            <div className="book-rating-display">
-                                <div className="star-rating-large">
-                                    {[1, 2, 3, 4, 5].map((star) => {
-                                        const rating = bookRating.avgRating ?? 0;
-                                        const fullStars = Math.floor(rating);
-                                        const decimal = rating - fullStars;
-                                        let isFilled = star <= fullStars;
-                                        let isHalf = false;
-                                        if (!isFilled && star === fullStars + 1 && decimal >= 0.25 && decimal < 0.75) {
-                                            isHalf = true;
-                                        } else if (!isFilled && star === fullStars + 1 && decimal >= 0.75) {
-                                            isFilled = true;
-                                        }
-                                        return (
-                                            <span key={star} className={`star large ${isFilled ? "filled" : isHalf ? "half" : ""}`}> ★ </span>
-                                        );
-                                    })}
-                                </div>
-                                {(bookRating?.avgRating ?? 0) > 0 ? (
-                                    <p className="rating-text">
-                                        <strong>{bookRating.avgRating.toFixed(1)}</strong> out of 5
-                                    </p>
-                                ) : (
-                                    <p className="rating-text">No ratings yet</p>
-                                )}
-                            </div>
-                        )}
+                        {bookRating && <RatingSummary bookRating={bookRating} />}
 
                         <p className="book-description-title">Description:</p>
                         <p className="book-description">{book.description}</p>
@@ -602,57 +330,17 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                                 <span className="quantity">Quantity: {book.quantity}</span>
                             )}
                         </div>
-                        {hasActiveReservation ? (
-                            <p className="reservation-status">You have already reserved this book.</p>
-                        ) : book.available && book.quantity > 0 ? (
-                            <button
-                                className="reserve-button"
-                                onClick={handleReserve}
-                                aria-label="Reserve book"
-                                disabled={hasActiveReservation}
-                            >
-                                Reserve Now
-                            </button>
-                        ) : (
-                            <>
-                                {isOnWaitingList ? (
-                                    <>
-                                        <p className="waiting-status">
-                                            You are on the waiting list. Status: {waitingStatus?.charAt(0).toUpperCase() + waitingStatus?.slice(1)}
-                                        </p>
-                                        {isNotified && holdExpiresAt && (
-                                            <p className="hold-deadline">
-                                                A copy is held for you. Reserve by {new Date(holdExpiresAt).toLocaleString()}
-                                            </p>
-                                        )}
-                                        {isNotified && (
-                                            <button
-                                                className="reserve-button"
-                                                onClick={handleReserve}
-                                                aria-label="Reserve book after notification"
-                                            >
-                                                Reserve Now
-                                            </button>
-                                        )}
-                                        <button
-                                            className="cancel-waiting-button"
-                                            onClick={handleCancelWaiting}
-                                            aria-label="Cancel waiting list entry"
-                                        >
-                                            Cancel Waiting
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button
-                                        className="join-waiting-button"
-                                        onClick={handleJoinWaiting}
-                                        aria-label="Join waiting list"
-                                    >
-                                        Join Waiting List
-                                    </button>
-                                )}
-                            </>
-                        )}
+                        <AvailabilityActions
+                            book={book}
+                            hasActiveReservation={hasActiveReservation}
+                            isOnWaitingList={isOnWaitingList}
+                            isNotified={isNotified}
+                            holdExpiresAt={holdExpiresAt}
+                            waitingStatus={waitingStatus}
+                            onReserve={handleReserve}
+                            onJoinWaiting={handleJoinWaiting}
+                            onCancelWaiting={handleCancelWaiting}
+                        />
                     </div>
                 </div>
             )}
@@ -662,99 +350,15 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                     <h2>Reviews ({reviews.length})</h2>
 
                     {isAuthenticated && (
-                        <form className="review-form" onSubmit={handleAddReview}>
-                            <h3>Write a Review</h3>
-                            <div className="form-group">
-                                <label htmlFor="rating">Rating:</label>
-                                <div className="star-rating" role="radiogroup" aria-label="Select review rating">
-                                    {[1, 2, 3, 4, 5].map((num) => (
-                                        <span
-                                            key={num}
-                                            className={`star ${newReview.rating >= num ? 'filled' : ''}`}
-                                            onClick={() => handleStarClick(num)}
-                                            role="radio"
-                                            aria-checked={newReview.rating === num}
-                                            tabIndex={0}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    handleStarClick(num);
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            aria-label={`${num} star${num > 1 ? 's' : ''}`}
-                                        >
-                                            ★
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="comment">Comment:</label>
-                                <textarea
-                                    id="comment"
-                                    value={newReview.comment}
-                                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                                    required
-                                    placeholder="Write your review here..."
-                                    maxLength={1000}
-                                    aria-label="Write your review"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                className="submit-review-button"
-                                aria-label="Submit review"
-                            >
-                                Submit Review
-                            </button>
-                            {reviewSuccess && <p className="review-success">{reviewSuccess}</p>}
-                            {reviewError && <p className="review-error">{reviewError}</p>}
-                        </form>
+                        <ReviewForm
+                            bookId={id}
+                            isAuthenticated={isAuthenticated}
+                            onSubmitStart={() => setError("")}
+                            onReviewAdded={refreshReviews}
+                        />
                     )}
 
-                    {reviews.length > 0 ? (
-                        <div className="reviews-list">
-                            {reviews.map((review) => (
-                                <div key={review.reviewId} className="review-card">
-                                    <div className="review-header">
-                                        <span className="review-user">{review.userName}</span>
-                                        <div className="review-rating" aria-label={`Rating ${review.rating} out of 5 stars`}>
-                                            {[1, 2, 3, 4, 5].map((num) => (
-                                                <span
-                                                    key={num}
-                                                    className={`star ${review.rating >= num ? 'filled' : ''}`}
-                                                    aria-hidden="true"
-                                                >
-                                                    ★
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    {review.comment && <p className="review-comment">{review.comment}</p>}
-                                    <p className="review-date">
-                                        Posted on: {new Date(review.reviewDate).toLocaleDateString()}
-                                    </p>
-                                    {isAuthenticated &&
-                                        (review.userId === JSON.parse(sessionStorage.getItem("user"))?.id ||
-                                            JSON.parse(sessionStorage.getItem("user"))?.userRole === "admin") && (
-                                            <div className="review-actions">
-                                                <button
-                                                    className="delete-review-button"
-                                                    onClick={() => handleDeleteReview(review.reviewId)}
-                                                    aria-label={`Delete review by user ${review.userId}`}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        )}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="no-reviews">
-                            <p>No reviews yet for this book. Be the first to review!</p>
-                        </div>
-                    )}
+                    <ReviewList reviews={reviews} isAuthenticated={isAuthenticated} onDelete={handleDeleteReview} />
                 </div>
             )}
 

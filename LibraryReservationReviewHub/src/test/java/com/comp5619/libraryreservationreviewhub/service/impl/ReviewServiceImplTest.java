@@ -8,6 +8,7 @@ import com.comp5619.libraryreservationreviewhub.mapper.ReviewMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
+import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
@@ -87,7 +88,7 @@ class ReviewServiceImplTest {
         req.setComment("Great book!");
         req.setBookId(1L);
 
-        when(bookService.isBookAvailable(1L)).thenReturn(true);
+        when(bookService.getBookById(1L)).thenReturn(listedBook());
         when(reviewMapper.insertReview(any(Review.class))).thenAnswer(invocation -> {
             Review r = invocation.getArgument(0);
             r.setReviewId(1L);
@@ -125,17 +126,48 @@ class ReviewServiceImplTest {
         assertEquals(ErrorCode.NO_AUTH_ERROR.getCode(), exception.getCode());
     }
 
+    /** No copy on the shelf no longer stops a review (step 5 plan D1); a deleted book does */
     @Test
-    void addReview_BookNotAvailable_ThrowsException() {
+    void addReview_NoCopyOnTheShelf_IsAccepted() {
         ReviewAddRequest req = new ReviewAddRequest();
         req.setRating(5);
         req.setComment("Great book!");
+        Book book = listedBook();
+        book.setQuantity(0);
+        book.setAvailable(false);
 
-        when(bookService.isBookAvailable(1L)).thenReturn(false);
+        when(bookService.getBookById(1L)).thenReturn(book);
+        when(reviewMapper.insertReview(any(Review.class))).thenAnswer(invocation -> {
+            invocation.<Review>getArgument(0).setReviewId(7L);
+            return 1;
+        });
+
+        assertEquals(7L, reviewService.addReview(1L, req, testUser));
+    }
+
+    @Test
+    void addReview_DeletedBook_ThrowsNotFound() {
+        ReviewAddRequest req = new ReviewAddRequest();
+        req.setRating(5);
+        req.setComment("Great book!");
+        Book book = listedBook();
+        book.setIsDelete(true);
+
+        when(bookService.getBookById(1L)).thenReturn(book);
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> reviewService.addReview(1L, req, testUser));
-        assertEquals(ErrorCode.OPERATION_ERROR.getCode(), exception.getCode());
+        assertEquals(ErrorCode.NOT_FOUND_ERROR.getCode(), exception.getCode());
+        verify(reviewMapper, never()).insertReview(any(Review.class));
+    }
+
+    private static Book listedBook() {
+        Book book = new Book();
+        book.setBookId(1L);
+        book.setQuantity(1);
+        book.setAvailable(true);
+        book.setIsDelete(false);
+        return book;
     }
 
     @Test
@@ -144,7 +176,7 @@ class ReviewServiceImplTest {
         req.setRating(5);
         req.setComment("Great book!");
 
-        when(bookService.isBookAvailable(1L)).thenReturn(true);
+        when(bookService.getBookById(1L)).thenReturn(listedBook());
         when(reviewMapper.insertReview(any(Review.class))).thenReturn(0);
 
         BusinessException exception = assertThrows(BusinessException.class,

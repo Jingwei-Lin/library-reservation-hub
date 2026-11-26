@@ -11,6 +11,7 @@ import com.comp5619.libraryreservationreviewhub.mapper.ReviewMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
+import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.Review;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
@@ -43,10 +44,13 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Adding review for bookId: {}, userId: {}", bookId, (user != null ? user.getId() : null));
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
-        ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Reservation details are required");
+        ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Review details are required");
+        checkRatingAndComment(req.getRating(), req.getComment());
 
-        // Check if book is available
-        ThrowUtils.throwIf(!bookService.isBookAvailable(bookId), ErrorCode.OPERATION_ERROR, "Book is not available");
+        // Any listed book can be reviewed, whether or not a copy is on the shelf right now (readers review books
+        // they have borrowed); a deleted book is "not found", as everywhere else for users
+        Book book = bookService.getBookById(bookId);
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR, "Book not found");
 
         // Create review
         Review review = new Review();
@@ -141,8 +145,7 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Attempting to update reviewId: {} for userId: {}", req.getReviewId(), (user != null ? user.getId() : null));
         ThrowUtils.throwIf(req == null || req.getReviewId() <= 0, ErrorCode.PARAMS_ERROR, "Invalid review ID");
         ThrowUtils.throwIf(user == null || user.getId() == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
-        ThrowUtils.throwIf(req.getRating() == null || req.getRating() < 1 || req.getRating() > 5, ErrorCode.PARAMS_ERROR, "Rating must be between 1 and 5");
-        ThrowUtils.throwIf(StrUtil.isBlank(req.getComment()), ErrorCode.PARAMS_ERROR, "Comment cannot be empty");
+        checkRatingAndComment(req.getRating(), req.getComment());
 
         Review existing = reviewMapper.selectById(req.getReviewId());
         ThrowUtils.throwIf(existing == null, ErrorCode.NOT_FOUND_ERROR, "Review not found");
@@ -158,6 +161,17 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("Updated reviewId: {}, rows affected: {}", req.getReviewId(), rows);
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to update review");
         return true;
+    }
+
+    /** The same rules for a new review and an edit */
+    static final int MAX_COMMENT_LENGTH = 1000;
+
+    private static void checkRatingAndComment(Integer rating, String comment) {
+        ThrowUtils.throwIf(rating == null || rating < 1 || rating > 5, ErrorCode.PARAMS_ERROR,
+                "Rating must be between 1 and 5");
+        ThrowUtils.throwIf(StrUtil.isBlank(comment), ErrorCode.PARAMS_ERROR, "Comment cannot be empty");
+        ThrowUtils.throwIf(comment.length() > MAX_COMMENT_LENGTH, ErrorCode.PARAMS_ERROR,
+                "Comment must be at most " + MAX_COMMENT_LENGTH + " characters");
     }
 
     @Override

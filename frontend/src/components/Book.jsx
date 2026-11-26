@@ -698,6 +698,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                                     onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                                     required
                                     placeholder="Write your review here..."
+                                    maxLength={1000}
                                     aria-label="Write your review"
                                 />
                             </div>

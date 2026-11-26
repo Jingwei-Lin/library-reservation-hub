@@ -13,7 +13,7 @@ import NumericStepper from './NumericStepper';
  * - user: 当前登录用户信息（含 isAdmin / userRole）
  * - isAuthenticated: 是否已登录
  */
-const AdminDashboard = ({ user, isAuthenticated }) => {
+const AdminDashboard = ({ user, isAuthenticated, onSignOut }) => {
   const navigate = useNavigate();
 
   // helper: case-insensitive substring match
@@ -97,7 +97,7 @@ useEffect(() => {
         setUsersTotal(res.data.total ?? 0);
         await enrichUsersWithStatus(records);
       } else {
-        setUsersError(res?.msg || 'Failed to load users');
+        setUsersError(res?.message || 'Failed to load users');
         setUsers([]); setUsersOriginal([]); setUsersTotal(0);
       }
     } catch (err) {
@@ -190,7 +190,7 @@ useEffect(() => {
         await fetchUsers();
         setTimeout(() => setUsersSuccess(''), 2000);
       } else {
-        setUsersError(res?.message || res?.msg || 'Update failed');
+        setUsersError(res?.message || 'Update failed');
       }
     } catch (err) {
       setUsersError(err.message || 'Update failed');
@@ -228,7 +228,7 @@ useEffect(() => {
         await fetchUsers();
         setTimeout(() => setUsersSuccess(''), 2000);
       } else {
-        setUsersError(res?.message || res?.msg || 'Failed to update user status');
+        setUsersError(res?.message || 'Failed to update user status');
       }
     } catch (err) {
       setUsersError(err.message || 'Failed to update user status');
@@ -279,7 +279,7 @@ useEffect(() => {
         setBooksOriginal(records);
         setBooksTotal(res.data.total ?? 0);
       } else {
-        setBooksError(res?.msg || 'Failed to load books');
+        setBooksError(res?.message || 'Failed to load books');
         setBooks([]); setBooksOriginal([]); setBooksTotal(0);
       }
     } catch (err) {
@@ -344,7 +344,7 @@ useEffect(() => {
         await fetchBooks();
         setTimeout(() => setBooksSuccess(''), 2000);
       } else {
-        setBooksError(res?.msg || 'Update failed');
+        setBooksError(res?.message || 'Update failed');
       }
     } catch (err) {
       setBooksError(err.message || 'Update failed');
@@ -363,7 +363,7 @@ useEffect(() => {
         await fetchBooks();
         setTimeout(() => setBooksSuccess(''), 2000);
       } else {
-        setBooksError(res?.msg || 'Delete failed');
+        setBooksError(res?.message || 'Delete failed');
       }
     } catch (err) {
       setBooksError(err.message || 'Delete failed');
@@ -382,7 +382,7 @@ useEffect(() => {
         await fetchBooks();
         setTimeout(() => setBooksSuccess(''), 2000);
       } else {
-        setBooksError(res?.msg || 'Restore failed');
+        setBooksError(res?.message || 'Restore failed');
       }
     } catch (err) {
       setBooksError(err.message || 'Restore failed');
@@ -467,7 +467,7 @@ useEffect(() => {
         setReviews(enriched);
         setReviewsOriginal(enriched);
       } else {
-        setRvError(res?.msg || 'Failed to load reviews');
+        setRvError(res?.message || 'Failed to load reviews');
         setReviews([]); setReviewsOriginal([]); setRvTotal(0);
       }
     } catch (err) {
@@ -600,7 +600,7 @@ useEffect(() => {
     const PAGE_SIZE = 100; // 提高每页数量，减少请求次数
     const first = await adminUserService.listUsersPage({ current: 1, pageSize: PAGE_SIZE });
     if (!(first && first.code === 0 && first.data)) {
-      throw new Error(first?.msg || 'Failed to load users');
+      throw new Error(first?.message || 'Failed to load users');
     }
     const total = Number(first.data.total ?? 0);
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -788,7 +788,10 @@ useEffect(() => {
   // ====== UI Rendering ======
   return (
     <div className="admin-container">
-      <h2 className="page-title">Admin Panel</h2>
+      <div className="admin-title-row">
+        <h2 className="page-title">Admin Panel</h2>
+        <button className="btn btn-secondary admin-sign-out" onClick={() => onSignOut('/admin/login')}>Sign out</button>
+      </div>
 
       {/* 用户管理区块 */}
       <div className="admin-section">
@@ -810,13 +813,13 @@ useEffect(() => {
         <table className="admin-table users-table">
           <thead>
             <tr>
-              <th></th><th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
+              <th>ID</th><th>Account</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
               </tr>
             ) : filteredUsers.map((u, idx) => (
               <tr key={u.id || idx}>
@@ -883,13 +886,13 @@ useEffect(() => {
         <table className="admin-table reviews-table">
           <thead>
             <tr>
-              <th></th><th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
+              <th>ID</th><th>Book</th><th>User</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredReviews.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                <td colSpan={7} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
               </tr>
             ) : filteredReviews.map((r, idx) => (
               <tr key={r.reviewId || idx}>
@@ -940,8 +943,7 @@ useEffect(() => {
         <table className="admin-table waitinglist-table">
           <thead>
             <tr>
-              <th></th>
-              <th></th>
+              <th>ID</th>
               <th>User</th>
               <th>Book</th>
               <th>Join Date</th>
@@ -1001,13 +1003,13 @@ useEffect(() => {
         <table className="admin-table books-table">
           <thead>
             <tr>
-              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>Quantity</th><th>Held</th><th>Available</th><th>Actions</th>
+              <th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>Quantity</th><th>Held</th><th>Available</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredBooks.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
               </tr>
             ) : filteredBooks.map((b, idx) => (
               <tr key={b.bookId || idx}>
@@ -1068,7 +1070,6 @@ useEffect(() => {
         <table className="admin-table reservations-table">
           <thead>
             <tr>
-              <th></th>
               <th>User ID</th>
               <th>Book Title</th>
               <th>Borrowed Date</th>
@@ -1083,7 +1084,7 @@ useEffect(() => {
               if (pageItems.length === 0) {
                 return (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                    <td colSpan={5} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
                   </tr>
                 );
               }

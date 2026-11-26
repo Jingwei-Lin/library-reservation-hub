@@ -24,7 +24,7 @@ const AdminLogin = ({ setIsAuthenticated, setUser }) => {
       const data = await loginUser({ userAccount: adminForm.userAccount, userPassword: adminForm.userPassword });
       const isAdminFlag = data?.isAdmin === true || data?.userRole === 'admin';
       if (!isAdminFlag) {
-        setAdminError('该账户非管理员');
+        setAdminError('This account is not an administrator.');
         return;
       }
       sessionStorage.setItem('user', JSON.stringify(data));
@@ -33,7 +33,7 @@ const AdminLogin = ({ setIsAuthenticated, setUser }) => {
       // back to the admin page the session ended on, if any
       navigate(safeRedirect(searchParams.get('redirect'), '/admin/dashboard'), { replace: true });
     } catch (err) {
-      setAdminError(err.message || '登录失败');
+      setAdminError(err.message || 'Sign-in failed');
     } finally {
       setAdminLoading(false);
     }

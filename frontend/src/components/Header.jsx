@@ -25,7 +25,7 @@ const Header = ({ user, onSignOut, isAuthenticated, searchTerm, setSearchTerm, h
     // the app's one sign-out: ends the session, clears the user and the chat, back to the books
     const handleLogout = async () => {
         setIsPanelOpen(false);
-        await onSignOut();
+        await onSignOut('/dashboard');
     };
 
     const handleLoginRedirect = () => {

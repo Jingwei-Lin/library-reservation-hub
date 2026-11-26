@@ -52,12 +52,13 @@ function AppRoutes() {
         setIsAuthenticated(false);
     }, []);
 
-    // The Sign out button: end the server session, forget the user, back to the books as a guest
-    const signOut = useCallback(async () => {
+    // The Sign out buttons: end the server session, forget the user, then go to `destination` (the books as a
+    // guest; the admin page goes to the admin sign-in)
+    const signOut = useCallback(async (destination = '/dashboard') => {
         await logoutUser();
         clearSignedIn();
         setNotice(null);
-        navigate('/dashboard');
+        navigate(destination);
     }, [clearSignedIn, navigate]);
 
     // The shared API client calls this when the server says the session has ended (40100) or the account is
@@ -162,7 +163,7 @@ function AppRoutes() {
                 <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} />} />
                 <Route path="/profile" element={<Profile user={user} />} />
                 <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} onSignOut={signOut} />} />
                 <Route path="/admin" element={<Navigate to="/admin/login" />} />
             </Routes>
         </div>

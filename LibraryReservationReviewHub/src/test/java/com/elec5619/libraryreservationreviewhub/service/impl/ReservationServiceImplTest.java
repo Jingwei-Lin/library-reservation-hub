@@ -239,7 +239,7 @@ class ReservationServiceImplTest {
     @Test
     void getReservationsByUser_Success() {
         when(reservationMapper.selectByUserId(1L)).thenReturn(List.of(testReservation));
-        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(bookService.getBooksByIds(Set.of(1L))).thenReturn(List.of(testBook));
 
         List<ReservationVO> result = reservationService.getReservationsByUser(1L);
 
@@ -255,7 +255,7 @@ class ReservationServiceImplTest {
 
         when(userService.isAdmin(testUser)).thenReturn(true);
         when(reservationMapper.selectAll()).thenReturn(List.of(testReservation));
-        when(bookService.getBookById(1L)).thenReturn(testBook);
+        when(bookService.getBooksByIds(Set.of(1L))).thenReturn(List.of(testBook));
 
         PageResult<ReservationVO> result = reservationService.getAllReservations(pageRequest, testUser);
 

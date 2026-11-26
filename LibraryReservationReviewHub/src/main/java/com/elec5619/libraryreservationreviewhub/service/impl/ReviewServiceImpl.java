@@ -25,6 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,6 +93,12 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public ReviewVO getReviewVO(Review review) {
         if (review == null) return null;
+        ReviewVO vo = toVO(review);
+        return withUserName(vo, userService.getById(review.getUserId()));
+    }
+
+    /** The review's own fields; the author's name is added by the caller */
+    private ReviewVO toVO(Review review) {
         ReviewVO vo = new ReviewVO();
         BeanUtils.copyProperties(review, vo);
 
@@ -99,9 +108,10 @@ public class ReviewServiceImpl implements ReviewService {
         vo.setUserId(review.getUserId());
         vo.setComment(review.getComment());
         vo.setRating(review.getRating());
+        return vo;
+    }
 
-        // Fetch user to get name
-        User user = userService.getById(review.getUserId());
+    private ReviewVO withUserName(ReviewVO vo, User user) {
         if (user != null) {
             vo.setUserName(user.getFirstName() + " " + user.getLastName());
         } else {
@@ -118,8 +128,12 @@ public class ReviewServiceImpl implements ReviewService {
         if (CollUtil.isEmpty(reviews)) {
             return CollUtil.newArrayList();
         }
+        // every author in one query, not one per review
+        Set<Long> userIds = reviews.stream().map(Review::getUserId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, User> users = userIds.isEmpty() ? Map.of()
+                : userService.listByIds(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
         return reviews.stream()
-                .map(this::getReviewVO)
+                .map(r -> withUserName(toVO(r), users.get(r.getUserId())))
                 .collect(Collectors.toList());
     }
 

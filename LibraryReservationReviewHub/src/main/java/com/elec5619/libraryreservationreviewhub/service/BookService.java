@@ -16,6 +16,9 @@ public interface BookService {
     boolean updateBook(Book book, User operator);
     Book getBookById(Long id);
 
+    /** Several books by id in one query, deleted ones included; ids with no book are left out */
+    List<Book> getBooksByIds(java.util.Collection<Long> ids);
+
     BookVO getBookVO(Book book);
     List<BookVO> getBookVOList(List<Book> books);
 

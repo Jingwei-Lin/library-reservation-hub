@@ -19,6 +19,17 @@ public interface BookMapper {
         """)
     Book selectById(@Param("id") Long id);
 
+    /** Several books by id, deleted ones included, in no set order */
+    @Select("""
+        <script>
+        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
+        FROM book
+        WHERE book_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </script>
+        """)
+    List<Book> selectByIds(@Param("ids") java.util.Collection<Long> ids);
+
     /** Reads the book and locks its row until the transaction ends, so stock changes on it run one at a time */
     @Select("""
         SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete

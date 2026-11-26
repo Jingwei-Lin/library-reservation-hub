@@ -146,6 +146,14 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    public List<Book> getBooksByIds(java.util.Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return bookMapper.selectByIds(ids);
+    }
+
+    @Override
     public Book getBookById(Long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Book b = bookMapper.selectById((Long) id);

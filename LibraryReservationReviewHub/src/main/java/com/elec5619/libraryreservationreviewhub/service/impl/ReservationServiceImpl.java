@@ -188,9 +188,7 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
         List<Reservation> reservations = reservationMapper.selectByUserId(userId);
         log.info("Fetched reservations for userId {}: {}", userId, reservations);
-        return reservations.stream()
-                .map(this::toReservationVO)
-                .collect(Collectors.toList());
+        return toReservationVOs(reservations);
     }
 
     @Override
@@ -205,11 +203,23 @@ public class ReservationServiceImpl implements ReservationService {
         List<Reservation> pageList = total == 0 ? List.of() : reservations.subList(fromIndex, toIndex);
         return new PageResult<>(current, pageSize,
                 total,
-                pageList.stream().map(this::toReservationVO).collect(java.util.stream.Collectors.toList()));
+                toReservationVOs(pageList));
+    }
+
+    /** Reservations as views, with their books' titles from one query */
+    private List<ReservationVO> toReservationVOs(List<Reservation> reservations) {
+        java.util.Map<Long, Book> books = bookService.getBooksByIds(
+                        reservations.stream().map(Reservation::getBookId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(Book::getBookId, b -> b));
+        return reservations.stream().map(r -> toReservationVO(r, books.get(r.getBookId()))).collect(Collectors.toList());
     }
 
     @Override
     public ReservationVO toReservationVO(Reservation reservation) {
+        return toReservationVO(reservation, bookService.getBookById(reservation.getBookId()));
+    }
+
+    private ReservationVO toReservationVO(Reservation reservation, Book book) {
         ReservationVO vo = new ReservationVO();
         BeanUtils.copyProperties(reservation, vo, "reservationTime", "pickupTime", "dueTime", "reservationStatus");
         vo.setReservationId(reservation.getReservationId());
@@ -219,7 +229,6 @@ public class ReservationServiceImpl implements ReservationService {
         vo.setPickupTime(reservation.getPickupTime());
         vo.setDueTime(reservation.getDueTime());
         vo.setReservationStatus(reservation.getReservationStatus());
-        Book book = bookService.getBookById(reservation.getBookId());
         vo.setBookTitle(book != null ? book.getTitle() : "Unknown");
         log.info("Mapped ReservationVO: {}", vo);
         return vo;

@@ -265,7 +265,8 @@ class ReviewServiceImplTest {
     @Test
     void getReviewVOList_Success() {
         List<Review> reviews = Collections.singletonList(testReview);
-        when(userService.getById(1L)).thenReturn(testUser);
+        // the authors are read in one query
+        when(userService.listByIds(Set.of(1L))).thenReturn(List.of(testUser));
 
         List<ReviewVO> vos = reviewService.getReviewVOList(reviews);
 
@@ -282,7 +283,8 @@ class ReviewServiceImplTest {
     @Test
     void getReviewsByBookId_Success() {
         when(reviewMapper.selectByBookId(1L)).thenReturn(Collections.singletonList(testReview));
-        when(userService.getById(1L)).thenReturn(testUser);
+        // the authors are read in one query
+        when(userService.listByIds(Set.of(1L))).thenReturn(List.of(testUser));
 
         List<ReviewVO> vos = reviewService.getReviewsByBookId(1L);
 
@@ -299,7 +301,8 @@ class ReviewServiceImplTest {
     @Test
     void getReviewsByUserId_Success() {
         when(reviewMapper.selectByUserId(1L)).thenReturn(Collections.singletonList(testReview));
-        when(userService.getById(1L)).thenReturn(testUser);
+        // the authors are read in one query
+        when(userService.listByIds(Set.of(1L))).thenReturn(List.of(testUser));
 
         List<ReviewVO> vos = reviewService.getReviewsByUserId(1L);
 
@@ -467,7 +470,8 @@ class ReviewServiceImplTest {
 
         when(reviewMapper.countAllByQuery(1L, null, 4, 5)).thenReturn(1L);
         when(reviewMapper.selectAllByQuery(1L, null, 4, 5, 0L, 10)).thenReturn(Collections.singletonList(testReview));
-        when(userService.getById(1L)).thenReturn(testUser);
+        // the authors are read in one query
+        when(userService.listByIds(Set.of(1L))).thenReturn(List.of(testUser));
 
         PageResult<ReviewVO> result = reviewService.listByPage(req);
 

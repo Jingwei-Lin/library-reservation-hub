@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The AI assistant's user tool: the signed-in user's profile, reservations and reviews.
@@ -89,25 +90,24 @@ public class UserInfoTool {
             List<ReviewVO> reviews = reviewService.getReviewsByUserId(userId);
 
             // the books they reserved
-            Map<Long, Book> borrowedBooks = new HashMap<>();
-            if (reservations != null) {
-                for (ReservationVO r : reservations) {
-                    Book b = bookService.getBookById(r.getBookId());
-                    if (b != null) borrowedBooks.put(b.getBookId(), b);
-                }
-            }
+            List<Book> borrowedBooks = reservations == null || reservations.isEmpty() ? List.of()
+                    : bookService.getBooksByIds(reservations.stream().map(ReservationVO::getBookId).collect(Collectors.toSet()));
 
             Map<String, Object> result = new HashMap<>();
             result.put("status", "logged_in");
             result.put("userInfo", userVO);
             result.put("borrowHistory", reservations);
             result.put("reviews", reviews);
-            result.put("borrowedBooks", borrowedBooks.values());
+            result.put("borrowedBooks", borrowedBooks);
 
             return JSONUtil.toJsonPrettyStr(result);
 
         } catch (Exception e) {
-            return "{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}";
+            // built by the JSON library, so quotes in the message can't break it
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", String.valueOf(e.getMessage()));
+            return JSONUtil.toJsonStr(error);
         }
     }
 }

@@ -74,8 +74,11 @@ class UserInfoToolIntegrationTest {
         // no services injected, so the lookup throws
         UserInfoTool brokenTool = new UserInfoTool();
 
-        // checked as text: the tool puts the exception message into its JSON unescaped
-        assertThat(brokenTool.getUserInfo(context(1L))).startsWith("{\"status\":\"error\"");
+        // valid JSON even though the exception's message contains quotes
+        JSONObject json = JSONUtil.parseObj(brokenTool.getUserInfo(context(1L)));
+
+        assertThat(json.getStr("status")).isEqualTo("error");
+        assertThat(json.getStr("message")).contains("\"");
     }
 
     private static ToolContext context(Long userId) {

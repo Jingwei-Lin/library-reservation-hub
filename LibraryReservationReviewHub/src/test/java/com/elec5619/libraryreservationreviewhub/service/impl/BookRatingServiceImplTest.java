@@ -152,8 +152,8 @@ class BookRatingServiceImplTest {
         b8.setGenre("SE"); b8.setDescription("Refactor techniques.");
         b8.setPath("refactoring.jpg"); b8.setQuantity(2); b8.setHeldQuantity(0); b8.setAvailable(true);
 
-        when(bookMapper.selectById(7L)).thenReturn(b7);
-        when(bookMapper.selectById(8L)).thenReturn(b8);
+        // one query; its rows come back in another order, the rating order is kept
+        when(bookMapper.selectByIds(List.of(7L, 8L))).thenReturn(List.of(b8, b7));
 
         List<BookWithRatingVO> out = service.top10Books();
         assertEquals(2, out.size());
@@ -183,12 +183,11 @@ class BookRatingServiceImplTest {
         BookRating r2 = new BookRating(); r2.setBookId(200L); r2.setAvgRating(new BigDecimal("4.4"));
         when(bookRatingMapper.selectList(any())).thenReturn(List.of(r1, r2));
 
-        // the first book is missing (the mapper returns null), the second exists
-        when(bookMapper.selectById(100L)).thenReturn(null);
+        // the first book is missing (the query doesn't return it), the second exists
 
         Book b200 = new Book();
         b200.setBookId(200L); b200.setTitle("Some Book"); b200.setAuthor("Some Author");
-        when(bookMapper.selectById(200L)).thenReturn(b200);
+        when(bookMapper.selectByIds(List.of(100L, 200L))).thenReturn(List.of(b200));
 
         List<BookWithRatingVO> out = service.top10Books();
         assertEquals(1, out.size());

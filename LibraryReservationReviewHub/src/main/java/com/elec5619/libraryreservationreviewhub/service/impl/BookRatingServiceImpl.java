@@ -111,10 +111,13 @@ public class BookRatingServiceImpl implements BookRatingService {
 
         List<BookRating> ratings = bookRatingMapper.selectList(qw);
 
-        // then each book, in that order (only 10 queries)
+        // then their books, in one query, kept in rating order
+        Map<Long, Book> books = ratings.isEmpty() ? Map.of()
+                : bookMapper.selectByIds(ratings.stream().map(BookRating::getBookId).toList()).stream()
+                        .collect(Collectors.toMap(Book::getBookId, b -> b));
         List<BookWithRatingVO> res = new ArrayList<>(ratings.size());
         for (BookRating r : ratings) {
-            Book book = bookMapper.selectById(r.getBookId());
+            Book book = books.get(r.getBookId());
             if (book == null) { // a rating without its book
                 continue;
             }

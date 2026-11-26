@@ -49,6 +49,9 @@ public interface WaitingListService extends IService<WaitingList> {
     /** Leaves the queue; a copy held for the user passes to the next person */
     void leave(Long userId, Long bookId);
 
-    /**Automatically update the status of the waiting list**/
-    int cancelStaleWaiting();
+    /**
+     * Ends the holds that are older than {@link com.comp5619.libraryreservationreviewhub.service.StockService#HOLD_DAYS}
+     * days; each copy passes to the next person waiting. Returns how many ended.
+     */
+    int expireHolds();
 }

@@ -264,11 +264,21 @@ public class WaitingListServiceImpl
         stockService.cancelWaiting(bookId, userId);
     }
 
+    /** Each hold ends in its own transaction (StockService.expireHold), so one failure doesn't undo the rest */
     @Override
-    public int cancelStaleWaiting() {
-        int rows = baseMapper.cancelStaleWaiting();
-        log.info("Cancelled {} stale waiting-list records (>7 days).", rows);
-        return rows;
+    public int expireHolds() {
+        int ended = 0;
+        for (WaitingList hold : baseMapper.selectExpiredHolds(StockService.HOLD_DAYS)) {
+            try {
+                if (stockService.expireHold(hold.getWaitId(), hold.getBookId())) {
+                    ended++;
+                }
+            } catch (RuntimeException e) {
+                log.warn("Could not end hold {} on book {}", hold.getWaitId(), hold.getBookId(), e);
+            }
+        }
+        log.info("Ended {} holds older than {} days", ended, StockService.HOLD_DAYS);
+        return ended;
     }
 
 }

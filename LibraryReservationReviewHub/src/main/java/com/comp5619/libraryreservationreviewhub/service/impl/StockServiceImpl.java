@@ -83,6 +83,20 @@ public class StockServiceImpl implements StockService {
         }
     }
 
+    @Override
+    @Transactional
+    public boolean expireHold(Long waitId, Long bookId) {
+        Book book = lockBook(bookId);
+        if (waitingListMapper.expireHold(waitId, HOLD_DAYS) == 0) {
+            return false;
+        }
+        if (bookMapper.decrementHeldQuantity(bookId) > 0) {
+            passOn(book);
+        }
+        log.info("Hold {} on book {} ran out after {} days", waitId, bookId, HOLD_DAYS);
+        return true;
+    }
+
     /** Gives one copy to the first person waiting, or puts it on the shelf. The caller holds the book lock. */
     private void passOn(Book book) {
         Long bookId = book.getBookId();

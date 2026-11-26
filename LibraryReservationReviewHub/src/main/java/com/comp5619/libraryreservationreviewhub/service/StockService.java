@@ -15,6 +15,9 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Book;
  */
 public interface StockService {
 
+    /** How long a copy stays held for a notified user before it passes on (plan D3) */
+    int HOLD_DAYS = 3;
+
     /** Reads the book and locks its row until the transaction ends. Not found → NOT_FOUND_ERROR. */
     Book lockBook(Long bookId);
 
@@ -32,4 +35,10 @@ public interface StockService {
 
     /** New copies from an admin: each goes to the next person waiting, the rest to the shelf. */
     void addCopies(Long bookId, int count);
+
+    /**
+     * Ends one hold that is older than {@link #HOLD_DAYS}: the entry is cancelled and the copy passes on.
+     * Returns false when the entry changed in the meantime (reserved, cancelled, or not yet expired).
+     */
+    boolean expireHold(Long waitId, Long bookId);
 }

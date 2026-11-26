@@ -117,7 +117,14 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                         <tr key={item.waitId}>
                             <td>{item.bookTitle || 'Unknown'}</td>
                             <td>{item.joinDate ? new Date(item.joinDate).toLocaleDateString() : 'N/A'}</td>
-                            <td>{formatStatus(item.status)}</td>
+                            <td>
+                                {formatStatus(item.status)}
+                                {item.status === "notified" && item.holdExpiresAt && (
+                                    <div className="hold-deadline">
+                                        A copy is held for you. Reserve by {new Date(item.holdExpiresAt).toLocaleString()}
+                                    </div>
+                                )}
+                            </td>
                             <td>
                                 {item.status === "notified" && item.notificationDate
                                     ? new Date(item.notificationDate).toLocaleDateString()

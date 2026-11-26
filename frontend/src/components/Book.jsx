@@ -19,6 +19,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
     const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
     const [isOnWaitingList, setIsOnWaitingList] = useState(false);
     const [isNotified, setIsNotified] = useState(false);
+    const [holdExpiresAt, setHoldExpiresAt] = useState(null);
     const [waitingStatus, setWaitingStatus] = useState(null);
     const [hasActiveReservation, setHasActiveReservation] = useState(false);
     const [autoOpenReserve, setAutoOpenReserve] = useState(false);
@@ -105,6 +106,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                         if (waitItem) {
                             setIsOnWaitingList(waitItem.status === "waiting" || waitItem.status === "notified");
                             setIsNotified(waitItem.status === "notified");
+                            setHoldExpiresAt(waitItem.status === "notified" ? waitItem.holdExpiresAt : null);
                             setWaitingStatus(waitItem.status);
                         } else {
                             setIsOnWaitingList(false);
@@ -627,6 +629,11 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                                         <p className="waiting-status">
                                             You are on the waiting list. Status: {waitingStatus?.charAt(0).toUpperCase() + waitingStatus?.slice(1)}
                                         </p>
+                                        {isNotified && holdExpiresAt && (
+                                            <p className="hold-deadline">
+                                                A copy is held for you. Reserve by {new Date(holdExpiresAt).toLocaleString()}
+                                            </p>
+                                        )}
                                         {isNotified && (
                                             <button
                                                 className="reserve-button"

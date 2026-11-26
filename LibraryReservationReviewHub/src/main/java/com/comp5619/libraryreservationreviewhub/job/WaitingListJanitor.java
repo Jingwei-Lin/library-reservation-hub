@@ -13,10 +13,13 @@ public class WaitingListJanitor {
 
     private final WaitingListService waitingListService;
 
-    // 每天 03:15 触发（
-    @Scheduled(cron = "0 15 3 * * ?")
+    /**
+     * Every hour at :15, ends the holds that ran out (3 days after the notification) and passes each copy to
+     * the next person waiting. Hourly, so a hold lasts 3 days and at most an hour more.
+     */
+    @Scheduled(cron = "0 15 * * * ?")
     public void cancelOverdue() {
-        int rows = waitingListService.cancelStaleWaiting();
-        log.info("WaitingListJanitor ran: {} rows cancelled.", rows);
+        int ended = waitingListService.expireHolds();
+        log.info("WaitingListJanitor ran: {} holds ended.", ended);
     }
 }

@@ -220,6 +220,13 @@
     box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
 }
 
+.hold-deadline {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success);
+}
+
 .loading, .error, .no-waiting-items {
     text-align: center;
     padding: 3rem;

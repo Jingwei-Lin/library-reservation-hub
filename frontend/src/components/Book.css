@@ -266,6 +266,12 @@
     box-shadow: 0 8px 25px rgba(230, 57, 70, 0.3);
 }
 
+.hold-deadline {
+    margin: 0.5rem 0;
+    font-weight: 600;
+    color: var(--success);
+}
+
 .waiting-status, .reservation-status {
     margin: 1rem 0;
     font-weight: 600;

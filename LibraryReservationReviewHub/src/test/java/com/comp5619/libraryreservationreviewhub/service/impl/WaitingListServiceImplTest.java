@@ -230,13 +230,35 @@ class WaitingListServiceImplTest {
         verify(stockService).cancelWaiting(200L, 1L);
     }
 
-    /* -------------------- cancelStaleWaiting -------------------- */
+    /* -------------------- expireHolds -------------------- */
 
     @Test
-    void cancelStaleWaiting_success() {
-        when(waitingListMapper.cancelStaleWaiting()).thenReturn(3);
-        int rows = service.cancelStaleWaiting();
-        assertEquals(3, rows);
-        verify(waitingListMapper).cancelStaleWaiting();
+    void expireHolds_endsEachHoldThroughTheStockService() {
+        WaitingList first = new WaitingList();
+        first.setWaitId(1L);
+        first.setBookId(10L);
+        WaitingList second = new WaitingList();
+        second.setWaitId(2L);
+        second.setBookId(20L);
+        when(waitingListMapper.selectExpiredHolds(3)).thenReturn(List.of(first, second));
+        when(stockService.expireHold(1L, 10L)).thenReturn(true);
+        when(stockService.expireHold(2L, 20L)).thenReturn(false);   // reserved in the meantime
+
+        assertEquals(1, service.expireHolds());
+    }
+
+    @Test
+    void expireHolds_oneFailureDoesNotStopTheRest() {
+        WaitingList first = new WaitingList();
+        first.setWaitId(1L);
+        first.setBookId(10L);
+        WaitingList second = new WaitingList();
+        second.setWaitId(2L);
+        second.setBookId(20L);
+        when(waitingListMapper.selectExpiredHolds(3)).thenReturn(List.of(first, second));
+        when(stockService.expireHold(1L, 10L)).thenThrow(new RuntimeException("deadlock"));
+        when(stockService.expireHold(2L, 20L)).thenReturn(true);
+
+        assertEquals(1, service.expireHolds());
     }
 }

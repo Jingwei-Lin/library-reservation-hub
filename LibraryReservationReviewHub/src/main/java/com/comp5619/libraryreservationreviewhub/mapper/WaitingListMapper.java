@@ -25,8 +25,21 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
     /** The user's WAITING entries with their place in each queue and the book's stock. Read-only. */
     List<NotifyEligibilityVO> selectNotifyEligibilityForUser(@Param("userId") Long userId);
 
-    /** 将超过 7 天仍为 waiting 的记录置为 cancelled，返回受影响行数 */
-    int cancelStaleWaiting();
+    /** Notified entries whose hold is older than {@code days}: candidates for StockService.expireHold */
+    @Select("""
+        SELECT wait_id AS waitId, user_id AS userId, book_id AS bookId, status
+        FROM waiting_list
+        WHERE status = 'notified' AND notification_date < NOW() - INTERVAL #{days} DAY
+        ORDER BY notification_date
+        """)
+    List<WaitingList> selectExpiredHolds(@Param("days") int days);
+
+    /** Ends a hold, if it is still notified and still older than {@code days} (called with the book locked) */
+    @Update("""
+        UPDATE waiting_list SET status = 'cancelled', is_notified = FALSE
+        WHERE wait_id = #{waitId} AND status = 'notified' AND notification_date < NOW() - INTERVAL #{days} DAY
+        """)
+    int expireHold(@Param("waitId") Long waitId, @Param("days") int days);
 
     /** Ends a deleted book's queue: its waiting and notified entries are cancelled */
     @Update("""

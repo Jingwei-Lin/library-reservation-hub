@@ -206,7 +206,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                                         )}
                                     </>
                                 )}
-                                {["reserved", "borrowed"].includes(res.reservationStatus) &&
+                                {/* a borrowed copy comes back through the library's Confirm Return, not Cancel */}
+                                {res.reservationStatus === "reserved" &&
                                     updatingPickup !== res.reservationId && (
                                         <button
                                             onClick={() => handleCancel(res.reservationId)}

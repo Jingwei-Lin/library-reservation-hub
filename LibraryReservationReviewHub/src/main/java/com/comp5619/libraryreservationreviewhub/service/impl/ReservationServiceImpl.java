@@ -39,9 +39,9 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public Long createReservation(Long bookId, ReservationAddRequest req, User user) {
+        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         log.info("Creating reservation for bookId: {}, userId: {}", bookId, user.getId());
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
-        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
         ThrowUtils.throwIf(req == null, ErrorCode.PARAMS_ERROR, "Reservation details are required");
 
@@ -116,56 +116,56 @@ public class ReservationServiceImpl implements ReservationService {
         return reservation.getReservationId();
     }
 
+    /**
+     * A user cancels their own reservation (an admin may cancel anyone's). Only a reserved one: a borrowed copy
+     * is at the reader's home and comes back through the admin's Confirm Return.
+     */
     @Override
     @Transactional
     public boolean cancelReservation(Long reservationId, User user) {
+        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         log.info("Attempting to cancel reservationId: {} for userId: {}", reservationId, user.getId());
         ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR,
                 "Invalid reservation ID");
-        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
 
         Reservation reservation = reservationMapper.selectById(reservationId);
-        log.info("Fetched reservation: {}", reservation);
         ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR,
                 "Reservation not found or already cancelled");
         ThrowUtils.throwIf(!reservation.getUserId().equals(user.getId()) && !userService.isAdmin(user),
                 ErrorCode.NO_AUTH_ERROR, "Not authorized to cancel this reservation");
-
-        // Update book quantity if reservation is active
         String status = reservation.getReservationStatus();
-        if (status != null && List.of("reserved", "borrowed").contains(status)) {
-            stockService.giveBackCopy(reservation.getBookId());
-        } else {
-            log.info("Reservation status {} does not require book quantity update", status);
-        }
+        ThrowUtils.throwIf("borrowed".equals(status), ErrorCode.OPERATION_ERROR,
+                "A borrowed book is returned at the library, not cancelled");
+        ThrowUtils.throwIf(!"reserved".equals(status), ErrorCode.OPERATION_ERROR,
+                "Only a reserved reservation can be cancelled");
 
-        // Update reservation status to 'cancelled'
-        int rows = reservationMapper.cancelById(reservationId);
-        log.info("Updated reservation status to 'cancelled', rows affected: {}", rows);
-        ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to cancel reservation in database");
+        changeStatus(reservation, "cancelled");
         return true;
     }
 
+    /**
+     * The admin's status changes. Only the ones the library has: reserved → borrowed (Confirm Borrow; the
+     * reader's dates are kept), reserved → cancelled and borrowed → returned (both give the copy back).
+     * Anything else, including "overdue", which the schema doesn't have, is refused.
+     */
     @Override
     @Transactional
     public boolean updateReservationStatus(Long reservationId, String status, User user) {
         ThrowUtils.throwIf(reservationId == null || reservationId <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(!userService.isAdmin(user), ErrorCode.NO_AUTH_ERROR);
-        ThrowUtils.throwIf(!List.of("reserved", "borrowed", "returned", "overdue", "cancelled").contains(status),
+        ThrowUtils.throwIf(!List.of("reserved", "borrowed", "returned", "cancelled").contains(status),
                 ErrorCode.PARAMS_ERROR, "Invalid status");
 
         Reservation reservation = reservationMapper.selectById(reservationId);
         ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR);
 
-        if ("returned".equals(status) && "borrowed".equals(reservation.getReservationStatus())) {
-            stockService.giveBackCopy(reservation.getBookId());
-        } else if ("borrowed".equals(status) && "reserved".equals(reservation.getReservationStatus())) {
-            reservation.setPickupTime(new Date());
-            long dueTimeMillis = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000;
-            reservation.setDueTime(new Date(dueTimeMillis));
-        }
+        String from = reservation.getReservationStatus();
+        boolean allowed = ("reserved".equals(from) && ("borrowed".equals(status) || "cancelled".equals(status)))
+                || ("borrowed".equals(from) && "returned".equals(status));
+        ThrowUtils.throwIf(!allowed, ErrorCode.PARAMS_ERROR, "A reservation can't go from " + from + " to " + status);
 
-        return reservationMapper.updateStatus(reservationId, status) > 0;
+        changeStatus(reservation, status);
+        return true;
     }
 
     @Override
@@ -233,14 +233,13 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public boolean updatePickupTime(ReservationUpdatePickupRequest req, User user) {
-        log.info("Attempting to update pickup time for reservationId: {} by userId: {}",
-                req.getReservationId(), user.getId());
-
         // Validate inputs
+        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         ThrowUtils.throwIf(req == null || req.getReservationId() == null || req.getReservationId() <= 0,
                 ErrorCode.PARAMS_ERROR, "Invalid reservation ID");
+        log.info("Attempting to update pickup time for reservationId: {} by userId: {}",
+                req.getReservationId(), user.getId());
         ThrowUtils.throwIf(req.getPickupTime() == null, ErrorCode.PARAMS_ERROR, "Pickup time is required");
-        ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
         ThrowUtils.throwIf(user.getStatus() == 0, ErrorCode.USER_BANNED, "User is banned");
 
         // Fetch the reservation
@@ -291,4 +290,19 @@ public class ReservationServiceImpl implements ReservationService {
         return true;
     }
 
+    /**
+     * Moves the reservation from the status it was read with to {@code to}, and gives the copy back when the
+     * new status no longer holds one. The book is locked first, as on every stock path; the status change is
+     * conditional, so a second cancel or return at the same moment changes nothing and gives nothing back.
+     */
+    private void changeStatus(Reservation reservation, String to) {
+        String from = reservation.getReservationStatus();
+        stockService.lockBook(reservation.getBookId());
+        int rows = reservationMapper.changeStatus(reservation.getReservationId(), from, to);
+        ThrowUtils.throwIf(rows == 0, ErrorCode.OPERATION_ERROR, "This reservation has already changed");
+        log.info("Reservation {}: {} -> {}", reservation.getReservationId(), from, to);
+        if ("cancelled".equals(to) || "returned".equals(to)) {
+            stockService.giveBackCopy(reservation.getBookId());
+        }
+    }
 }

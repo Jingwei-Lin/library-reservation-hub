@@ -177,7 +177,7 @@ class ReservationServiceImplTest {
     @Test
     void cancelReservation_GivesTheCopyBack() {
         when(reservationMapper.selectById(1L)).thenReturn(testReservation);
-        when(reservationMapper.cancelById(1L)).thenReturn(1);
+        when(reservationMapper.changeStatus(1L, "reserved", "cancelled")).thenReturn(1);
 
         assertTrue(reservationService.cancelReservation(1L, testUser));
         // the stock service decides: the next person waiting, or the shelf
@@ -198,11 +198,12 @@ class ReservationServiceImplTest {
     void updateReservationStatus_Success() {
         when(reservationMapper.selectById(1L)).thenReturn(testReservation);
         when(userService.isAdmin(testUser)).thenReturn(true);
-        when(reservationMapper.updateStatus(1L, "borrowed")).thenReturn(1);
+        when(reservationMapper.changeStatus(1L, "reserved", "borrowed")).thenReturn(1);
 
         boolean result = reservationService.updateReservationStatus(1L, "borrowed", testUser);
 
         assertTrue(result);
+        verify(stockService, never()).giveBackCopy(anyLong());   // a borrowed copy is still out
     }
 
     @Test

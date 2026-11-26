@@ -25,19 +25,18 @@ public interface ReservationMapper {
         """)
     Reservation selectById(@Param("id") Long id);
 
+    /**
+     * Changes the status only if it is still {@code from}, so of two changes at the same moment only one wins.
+     * A return is dated. Returns 0 when the reservation changed in the meantime.
+     */
     @Update("""
-        UPDATE Reservation 
-        SET status = #{reservationStatus}, update_time = CURRENT_TIMESTAMP
-        WHERE reservation_id = #{reservationId} AND is_delete = FALSE
+        UPDATE Reservation
+        SET status = #{to},
+            update_time = CURRENT_TIMESTAMP,
+            return_date = IF(#{to} = 'returned', CURRENT_TIMESTAMP, return_date)
+        WHERE reservation_id = #{reservationId} AND is_delete = FALSE AND status = #{from}
         """)
-    int updateStatus(@Param("reservationId") Long reservationId, @Param("reservationStatus") String status);
-
-    @Update("""
-        UPDATE Reservation 
-        SET status = 'cancelled', update_time = CURRENT_TIMESTAMP 
-        WHERE reservation_id = #{id} AND is_delete = FALSE
-        """)
-    int cancelById(@Param("id") Long id);
+    int changeStatus(@Param("reservationId") Long reservationId, @Param("from") String from, @Param("to") String to);
 
     @Select("""
         SELECT reservation_id, user_id, book_id, reservation_date AS reservationTime, 

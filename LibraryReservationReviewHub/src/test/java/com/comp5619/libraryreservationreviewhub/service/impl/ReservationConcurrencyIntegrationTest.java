@@ -180,6 +180,25 @@ class ReservationConcurrencyIntegrationTest {
         }
     }
 
+    /** Two tabs, or the user and the admin: one cancel wins, and one copy comes back (01-1) */
+    @Test
+    void cancellingTheSameReservationManyTimesAtOnceGivesBackOneCopy() throws Exception {
+        setQuantity(1);
+        User user = users.get(0);
+        long reservationId = reservationService.createReservation(bookId, request(), user);
+
+        List<Boolean> outcomes = runAtTheSameTime(users.stream().<Callable<Boolean>>map(u -> () -> {
+            try {
+                return reservationService.cancelReservation(reservationId, user);
+            } catch (BusinessException e) {
+                return false;   // "This reservation has already changed"
+            }
+        }).toList());
+
+        assertThat(outcomes).filteredOn(ok -> ok).hasSize(1);
+        assertThat(quantity()).isEqualTo(1);
+    }
+
     /** Starts every task together and waits for all of them. */
     private <T> List<T> runAtTheSameTime(List<Callable<T>> tasks) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(tasks.size());

@@ -84,6 +84,15 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - A refused review no longer signs the user out, and Sign out clears the previous user's chat.
   - Admin page: a failed user edit is no longer retried as an edit of the admin's own profile, the server's
     error text is shown, and there is a Sign out button.
+- **Fixed the remaining correctness bugs from the review:**
+  - the book list pages on the server, so every book is reachable and the statistics are real counts (it loaded
+    at most 101 books); a search starts at page 1, survives a reload, and a slow earlier load can't replace a
+    newer list;
+  - the AI chat keeps the last 20 messages for 7 days instead of everything forever, no longer stores the user's
+    details with each message, and a corrupt history file starts a fresh conversation;
+  - the assistant's "recommend some books" tool returns five real books with their details (it returned ids and
+    ratings, so the model invented titles);
+  - any listed book can be reviewed, even with every copy out, and a new review is validated like an edit.
 
 ## Architecture
 

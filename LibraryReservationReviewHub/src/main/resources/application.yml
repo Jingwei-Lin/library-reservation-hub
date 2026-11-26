@@ -23,9 +23,6 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
 
-  h2:
-    console:
-      enabled: false
 
 # springdoc / OpenAPI
 springdoc:

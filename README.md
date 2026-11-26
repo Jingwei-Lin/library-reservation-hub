@@ -18,10 +18,10 @@ JUnit 5 · Mockito · JaCoCo · Docker · GitHub Actions
 ## Features
 
 - **Reservations:** reserve and cancel books, change pickup times; admins manage reservation status.
-- **Waiting list with notifications:** when every copy is out, users join a queue. A returned or cancelled copy is
-  held for the waiting users and they are notified. A nightly job cancels stale waiting entries.
-- **Stock-aware inventory:** each book tracks its total, publicly available and held quantities, so a copy that is
-  being held for a waiting user cannot be reserved by someone else.
+- **Waiting list with notifications:** when every copy is out, users join a queue. A copy that comes back goes
+  straight to the first person waiting, who has three days to reserve it before it passes to the next.
+- **Stock-aware inventory:** each book tracks the copies on the shelf and the copies held for notified users, so a
+  copy held for someone cannot be reserved by anyone else.
 - **Books and search:** keyword, genre and availability filters, with pagination and sorting.
 - **Reviews and ratings:** users write and edit reviews; average ratings are kept up to date by MySQL triggers.
 - **Accounts:** registration and session-based login, with an admin role for the admin panel.
@@ -50,7 +50,7 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - Problem: the service read a book's stock, checked it in Java and wrote the new count back. Concurrent
     requests could deadlock or overwrite each other's counts.
   - Fix: reserving, cancelling and returning now change stock through single conditional `UPDATE`s, for example
-    `SET quantity = quantity - 1 WHERE quantity - held_quantity > 0`. The copy is taken before the
+    `SET quantity = quantity - 1 WHERE quantity > 0`. The copy is taken before the
     reservation row is inserted, so the book row is always locked first.
   - Test: `ReservationConcurrencyIntegrationTest` runs against MySQL and failed before the fix.
     - Eight users try to reserve the last copy at once, and exactly one succeeds.
@@ -65,13 +65,25 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
     and chat ids must be UUIDs (they named the memory file, so `../` reached other files);
   - passwords are BCrypt (old MD5 hashes are upgraded at the next login), the session id changes at login,
     and changing your e-mail or password needs your current password.
+- **Reworked the stock model and the waiting list** to fix the stock bugs from the same review, each with a test
+  that failed before the fix:
+  - held copies were subtracted from the shelf twice, so a copy on the shelf could not be reserved; they are now
+    counted apart, and `available` is set by a trigger from the shelf count;
+  - deleting a book only cleared `available`, so the next return brought it back; deleted books have their own
+    flag and are hidden from users;
+  - a returned copy waited until someone opened the Dashboard, which then let later users jump the queue; now every
+    stock change goes through one service that locks the book row first, and the copy goes to the first person
+    waiting at once;
+  - holds run out three days after the notification (it was seven days after joining, and the copy stayed held);
+  - two cancels of one reservation gave back two copies, and a borrowed reservation could be cancelled; a status
+    now changes with one conditional `UPDATE`, and unique keys stop duplicate reservations or queue entries.
 
 ## Architecture
 
 ```
 React (Vite, :5173)  ──REST / SSE──▶  Spring Boot API (:8432/api)  ──MyBatis-Plus──▶  MySQL
                                         ├─ controllers → services → mappers
-                                        ├─ @Scheduled job (nightly stale waiting-list cleanup)
+                                        ├─ @Scheduled job (hourly: holds that ran out pass to the next person)
                                         └─ Spring AI (DashScope) for the chat assistant
 ```
 

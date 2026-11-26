@@ -1,23 +1,22 @@
 package com.comp5619.libraryreservationreviewhub.tools;
 
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 集成测试：UserInfoTool
- * 目标：覆盖所有分支，包括 userId=null, user=null, 有无借阅、异常捕获。
+ * The AI assistant's user tool, called directly: guests, unknown users, a new user, a seeded user with reviews,
+ * and the error path. The user always comes from the ToolContext the server sets.
  */
 @SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Transactional
 class UserInfoToolIntegrationTest {
 
@@ -27,53 +26,56 @@ class UserInfoToolIntegrationTest {
     @Autowired
     private UserService userService;
 
-    /**
-     *  场景 1：userId 为 null（未登录）
-     */
     @Test
-    void testGetUserInfo_NullUserId_ReturnsNotLoggedIn() {
-        String result = userInfoTool.getUserInfo(context(null));
-        System.out.println("Result for null userId: " + result);
-        assertThat(result).contains("not_logged_in");
+    void aGuestIsNotLoggedIn() {
+        JSONObject json = JSONUtil.parseObj(userInfoTool.getUserInfo(context(null)));
+
+        assertThat(json.getStr("status")).isEqualTo("not_logged_in");
+        assertThat(json.containsKey("userInfo")).isFalse();
     }
 
-    /**
-     *  场景 2：user 不存在
-     */
     @Test
-    void testGetUserInfo_UserNotExist_ReturnsNotLoggedIn() {
-        String result = userInfoTool.getUserInfo(context(99999L));
-        System.out.println("Result for non-existent user: " + result);
-        assertThat(result).contains("not_logged_in");
+    void anUnknownUserIsNotLoggedIn() {
+        JSONObject json = JSONUtil.parseObj(userInfoTool.getUserInfo(context(99999L)));
+
+        assertThat(json.getStr("status")).isEqualTo("not_logged_in");
+        assertThat(json.containsKey("userInfo")).isFalse();
     }
 
-    /**
-     *  场景 3：正常用户（存在但无借阅记录）
-     */
     @Test
-    void testGetUserInfo_ValidUser_NoReservations() {
+    void aNewUserHasTheirProfileAndNoHistory() {
         long id = userService.userRegister(
-                "no_resv_user@example.com", "password123", "password123", "Tom", "Lee", "0412345678"
-        );
+                "no_resv_user@example.com", "password123", "password123", "Tom", "Lee", "0412345678");
 
-        String result = userInfoTool.getUserInfo(context(id));
-        System.out.println("Result for valid user with no reservations: " + result);
+        JSONObject json = JSONUtil.parseObj(userInfoTool.getUserInfo(context(id)));
 
-        Map<String, Object> json = JSONUtil.toBean(result, Map.class);
-        assertThat(json.get("status")).isEqualTo("logged_in");
-        assertThat(result).contains("Tom").contains("Lee");
+        assertThat(json.getStr("status")).isEqualTo("logged_in");
+        JSONObject profile = json.getJSONObject("userInfo");
+        assertThat(profile.getStr("firstName")).isEqualTo("Tom");
+        assertThat(profile.getStr("lastName")).isEqualTo("Lee");
+        assertThat(json.getJSONArray("borrowHistory")).isEmpty();
+        assertThat(json.getJSONArray("reviews")).isEmpty();
     }
 
-    /**
-     *  场景 4：捕获异常（模拟 service 抛出异常）
-     */
     @Test
-    void testGetUserInfo_ExceptionPath_ReturnsError() {
+    void aSeededUserHasTheirReviews() {
+        // user 1 wrote reviews 1, 2, 4, 6 and 8 in the seed data
+        JSONObject json = JSONUtil.parseObj(userInfoTool.getUserInfo(context(1L)));
+
+        assertThat(json.getStr("status")).isEqualTo("logged_in");
+        assertThat(json.getJSONObject("userInfo").getLong("id")).isEqualTo(1L);
+        JSONArray reviews = json.getJSONArray("reviews");
+        assertThat(reviews).hasSize(5);
+        assertThat(reviews.toList(JSONObject.class)).extracting(r -> r.getStr("comment")).contains("Great book!");
+    }
+
+    @Test
+    void aFailureIsReportedAsAnError() {
+        // no services injected, so the lookup throws
         UserInfoTool brokenTool = new UserInfoTool();
-        // 没注入任何 service，会抛出 NullPointerException
-        String result = brokenTool.getUserInfo(context(1L));
-        System.out.println("Result for exception path: " + result);
-        assertThat(result).contains("status").contains("error");
+
+        // checked as text: the tool puts the exception message into its JSON unescaped
+        assertThat(brokenTool.getUserInfo(context(1L))).startsWith("{\"status\":\"error\"");
     }
 
     private static ToolContext context(Long userId) {

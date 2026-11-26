@@ -151,20 +151,6 @@ class ReservationServiceImplTest {
         assertEquals("You have already reserved this book", exception.getMessage());
         verify(stockService, never()).takeCopy(anyLong(), anyLong());
     }
-//
-//    @Test
-//    void createReservation_UserHasActiveReservation_ThrowsException() {
-//        ReservationAddRequest req = new ReservationAddRequest();
-//        req.setPickupTime(new Date());
-//        req.setDueTime(new Date(System.currentTimeMillis() + 86400000));
-//
-//        when(bookService.getBookById(1L)).thenReturn(testBook);
-//        when(reservationMapper.selectActiveByBookId(1L)).thenReturn(List.of(testReservation));
-//
-//        BusinessException exception = assertThrows(BusinessException.class,
-//                () -> reservationService.createReservation(1L, req, testUser));
-//        assertEquals(ErrorCode.OPERATION_ERROR.getCode(), exception.getCode());
-//    }
 
     @Test
     void createReservation_InvalidPickupDate_ThrowsException() {

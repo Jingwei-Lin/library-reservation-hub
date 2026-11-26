@@ -160,7 +160,6 @@ Compose starts three containers:
 CI runs the same command on every push and uploads the JaCoCo report.
 - **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
   real key.
-- **Not run by default:** the 12 AI-tool tests in `src/test/.../tools/`, which `build.gradle` excludes.
 - **Coverage:** line coverage is 81% overall and 96% for the service layer. The report excludes configuration,
   DTO/VO, exception and `common/` classes.
 

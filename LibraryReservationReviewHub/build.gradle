@@ -117,8 +117,5 @@ tasks.named('test') {
     // the schema the test MySQL is created from
     systemProperty 'testDatabase.schema', file('Schema.sql').absolutePath
     inputs.file('Schema.sql')
-    // 排除指定包或类，不运行
-    exclude '**/tools/**'
-    exclude '**/agent/**'
     finalizedBy jacocoTestReport
 }

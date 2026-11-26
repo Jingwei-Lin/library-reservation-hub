@@ -2,7 +2,9 @@ package com.comp5619.libraryreservationreviewhub.controller;
 
 import com.comp5619.libraryreservationreviewhub.common.BaseResponse;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.GlobalExceptionHandler;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
@@ -55,7 +57,10 @@ class ReviewControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(reviewController).build();
+        // the real exception handler, so a refusal reaches the client as its code, as in the app
+        mockMvc = MockMvcBuilders.standaloneSetup(reviewController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
 
         testUser = new User();
         testUser.setId(1L);
@@ -180,41 +185,40 @@ class ReviewControllerTest {
     }
 
 
-//    @Test
-//    void addReview_InvalidBookId_ReturnsError() throws Exception {
-//        mockMvc.perform(post("/review/add/0")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content("{}"))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.code").value(ErrorCode.PARAMS_ERROR.getCode()));
-//    }
-//
-//    @Test
-//    void deleteReview_NotAuthorized_ReturnsError() throws Exception {
-//        when(userService.getLoginUser(any())).thenReturn(otherUser);
-//        when(reviewService.deleteReview(1L, otherUser)).thenThrow(
-//                new com.comp5619.libraryreservationreviewhub.exception.BusinessException(ErrorCode.NO_AUTH_ERROR)
-//        );
-//
-//        mockMvc.perform(delete("/review/delete/1"))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.code").value(ErrorCode.NO_AUTH_ERROR.getCode()));
-//    }
-//
-//    @Test
-//    void updateReview_InvalidReviewId_ReturnsError() throws Exception {
-//        ReviewUpdateRequest req = new ReviewUpdateRequest();
-//        req.setReviewId(0L);
-//
-//        String json = objectMapper.writeValueAsString(req);
-//
-//        mockMvc.perform(put("/review/update")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(json))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.code").value(ErrorCode.PARAMS_ERROR.getCode()))
-//                .andExpect(jsonPath("$.message").value("Invalid review ID"));
-//    }
+    @Test
+    void addReview_RefusedByTheService_ReturnsItsCode() throws Exception {
+        when(reviewService.addReview(eq(0L), any(ReviewAddRequest.class), any()))
+                .thenThrow(new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid book ID"));
 
+        mockMvc.perform(post("/review/add/0")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ErrorCode.PARAMS_ERROR.getCode()))
+                .andExpect(jsonPath("$.message").value("Invalid book ID"));
+    }
 
+    @Test
+    void deleteReview_NotAuthorized_ReturnsError() throws Exception {
+        when(userService.getLoginUser(any())).thenReturn(otherUser);
+        when(reviewService.deleteReview(1L, otherUser)).thenThrow(new BusinessException(ErrorCode.NO_AUTH_ERROR));
+
+        mockMvc.perform(delete("/review/delete/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ErrorCode.NO_AUTH_ERROR.getCode()));
+    }
+
+    @Test
+    void updateReview_InvalidReviewId_ReturnsError() throws Exception {
+        ReviewUpdateRequest req = new ReviewUpdateRequest();
+        req.setReviewId(0L);
+
+        mockMvc.perform(put("/review/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ErrorCode.PARAMS_ERROR.getCode()))
+                .andExpect(jsonPath("$.message").value("Invalid review ID"));
+        verifyNoInteractions(reviewService);
+    }
 }

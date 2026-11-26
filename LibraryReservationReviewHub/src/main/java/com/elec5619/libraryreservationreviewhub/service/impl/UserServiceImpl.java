@@ -18,10 +18,12 @@ import com.elec5619.libraryreservationreviewhub.model.dto.user.UserUpdateRequest
 import com.elec5619.libraryreservationreviewhub.model.entity.User;
 import com.elec5619.libraryreservationreviewhub.model.vo.LoginUserVO;
 import com.elec5619.libraryreservationreviewhub.model.vo.UserVO;
+import com.elec5619.libraryreservationreviewhub.service.LoginAttempts;
 import com.elec5619.libraryreservationreviewhub.service.UserService;
 import com.elec5619.libraryreservationreviewhub.utils.PasswordUtil;
 import com.elec5619.libraryreservationreviewhub.utils.SqlInjectionUtil;
 import com.elec5619.libraryreservationreviewhub.utils.ValidCheckUtil;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,12 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    /** The one answer for an unknown e-mail and a wrong password, so neither tells whether an account exists */
+    static final String SIGN_IN_REFUSED = "Incorrect e-mail or password";
+
+    @Resource
+    private LoginAttempts loginAttempts;
 
     /**
      * Registers a user
@@ -125,18 +133,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
 
-        
+        // an e-mail that has used up its failed attempts is refused before anything is checked
+        loginAttempts.checkAllowed(userAccount);
+
         // 2. Find the user
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "User does not exist");
+        // 3. Check the password; an unknown e-mail gets the same answer and is counted the same way
+        if (user == null || !PasswordUtil.matches(userPassword, user.getUserPassword())) {
+            loginAttempts.recordFailure(userAccount);
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, SIGN_IN_REFUSED);
         }
-        // 3. Check the password
-        if (!PasswordUtil.matches(userPassword, user.getUserPassword())) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Incorrect password");
-        }
+        loginAttempts.reset(userAccount);
         // user is banned
         if (user.getStatus().equals(0)) {
             throw new BusinessException(ErrorCode.USER_BANNED);
@@ -153,7 +162,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             } else {
                 user = this.getById(user.getId());
                 ThrowUtils.throwIf(user == null || !PasswordUtil.matches(userPassword, user.getUserPassword()),
-                        ErrorCode.PARAMS_ERROR, "Incorrect password");
+                        ErrorCode.PARAMS_ERROR, SIGN_IN_REFUSED);
             }
         }
         // 4. The user, without the password hash

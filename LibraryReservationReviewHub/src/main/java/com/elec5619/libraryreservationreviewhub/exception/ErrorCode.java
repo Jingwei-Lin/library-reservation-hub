@@ -13,6 +13,7 @@ public enum ErrorCode {
     BOOK_NOT_FOUND_ERROR(40401, "Book not found"),  // New entry
     FORBIDDEN_ERROR(40300, "Access forbidden"),
     USER_BANNED(40301, "User is banned"),
+    TOO_MANY_REQUESTS(42900, "Too many requests"),
     SYSTEM_ERROR(50000, "Internal system error"),
     OPERATION_ERROR(50001, "Operation failed");
 

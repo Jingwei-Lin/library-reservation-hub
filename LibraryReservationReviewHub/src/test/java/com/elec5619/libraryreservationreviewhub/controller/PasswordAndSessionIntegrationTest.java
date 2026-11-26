@@ -58,7 +58,7 @@ class PasswordAndSessionIntegrationTest {
     @Test
     void aWrongPasswordIsRefusedWithTheSameMessageAndNothingIsUpgraded() throws Exception {
         login(ACCOUNT, "wrong-password").andExpect(jsonPath("$.code").value(40000))
-                .andExpect(jsonPath("$.message").value("Incorrect password"));
+                .andExpect(jsonPath("$.message").value("Incorrect e-mail or password"));
         assertThat(storedHash(ACCOUNT)).isEqualTo(LEGACY_MD5);
     }
 

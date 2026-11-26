@@ -122,6 +122,22 @@ class ReservationServiceImplTest {
     }
 
     @Test
+    void createReservation_DuplicateRowInTheDatabase_GivesTheFriendlyMessage() {
+        ReservationAddRequest req = new ReservationAddRequest();
+        req.setPickupTime(testReservation.getPickupTime());
+        req.setDueTime(testReservation.getDueTime());
+
+        when(stockService.lockBook(1L)).thenReturn(testBook);
+        when(reservationMapper.countActive(1L, 1L)).thenReturn(0L);
+        when(reservationMapper.insertReservation(any(Reservation.class)))
+                .thenThrow(new org.springframework.dao.DuplicateKeyException("uk_reservation_active"));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> reservationService.createReservation(1L, req, testUser));
+        assertEquals("You have already reserved this book", exception.getMessage());
+    }
+
+    @Test
     void createReservation_AlreadyReserved_ThrowsBeforeTakingACopy() {
         ReservationAddRequest req = new ReservationAddRequest();
         req.setPickupTime(testReservation.getPickupTime());

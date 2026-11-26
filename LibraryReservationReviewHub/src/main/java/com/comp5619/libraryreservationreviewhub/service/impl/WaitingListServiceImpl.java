@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
@@ -22,6 +23,7 @@ import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -255,7 +257,11 @@ public class WaitingListServiceImpl
         WaitingListCreateDTO dto = new WaitingListCreateDTO();
         dto.setUserId(userId);
         dto.setBookId(bookId);
-        return create(dto);
+        try {
+            return create(dto);   // the database allows one active entry per user and book
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "This book is currently on the waiting list.");
+        }
     }
 
     @Override

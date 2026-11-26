@@ -77,10 +77,14 @@ CREATE TABLE Waiting_list (
 	notification_date TIMESTAMP NULL,
 	is_notified BOOLEAN DEFAULT FALSE,
 	status ENUM('waiting', 'notified', 'cancelled', 'fulfilled') DEFAULT 'waiting',
+	-- 1 while the entry is in the queue, NULL once it is over; NULLs never clash in a unique key, so the key
+	-- below allows any number of finished entries but only one active entry per user and book
+	active_key TINYINT GENERATED ALWAYS AS (IF(status IN ('waiting', 'notified'), 1, NULL)) VIRTUAL,
 	FOREIGN KEY (user_id) REFERENCES Users(user_id),
 	FOREIGN KEY (book_id) REFERENCES Book(book_id),
 	-- the queue: the first person waiting for a book is the oldest join, then the lowest id
-	INDEX idx_waiting_queue (book_id, status, join_date, wait_id)
+	INDEX idx_waiting_queue (book_id, status, join_date, wait_id),
+	UNIQUE KEY uk_waiting_active (user_id, book_id, active_key)
 );
 
 CREATE TABLE Review (
@@ -114,8 +118,11 @@ CREATE TABLE Reservation (
 	create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	update_time TIMESTAMP NULL,
 	is_delete BOOLEAN DEFAULT FALSE,
+	-- 1 while the reservation holds a copy, NULL once it is over: one active reservation per user and book
+	active_key TINYINT GENERATED ALWAYS AS (IF(status IN ('reserved', 'borrowed') AND NOT is_delete, 1, NULL)) VIRTUAL,
 	FOREIGN KEY (user_id) REFERENCES Users(user_id),
-	FOREIGN KEY (book_id) REFERENCES Book(book_id)
+	FOREIGN KEY (book_id) REFERENCES Book(book_id),
+	UNIQUE KEY uk_reservation_active (user_id, book_id, active_key)
 );
 
 DELIMITER $$

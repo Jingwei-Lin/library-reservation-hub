@@ -2,6 +2,7 @@ package com.comp5619.libraryreservationreviewhub.service.impl;
 
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
@@ -18,6 +19,7 @@ import com.comp5619.libraryreservationreviewhub.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,8 +108,13 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setCreateTime(new Date());
         log.info("Reservation object: {}", reservation);
 
-        // Insert reservation
-        int rows = reservationMapper.insertReservation(reservation);
+        // Insert reservation. The database allows one active reservation per user and book
+        int rows;
+        try {
+            rows = reservationMapper.insertReservation(reservation);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "You have already reserved this book");
+        }
         log.info("Inserted reservation, rows affected: {}", rows);
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to create reservation");
 

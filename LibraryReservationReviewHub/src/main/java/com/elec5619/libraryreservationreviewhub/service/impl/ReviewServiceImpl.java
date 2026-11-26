@@ -61,7 +61,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setRating(req.getRating());
         review.setComment(req.getComment());
         review.setReviewDate(new java.util.Date());
-        log.info("Review object: {}", review);
+        log.debug("Review object: {}", review);
 
         // Insert reservation
         int rows = reviewMapper.insertReview(review);
@@ -78,7 +78,7 @@ public class ReviewServiceImpl implements ReviewService {
         ThrowUtils.throwIf(user == null, ErrorCode.NO_AUTH_ERROR, "User not logged in");
 
         Review review = reviewMapper.selectById(reviewId);
-        log.info("Fetched review: {}", review);
+        log.debug("Fetched review: {}", review);
         ThrowUtils.throwIf(review == null, ErrorCode.NOT_FOUND_ERROR, "Review not found");
         Long reviewUserId = review.getUserId();
         ThrowUtils.throwIf(reviewUserId == null || (!reviewUserId.equals(user.getId()) && !userService.isAdmin(user)),

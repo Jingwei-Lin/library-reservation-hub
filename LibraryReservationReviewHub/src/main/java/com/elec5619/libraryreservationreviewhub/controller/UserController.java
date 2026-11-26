@@ -61,7 +61,7 @@ public class UserController {
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
             HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
-        log.info("Login request for account: {}", userLoginRequest.getUserAccount());
+        log.debug("Login request for account: {}", userLoginRequest.getUserAccount());
         String userAccount = userLoginRequest.getUserAccount(); // email
         String userPassword = userLoginRequest.getUserPassword();
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);

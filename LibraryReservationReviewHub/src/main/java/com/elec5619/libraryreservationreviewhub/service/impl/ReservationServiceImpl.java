@@ -106,7 +106,7 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setDueTime(req.getDueTime());
         reservation.setReservationStatus("reserved");
         reservation.setCreateTime(new Date());
-        log.info("Reservation object: {}", reservation);
+        log.debug("Reservation object: {}", reservation);
 
         // Insert reservation. The database allows one active reservation per user and book
         int rows;
@@ -187,7 +187,7 @@ public class ReservationServiceImpl implements ReservationService {
     public List<ReservationVO> getReservationsByUser(Long userId) {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
         List<Reservation> reservations = reservationMapper.selectByUserId(userId);
-        log.info("Fetched reservations for userId {}: {}", userId, reservations);
+        log.debug("Fetched reservations for userId {}: {}", userId, reservations);
         return toReservationVOs(reservations);
     }
 
@@ -230,7 +230,7 @@ public class ReservationServiceImpl implements ReservationService {
         vo.setDueTime(reservation.getDueTime());
         vo.setReservationStatus(reservation.getReservationStatus());
         vo.setBookTitle(book != null ? book.getTitle() : "Unknown");
-        log.info("Mapped ReservationVO: {}", vo);
+        log.debug("Mapped ReservationVO: {}", vo);
         return vo;
     }
 
@@ -239,7 +239,7 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "Invalid user ID");
         ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         List<Reservation> activeReservations = reservationMapper.selectActiveByBookId(bookId);
-        log.info("Checking active reservations for userId {}, bookId {}: {}", userId, bookId, activeReservations);
+        log.debug("Checking active reservations for userId {}, bookId {}: {}", userId, bookId, activeReservations);
         return activeReservations.stream()
                 .anyMatch(r -> r != null && r.getUserId() != null && r.getReservationStatus() != null &&
                         r.getUserId().equals(userId) &&

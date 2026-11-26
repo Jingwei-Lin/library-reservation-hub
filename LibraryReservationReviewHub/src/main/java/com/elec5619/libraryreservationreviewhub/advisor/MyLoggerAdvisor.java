@@ -11,8 +11,8 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import reactor.core.publisher.Flux;
 
 /**
- * Logging advisor:
- * logs, at INFO, only the text of each user prompt and AI reply
+ * Logging advisor: logs each whole prompt (system prompt with the user's details, history, message) and each
+ * reply, at DEBUG only, so they stay out of the normal logs
  */
 @Slf4j
 public class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
@@ -28,12 +28,12 @@ public class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 	}
 
 	private ChatClientRequest before(ChatClientRequest request) {
-		log.info("AI Request: {}", request.prompt());
+		log.debug("AI Request: {}", request.prompt());
 		return request;
 	}
 
 	private void observeAfter(ChatClientResponse chatClientResponse) {
-		log.info("AI Response: {}", chatClientResponse.chatResponse().getResult().getOutput().getText());
+		log.debug("AI Response: {}", chatClientResponse.chatResponse().getResult().getOutput().getText());
 	}
 
 	@Override

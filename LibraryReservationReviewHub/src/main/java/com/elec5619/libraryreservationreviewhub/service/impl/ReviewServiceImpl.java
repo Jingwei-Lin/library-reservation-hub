@@ -2,6 +2,7 @@ package com.elec5619.libraryreservationreviewhub.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.elec5619.libraryreservationreviewhub.common.PageRequest;
 import com.elec5619.libraryreservationreviewhub.common.PageResult;
 import com.elec5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.elec5619.libraryreservationreviewhub.exception.ThrowUtils;
@@ -182,7 +183,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     public PageResult<ReviewVO> listByPage(ReviewQueryRequest req) {
         int current = (req != null && req.getCurrent() > 0) ? (int) req.getCurrent() : 1;
-        int pageSize = (req != null && req.getPageSize() > 0) ? (int) req.getPageSize() : 10;
+        int pageSize = (req != null && req.getPageSize() > 0)
+                ? (int) Math.min(req.getPageSize(), PageRequest.MAX_PAGE_SIZE) : 10;
         long offset = (long) (current - 1) * pageSize;
 
         Long bookId = (req != null) ? req.getBookId() : null;

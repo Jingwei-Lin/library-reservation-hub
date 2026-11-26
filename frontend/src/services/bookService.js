@@ -3,7 +3,7 @@ import api, { toError } from './api';
 
 export const bookService = {
     // includeDeleted only has an effect for admins (the admin page)
-    getAllBooks: async (page = 1, size = 101, includeDeleted = false) => {
+    getAllBooks: async (page = 1, size = 12, includeDeleted = false) => {
         try {
             const response = await api.get(`/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`
                 + (includeDeleted ? '&includeDeleted=true' : ''));
@@ -13,7 +13,7 @@ export const bookService = {
         }
     },
 
-    searchBooks: async (keyword, page = 1, size = 101) => {
+    searchBooks: async (keyword, page = 1, size = 12) => {
         try {
             const url = keyword
                 ? `/book/search?sortField=title&sortOrder=ascend&keyword=${encodeURIComponent(keyword)}&current=${page}&pageSize=${size}`

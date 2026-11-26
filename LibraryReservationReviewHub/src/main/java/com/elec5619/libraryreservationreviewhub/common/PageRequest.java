@@ -8,6 +8,9 @@ import lombok.Data;
 @Data
 public class PageRequest {
 
+    /** The largest page any list returns */
+    public static final int MAX_PAGE_SIZE = 100;
+
     /**
      * Current page number
      */

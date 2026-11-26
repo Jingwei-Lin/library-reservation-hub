@@ -3,6 +3,7 @@ package com.elec5619.libraryreservationreviewhub.controller;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.elec5619.libraryreservationreviewhub.annotation.AuthCheck;
+import com.elec5619.libraryreservationreviewhub.common.PageRequest;
 import com.elec5619.libraryreservationreviewhub.common.BaseResponse;
 import com.elec5619.libraryreservationreviewhub.common.ResultUtils;
 import com.elec5619.libraryreservationreviewhub.constant.UserConstant;
@@ -143,7 +144,7 @@ public class UserController {
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = userQueryRequest.getCurrent();
-        long pageSize = userQueryRequest.getPageSize();
+        long pageSize = Math.min(Math.max(1, userQueryRequest.getPageSize()), PageRequest.MAX_PAGE_SIZE);
         Page<User> userPage = userService.page(new Page<>(current, pageSize),
                 userService.getQueryWrapper(userQueryRequest));
         Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());

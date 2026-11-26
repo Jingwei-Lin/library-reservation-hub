@@ -38,11 +38,11 @@ public class BookServiceImpl implements BookService {
     private final StockService stockService;
 
     /* ---------- paging and sorting (sort fields from a whitelist) ---------- */
-    private record PageCalc(long offset, long limit, String orderBySql) {}
+    private record PageCalc(int current, int size, long offset, String orderBySql) {}
 
     private PageCalc calc(PageRequest pr, Set<String> sortWhitelist) {
         int current = Math.max(1, pr.getCurrent());
-        int size = Math.min(Math.max(1, pr.getPageSize()), 101);
+        int size = Math.min(Math.max(1, pr.getPageSize()), PageRequest.MAX_PAGE_SIZE);
         long offset = (long) (current - 1) * size;
 
         // newest first by default
@@ -50,8 +50,12 @@ public class BookServiceImpl implements BookService {
         if (StrUtil.isNotBlank(pr.getSortField()) && sortWhitelist.contains(pr.getSortField())) {
             String dir = "descend".equalsIgnoreCase(pr.getSortOrder()) ? "DESC" : "ASC";
             orderBySql = "ORDER BY " + pr.getSortField() + " " + dir;
+            // books with the same value keep one order, so LIMIT/OFFSET pages neither repeat nor skip any
+            if (!"book_id".equals(pr.getSortField())) {
+                orderBySql += ", book_id ASC";
+            }
         }
-        return new PageCalc(offset, size, orderBySql);
+        return new PageCalc(current, size, offset, orderBySql);
     }
 
     /* ===================== Books ===================== */
@@ -183,13 +187,18 @@ public class BookServiceImpl implements BookService {
         Set<String> whitelist = Set.of("book_id", "title", "author", "genre", "quantity", "available" , "description");
         PageCalc p = calc(pageReq, whitelist);
 
-        String kw = StrUtil.emptyToDefault(keyword, "");
+        String kw = likeLiteral(StrUtil.emptyToDefault(keyword, ""));
         long total = bookMapper.countByKeyword(kw, available, includeDeleted);
         List<Book> list = total == 0
                 ? List.of()
-                : bookMapper.searchByKeywordWithOrder(kw, available, includeDeleted, p.offset(), p.limit(), p.orderBySql());
+                : bookMapper.searchByKeywordWithOrder(kw, available, includeDeleted, p.offset(), p.size(), p.orderBySql());
 
-        return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), total, getBookVOList(list));
+        return new PageResult<>(p.current(), p.size(), total, getBookVOList(list));
+    }
+
+    /** The keyword as LIKE sees it: %, _ and the escape character \ match themselves */
+    private static String likeLiteral(String keyword) {
+        return keyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Override

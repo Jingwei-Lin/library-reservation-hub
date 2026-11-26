@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { waitingListService } from "../services/waitingListService";
-import { logoutUser } from "../services/authApi";
+import { isSessionEnded } from "../services/api";
 import "./WaitingList.css"; // Create this CSS file based on Reservations.css as a template
 
-const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
+const WaitingList = ({ isAuthenticated }) => {
     const navigate = useNavigate();
     const [waitingItems, setWaitingItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,11 +14,11 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
 
     useEffect(() => {
         if (!isAuthenticated) {
-            navigate("/login");
+            navigate("/login?redirect=%2Fwaitinglist", { replace: true });
             return;
         }
         fetchWaitingList();
-    }, [isAuthenticated, navigate, setIsAuthenticated]);
+    }, [isAuthenticated, navigate]);
 
     const fetchWaitingList = async () => {
         try {
@@ -32,12 +32,8 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                 setError(response?.message || "Invalid response format from server");
             }
         } catch (err) {
-            console.error("fetchWaitingList error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
+            // an ended session is handled by the app (notice, sign in, back here)
+            if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to load waiting list");
             }
         } finally {
@@ -61,12 +57,7 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
                 setError(response?.message || "Failed to cancel waiting list entry");
             }
         } catch (err) {
-            console.error("handleCancel error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
+            if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to cancel waiting list entry");
             }
         } finally {

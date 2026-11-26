@@ -1,13 +1,5 @@
 // authApi.js
-import axios from 'axios';
-
-const api = axios.create({
-    baseURL: '/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true, // important for session cookies
-});
+import api from './api';
 
 // Register user
 export const registerUser = async (userData) => {
@@ -26,8 +18,6 @@ export const loginUser = async (loginData) => {
     const response = await api.post('/user/login', loginData);
     const result = response.data;
 
-    console.log("authApi:", result);
-
     if (result.code !== 0) {
         throw new Error(result.message || 'Login failed');
     }
@@ -40,7 +30,6 @@ export const validateSession = async () => {
     try {
         const response = await api.get('/user/get/login');
         const result = response.data;
-        console.log("validateSession:", result)
         if (result.code !== 0) {
             throw new Error(result.message || 'Session invalid');
         }

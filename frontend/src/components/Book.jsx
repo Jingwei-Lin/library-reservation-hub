@@ -4,7 +4,7 @@ import { bookService } from "../services/bookService";
 import { reservationService } from "../services/reservationService";
 import { reviewService } from "../services/reviewService";
 import { waitingListService } from "../services/waitingListService";
-import { logoutUser } from "../services/authApi";
+import { isSessionEnded } from "../services/api";
 import Portal from './Portal';
 import "./Book.css";
 
@@ -121,12 +121,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                     }
                 }
             } catch (err) {
-                if (err.message.includes("Session expired or user banned") && isAuthenticated) {
-                    localStorage.removeItem('user');
-                    sessionStorage.removeItem('user');
-                    logoutUser();
-                    setIsAuthenticated(false);
-                    navigate("/login");
+                // an ended session is handled by the app: this page stays, as a guest
+                if (isSessionEnded(err)) {
                     return;
                 }
                 setError(err.message || "Failed to load book details or reviews");
@@ -243,11 +239,8 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                 setReservationError(response?.message || "Failed to create reservation");
             }
         } catch (err) {
-            console.error("createReservation error:", err);
-            if (err.message.includes("Session expired") || err.message.includes("Please log in")) {
-                localStorage.removeItem('user');
-                setIsAuthenticated(false);
-                navigate("/login");
+            if (isSessionEnded(err)) {
+                setShowReservationPopup(false);   // the app shows the notice; the page stays, as a guest
             } else {
                 setReservationError(err.message || "Failed to create reservation");
             }

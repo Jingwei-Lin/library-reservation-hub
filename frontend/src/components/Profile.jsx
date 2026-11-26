@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../services/userService";
-import { logoutUser } from "../services/authApi";
+import { isSessionEnded } from "../services/api";
 import { getTheme } from "../themeUtils";
 import "./Profile.css";
 
-const Profile = ({ user, setIsAuthenticated }) => {
+const Profile = ({ user }) => {
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState({
         firstName: "",
@@ -47,13 +47,9 @@ const Profile = ({ user, setIsAuthenticated }) => {
                     setError(response?.message || "Failed to load profile");
                 }
             } catch (err) {
-                if (err.message.includes("Session expired or user banned")) {
-                    logoutUser();
-                    setIsAuthenticated(false);
-                    navigate("/login");
-                } else {
+                // an ended session is handled by the app (notice, sign in, back here)
+                if (!isSessionEnded(err)) {
                     setError(err.message || "Failed to load profile");
-                    console.error("Error fetching profile:", err);
                 }
             } finally {
                 setLoading(false);
@@ -61,7 +57,7 @@ const Profile = ({ user, setIsAuthenticated }) => {
         };
 
         fetchProfile();
-    }, [setIsAuthenticated, navigate]);
+    }, [navigate]);
 
     const needsCurrentPassword =
         profileData.email.trim() !== savedEmail || profileData.password !== "";

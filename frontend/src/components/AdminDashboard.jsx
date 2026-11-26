@@ -26,7 +26,8 @@ const AdminDashboard = ({ user, isAuthenticated }) => {
 useEffect(() => {
     const isAdmin = user?.isAdmin === true || user?.userRole === 'admin';
     if (!isAuthenticated || !isAdmin) {
-      navigate('/admin/login');
+      // back here after signing in (an ended session has already gone to the same place)
+      navigate('/admin/login?redirect=%2Fadmin%2Fdashboard', { replace: true });
     }
   }, [user, isAuthenticated, navigate]);
 

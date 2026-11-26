@@ -1,14 +1,16 @@
 // Login.jsx
 import './Login.css';
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { loginUser } from '../services/authApi';
+import { safeRedirect } from '../safeRedirect';
 
 const Login = ({ setIsAuthenticated, setUser, theme }) => {
     const [formData, setFormData] = useState({ userAccount: '', userPassword: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     // map backend messages to English (add more if needed)
     const errorMessages = {
@@ -32,7 +34,8 @@ const Login = ({ setIsAuthenticated, setUser, theme }) => {
             sessionStorage.setItem('user', JSON.stringify(response));
             setUser(response);             // update app-level user state
             setIsAuthenticated(true);      // update app-level auth state
-            navigate('/dashboard');        // redirect to dashboard
+            // back to the page the user was on when their session ended, if any
+            navigate(safeRedirect(searchParams.get('redirect'), '/dashboard'), { replace: true });
         } catch (err) {
             // Axios error message from authApi.js
             const backendMessage = err.message;

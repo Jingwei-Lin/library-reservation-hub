@@ -1,23 +1,70 @@
 // App.jsx
 
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import AdminLogin from './components/AdminLogin.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import Reservations from './components/Reservations.jsx';
-import Book from './components/Book';
 import { validateSession, logoutUser } from './services/authApi';
-import ReservationForm from "./components/ReservationForm.jsx";
+import { setSessionEndedHandler } from './services/api';
+import { safeRedirect } from './safeRedirect';
 import WaitingList from "./components/WaitingList.jsx";
 import Profile from "./components/Profile.jsx";
 
-function App() {
+// pages that need an account: when the session ends there, the user signs in again and comes back
+const ACCOUNT_PAGES = ['/reservations', '/waitinglist', '/profile', '/admin/dashboard'];
+
+const NOTICES = {
+    expired: 'Your session has ended. Please sign in again.',
+    banned: 'Your account has been suspended.',
+};
+
+function AppRoutes() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!sessionStorage.getItem("user"));
     const [user, setUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || '{}'));
+    const [notice, setNotice] = useState(null);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // read by the session-ended handler, which lives outside React's render cycle
+    const signedInRef = useRef(isAuthenticated);
+    const endedRef = useRef(false);
+    useEffect(() => {
+        signedInRef.current = isAuthenticated;
+        if (isAuthenticated) {
+            // signed in (again): a new session, nothing to report
+            endedRef.current = false;
+            setNotice(null);
+        }
+    }, [isAuthenticated]);
+
+    // The shared API client calls this when the server says the session has ended (40100) or the account is
+    // banned (40301). Several calls can fail at once; only the first one signs out and redirects.
+    useEffect(() => {
+        setSessionEndedHandler((reason) => {
+            if (endedRef.current) return true;
+            if (!signedInRef.current) return false;   // a guest: the page handles the answer itself
+            endedRef.current = true;
+            signedInRef.current = false;
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            setUser({});
+            setIsAuthenticated(false);
+            setNotice(NOTICES[reason] || NOTICES.expired);
+
+            const { pathname, search } = window.location;
+            if (ACCOUNT_PAGES.some((page) => pathname.startsWith(page))) {
+                const signIn = pathname.startsWith('/admin') ? '/admin/login' : '/login';
+                navigate(`${signIn}?redirect=${encodeURIComponent(pathname + search)}`, { replace: true });
+            }
+            return true;
+        });
+        return () => setSessionEndedHandler(() => false);
+    }, [navigate]);
 
     // Validate session on mount
     useEffect(() => {
@@ -46,62 +93,71 @@ function App() {
         checkSession();
     }, []);
 
+    // already signed in on a sign-in page: go where the sign-in would have gone
+    const afterSignIn = (fallback) => safeRedirect(new URLSearchParams(location.search).get('redirect'), fallback);
+
+    return (
+        <div className="App">
+            {notice && (
+                <div className="session-notice" role="status">
+                    <span>{notice}</span>
+                    <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>×</button>
+                </div>
+            )}
+            <Routes>
+                <Route
+                    path="/dashboard"
+                    element={
+                        <Dashboard
+                            user={user}
+                            setUser={setUser}
+                            setIsAuthenticated={setIsAuthenticated}
+                            isAuthenticated={isAuthenticated}
+                        />
+                    }
+                />
+                <Route
+                    path="/login"
+                    element={
+                        !isAuthenticated ? (
+                            <Login
+                                setIsAuthenticated={setIsAuthenticated}
+                                setUser={setUser}
+                            />
+                        ) : (
+                            <Navigate to={afterSignIn('/dashboard')} replace />
+                        )
+                    }
+                />
+                <Route
+                    path="/register"
+                    element={
+                        !isAuthenticated ? (
+                            <Register />
+                        ) : (
+                            <Navigate to="/dashboard" />
+                        )
+                    }
+                />
+                <Route path="/" element={<Navigate to="/dashboard" />} />
+                <Route
+                    path="/reservations"
+                    element={<Reservations isAuthenticated={isAuthenticated} />}
+                />
+                <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} />} />
+                <Route path="/profile" element={<Profile user={user} />} />
+                <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
+                <Route path="/admin" element={<Navigate to="/admin/login" />} />
+            </Routes>
+        </div>
+    );
+}
+
+function App() {
     return (
         <Router>
-            <div className="App">
-                <Routes>
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <Dashboard
-                                user={user}
-                                setUser={setUser}
-                                setIsAuthenticated={setIsAuthenticated}
-                                isAuthenticated={isAuthenticated}
-                            />
-                        }
-                    />
-                    <Route
-                        path="/login"
-                        element={
-                            !isAuthenticated ? (
-                                <Login
-                                    setIsAuthenticated={setIsAuthenticated}
-                                    setUser={setUser}
-                                />
-                            ) : (
-                                <Navigate to="/dashboard" />
-                            )
-                        }
-                    />
-                    <Route
-                        path="/register"
-                        element={
-                            !isAuthenticated ? (
-                                <Register />
-                            ) : (
-                                <Navigate to="/dashboard" />
-                            )
-                        }
-                    />
-                    {/*<Route*/}
-                    {/*    path="/book/:id"*/}
-                    {/*    element={<Book isAuthenticated={isAuthenticated} />}*/}
-                    {/*/>*/}
-                    <Route path="/" element={<Navigate to="/dashboard" />} />
-                    <Route
-                        path="/reservations"
-                        element={<Reservations isAuthenticated={isAuthenticated} />}
-                    />
-                    {/*<Route path="/reservation/form/:bookId" element={<ReservationForm isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />*/}
-                    <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
-                    <Route path="/profile" element={<Profile user={user} setIsAuthenticated={setIsAuthenticated} />} />
-                    <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />
-                    <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated} />} />
-                    <Route path="/admin" element={<Navigate to="/admin/login" />} />
-                    <Route path="/" element={<Navigate to="/dashboard" />} />
-                </Routes>
-            </div>
+            <AppRoutes />
         </Router>
     );
 }

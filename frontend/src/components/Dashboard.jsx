@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { waitingListService } from "../services/waitingListService";
-import { validateSession, logoutUser } from "../services/authApi";
+import { validateSession } from "../services/authApi";
+import { isSessionEnded, reportSessionEnded } from "../services/api";
 import Header from "./Header";
 
 import ChatPanel from "./ChatPanel";
@@ -149,9 +150,10 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     setUser(userRes.data);
                     setIsAuthenticated(true);
                 } else {
-                    console.warn('User validation failed:', userRes.message);
-                    logoutUser();
-                    setIsAuthenticated(false);
+                    // a signed-in session that has ended gets the app's notice; a guest simply stays a guest
+                    if (!reportSessionEnded('expired')) {
+                        setIsAuthenticated(false);
+                    }
                     return; // Early exit if logged out
                 }
                 if (topBooksRes.code === 0 && topBooksRes.data) {
@@ -264,11 +266,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                 setBooks([]);
             }
         } catch (err) {
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
+            if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to load books");
                 console.error("Error fetching books:", err);
                 setBooks([]);

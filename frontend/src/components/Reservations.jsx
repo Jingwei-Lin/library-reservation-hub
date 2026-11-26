@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { reservationService } from "../services/reservationService";
-import { logoutUser } from "../services/authApi";
+import { isSessionEnded } from "../services/api";
 import "./Reservations.css";
 
-const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
+const Reservations = ({ isAuthenticated }) => {
     const navigate = useNavigate();
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -16,7 +16,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
 
     useEffect(() => {
         if (!isAuthenticated) {
-            navigate("/login");
+            navigate("/login?redirect=%2Freservations", { replace: true });
             return;
         }
 
@@ -33,12 +33,8 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                     setError(response?.message || "Invalid response format from server");
                 }
             } catch (err) {
-                console.error("fetchReservations error:", err);
-                if (err.message.includes("Session expired or user banned")) {
-                    logoutUser();
-                    setIsAuthenticated(false);
-                    navigate("/login");
-                } else {
+                // an ended session is handled by the app (notice, sign in, back here)
+                if (!isSessionEnded(err)) {
                     setError(err.message || "Failed to load reservations");
                 }
             } finally {
@@ -47,7 +43,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
         };
 
         fetchReservations();
-    }, [isAuthenticated, navigate, setIsAuthenticated]);
+    }, [isAuthenticated, navigate]);
 
     const handleCancel = async (reservationId) => {
         if (!window.confirm("Are you sure you want to cancel this reservation?")) return;
@@ -68,12 +64,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 setError(response?.message || "Failed to cancel reservation");
             }
         } catch (err) {
-            console.error("cancelReservation error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
+            if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to cancel reservation");
             }
         } finally {
@@ -111,12 +102,7 @@ const Reservations = ({ isAuthenticated, setIsAuthenticated }) => {
                 setError(response?.message || "Failed to update pickup date");
             }
         } catch (err) {
-            console.error("updatePickupTime error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
+            if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to update pickup date");
             }
         }

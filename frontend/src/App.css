@@ -14,6 +14,47 @@
     background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
 }
 
+/* Shown when a session ends (see App.jsx); it stays until dismissed or the user signs in again */
+.session-notice {
+    position: fixed;
+    top: 96px; /* below the header */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100% - 32px);
+    padding: 10px 14px 10px 18px;
+    border-radius: 10px;
+    background: #fff4e5;
+    color: #7a4100;
+    border: 1px solid #f5c98b;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+}
+
+.session-notice span {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
+/* override the app-wide button look: just a small × */
+.session-notice button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0 4px;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
 /* Enhanced Header */
 .app-header {
     position: fixed;

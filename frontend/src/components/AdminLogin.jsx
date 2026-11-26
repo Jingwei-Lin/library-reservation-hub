@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loginUser } from '../services/authApi';
+import { safeRedirect } from '../safeRedirect';
 
 const AdminLogin = ({ setIsAuthenticated, setUser }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [adminForm, setAdminForm] = useState({ userAccount: '', userPassword: '' });
   const [adminError, setAdminError] = useState('');
@@ -28,7 +30,8 @@ const AdminLogin = ({ setIsAuthenticated, setUser }) => {
       sessionStorage.setItem('user', JSON.stringify(data));
       setUser(data);
       setIsAuthenticated(true);
-      navigate('/admin/dashboard');
+      // back to the admin page the session ended on, if any
+      navigate(safeRedirect(searchParams.get('redirect'), '/admin/dashboard'), { replace: true });
     } catch (err) {
       setAdminError(err.message || '登录失败');
     } finally {

@@ -12,4 +12,8 @@ public class BookRating {
 
     @TableField("avg_rating")
     private BigDecimal avgRating;
+
+    /** How many reviews the average is over; kept by the same procedure as the average */
+    @TableField("review_count")
+    private Integer reviewCount;
 }

@@ -108,6 +108,7 @@ erDiagram
     book_rating {
         int book_id PK
         decimal avg_rating "null without reviews"
+        int review_count "breaks top-10 ties"
     }
 ```
 
@@ -116,7 +117,9 @@ erDiagram
   copy (`reserved`, `borrowed`) or a queue entry is open (`waiting`, `notified`), and NULL afterwards. A unique
   key on `(user_id, book_id, active_key)` allows any number of finished rows but only one active one.
 - **Deleted books** keep their rows (`is_delete`): users no longer see them, admins can restore them.
-- **`book_rating`** is kept by triggers on `review` (insert, update, delete), which call `update_book_rating`.
+- **`book_rating`** (average and review count) is kept by triggers on `review` (insert, update, delete), which
+  call `update_book_rating`. The top 10 orders by average, then review count, then book id.
+- **Stock columns** (`quantity`, `held_quantity`, `available`) are NOT NULL.
 
 ## 3. Stock and the waiting list
 

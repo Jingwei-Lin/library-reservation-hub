@@ -35,11 +35,11 @@ CREATE TABLE book (
 	genre VARCHAR(50) NOT NULL,
 	description TEXT NULL,
 	-- copies on the shelf that anyone can reserve now
-	quantity INT,
+	quantity INT NOT NULL DEFAULT 0,
 	-- copies set aside for notified waiting-list users; not part of quantity
-    held_quantity INT DEFAULT 0,
+	held_quantity INT NOT NULL DEFAULT 0,
 	-- a copy is on the shelf: always quantity > 0, set by the triggers below
-	available BOOLEAN DEFAULT TRUE,
+	available BOOLEAN NOT NULL DEFAULT TRUE,
 	-- deleted by an admin: hidden from users, kept for the history. Separate from `available`, which is stock
 	is_delete BOOLEAN NOT NULL DEFAULT FALSE,
 	`path` VARCHAR(255)
@@ -104,6 +104,8 @@ CREATE TABLE review (
 CREATE TABLE book_rating (
 	book_id INT NOT NULL PRIMARY KEY,
 	avg_rating DECIMAL(3,2) NULL,
+	-- breaks ties between equal averages in the top 10: more reviews first
+	review_count INT NOT NULL DEFAULT 0,
 	CONSTRAINT fk_book_rating_book FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
 
@@ -129,16 +131,18 @@ CREATE TABLE reservation (
 DELIMITER $$
 CREATE PROCEDURE update_book_rating(IN p_book_id INT)
 BEGIN
-    INSERT INTO book_rating (book_id, avg_rating)
+    INSERT INTO book_rating (book_id, avg_rating, review_count)
     SELECT
         b.book_id,
-        CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating
+        CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating,
+        COUNT(r.review_id) AS review_count
     FROM book b
              LEFT JOIN review r ON r.book_id = b.book_id
     WHERE b.book_id = p_book_id
     GROUP BY b.book_id
     ON DUPLICATE KEY UPDATE
-        avg_rating = VALUES(avg_rating);
+        avg_rating = VALUES(avg_rating),
+        review_count = VALUES(review_count);
 END$$
 
 CREATE TRIGGER tr_review_after_insert
@@ -308,13 +312,14 @@ INSERT INTO review (review_id, user_id, book_id, rating, comment, review_date) V
 -- =========================
 -- Initialize ratings once (batch)
 -- =========================
-INSERT INTO book_rating (book_id, avg_rating)
+INSERT INTO book_rating (book_id, avg_rating, review_count)
 SELECT
     b.book_id,
-    CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating
+    CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating,
+    COUNT(r.review_id) AS review_count
 FROM book b
          LEFT JOIN review r ON r.book_id = b.book_id
 GROUP BY b.book_id
-ON DUPLICATE KEY UPDATE avg_rating = VALUES(avg_rating);
+ON DUPLICATE KEY UPDATE avg_rating = VALUES(avg_rating), review_count = VALUES(review_count);
 
 SELECT * FROM book_rating ORDER BY book_id;

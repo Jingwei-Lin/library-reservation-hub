@@ -88,6 +88,9 @@ public class BookRatingServiceImpl implements BookRatingService {
         qw.isNotNull(BookRating::getAvgRating)
                 .inSql(BookRating::getBookId, LISTED_BOOK_IDS)
                 .orderByDesc(BookRating::getAvgRating)
+                // equal averages: more reviews first, then the lower id, so the order is always the same
+                .orderByDesc(BookRating::getReviewCount)
+                .orderByAsc(BookRating::getBookId)
                 .last("LIMIT 10");
 
         List<BookRating> list = bookRatingMapper.selectList(qw);
@@ -105,8 +108,10 @@ public class BookRatingServiceImpl implements BookRatingService {
         LambdaQueryWrapper<BookRating> qw = new LambdaQueryWrapper<>();
         qw.isNotNull(BookRating::getAvgRating)
                 .inSql(BookRating::getBookId, LISTED_BOOK_IDS)
-                // ties are in no set order; add .orderByAsc(BookRating::getBookId) to fix one
                 .orderByDesc(BookRating::getAvgRating)
+                // equal averages: more reviews first, then the lower id
+                .orderByDesc(BookRating::getReviewCount)
+                .orderByAsc(BookRating::getBookId)
                 .last("LIMIT 10");
 
         List<BookRating> ratings = bookRatingMapper.selectList(qw);

@@ -1000,13 +1000,13 @@ useEffect(() => {
         <table className="admin-table books-table">
           <thead>
             <tr>
-              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>Quantity</th><th>Available</th><th>Actions</th>
+              <th></th><th>ID</th><th>Title</th><th>Author</th><th>Genre</th><th>Quantity</th><th>Held</th><th>Available</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredBooks.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
+                <td colSpan={9} style={{ textAlign: 'center', color: '#666' }}>No matched results</td>
               </tr>
             ) : filteredBooks.map((b, idx) => (
               <tr key={b.bookId || idx}>
@@ -1015,7 +1015,9 @@ useEffect(() => {
                 <td><input className="input" value={b.author || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'author', e.target.value)} /></td>
                 <td><input className="input" value={b.genre || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'genre', e.target.value)} /></td>
                 <td><NumericStepper min={0} step={1} value={b.quantity ?? 0} onChange={(val) => handleBookFieldChange(b.bookId, 'quantity', val)} /></td>
-                <td><input className="checkbox" type="checkbox" checked={!!b.available} onChange={(e) => handleBookFieldChange(b.bookId, 'available', e.target.checked)} /></td>
+                {/* held copies are set aside for notified waiting-list users; available follows the shelf count */}
+                <td title="Copies set aside for notified waiting-list users">{b.heldQuantity ?? 0}</td>
+                <td><input className="checkbox" type="checkbox" checked={!!b.available} disabled readOnly title="Worked out from Quantity" /></td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleBookUpdate(b)}>Save</button>
                   {b.deleted

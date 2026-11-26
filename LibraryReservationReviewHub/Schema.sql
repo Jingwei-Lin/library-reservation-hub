@@ -33,37 +33,39 @@ CREATE TABLE Book (
 	author VARCHAR(50) NOT NULL,
 	genre VARCHAR(50) NOT NULL,
 	description TEXT NULL,          -- 新增字段
+	-- copies on the shelf that anyone can reserve now
 	quantity INT,
+	-- copies set aside for notified waiting-list users; not part of quantity
     held_quantity INT DEFAULT 0,
+	-- a copy is on the shelf: always quantity > 0, set by the triggers below
 	available BOOLEAN DEFAULT TRUE,
 	-- deleted by an admin: hidden from users, kept for the history. Separate from `available`, which is stock
 	is_delete BOOLEAN NOT NULL DEFAULT FALSE,
 	`path` VARCHAR(255)
 );
 
--- 触发器：插入前
+-- `available` is worked out from the shelf count on every write, so no code path can get it wrong
 DELIMITER $$
 CREATE TRIGGER trg_book_bi_set_available
     BEFORE INSERT ON Book
     FOR EACH ROW
 BEGIN
-    IF NEW.quantity IS NULL OR NEW.quantity <= 0 THEN
-        SET NEW.quantity  = 0;
-        SET NEW.available = FALSE;
+    IF NEW.quantity IS NULL OR NEW.quantity < 0 THEN
+        SET NEW.quantity = 0;
     END IF;
+    SET NEW.available = (NEW.quantity > 0);
 END$$
 DELIMITER ;
 
--- 触发器：更新前
 DELIMITER $$
 CREATE TRIGGER trg_book_bu_set_available
     BEFORE UPDATE ON Book
     FOR EACH ROW
 BEGIN
-    IF NEW.quantity IS NULL OR NEW.quantity <= 0 THEN
-        SET NEW.quantity  = 0;
-        SET NEW.available = FALSE;
+    IF NEW.quantity IS NULL OR NEW.quantity < 0 THEN
+        SET NEW.quantity = 0;
     END IF;
+    SET NEW.available = (NEW.quantity > 0);
 END$$
 DELIMITER ;
 

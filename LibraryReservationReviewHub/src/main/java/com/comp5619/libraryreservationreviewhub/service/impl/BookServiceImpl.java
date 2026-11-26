@@ -76,7 +76,8 @@ public class BookServiceImpl implements BookService {
         b.setPath(StrUtil.emptyToNull(StrUtil.trim(req.getPath())));
 
         b.setQuantity(req.getQuantity() == null ? 0 : req.getQuantity());
-        b.setAvailable(req.getAvailable() == null ? Boolean.TRUE : req.getAvailable());
+        // available follows the stock (the book triggers set it); the request's value is not used
+        b.setAvailable(b.getQuantity() > 0);
 
         int rows = bookMapper.insertBook(b);
         ThrowUtils.throwIf(rows <= 0 || b.getBookId() == null, ErrorCode.OPERATION_ERROR);
@@ -113,6 +114,12 @@ public class BookServiceImpl implements BookService {
         Book old = bookMapper.selectById(book.getBookId());
         ThrowUtils.throwIf(old == null, ErrorCode.NOT_FOUND_ERROR);
 
+        // `available` follows the stock and can't be set, so an edit may leave nothing to write
+        boolean nothingToWrite = book.getTitle() == null && book.getAuthor() == null && book.getGenre() == null
+                && book.getDescription() == null && book.getQuantity() == null && book.getPath() == null;
+        if (nothingToWrite) {
+            return true;
+        }
         return bookMapper.updateBook(book) > 0;
     }
 

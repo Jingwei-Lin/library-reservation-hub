@@ -34,18 +34,18 @@ public class Book implements Serializable {
     private String genre;
 
     /**
-     * 总数量
+     * Copies on the shelf that anyone can reserve now
      */
     private Integer quantity;
 
     /**
-     * On Hold Book Quantity for Waiting List
+     * Copies set aside for notified waiting-list users. Not part of {@code quantity}.
      */
     @TableField("held_quantity")
     private Integer heldQuantity = 0;
 
     /**
-     * 是否可借 (默认 true)
+     * A copy is on the shelf ({@code quantity > 0}), worked out by the database triggers
      */
     private Boolean available;
 
@@ -69,8 +69,9 @@ public class Book implements Serializable {
     private static final long serialVersionUID = 1L;
 
 
+    /** Held copies are not part of quantity, so every copy counted in it can be reserved */
     public Integer getAvailableQuantity() {
-        return (quantity != null && heldQuantity != null) ? quantity - heldQuantity : 0;
+        return quantity != null ? quantity : 0;
     }
 
     public boolean isPubliclyAvailable() {

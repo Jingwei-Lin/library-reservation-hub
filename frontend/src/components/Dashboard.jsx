@@ -14,7 +14,7 @@ import { getTheme } from "../themeUtils";
 
 import "./Dashboard.css";
 
-const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
+const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignOut }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -580,7 +580,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
             <div className="main-content">
                 <Header
                     user={user}
-                    setIsAuthenticated={setIsAuthenticated}
+                    onSignOut={onSignOut}
                     isAuthenticated={isAuthenticated}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
@@ -719,7 +719,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                 </div>
             </div>
             {/* AI Assistant Chat Panel */}
-            <ChatPanel />
+            {/* keyed by the user: signing in or out starts a new, empty chat with a new chat id */}
+            <ChatPanel key={user?.id ?? 'guest'} />
         </div>
     );
 };

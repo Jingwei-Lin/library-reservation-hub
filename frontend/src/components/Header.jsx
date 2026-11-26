@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { logoutUser } from "../services/authApi";
 import { getTheme, toggleTheme } from "../themeUtils";
 import "./Header.css";
 
-const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSearchTerm, handleSearch }) => {
+const Header = ({ user, onSignOut, isAuthenticated, searchTerm, setSearchTerm, handleSearch }) => {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const panelRef = useRef(null);
@@ -23,15 +22,10 @@ const Header = ({ user, setIsAuthenticated, isAuthenticated, searchTerm, setSear
         window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme: newTheme } }));
     };
 
+    // the app's one sign-out: ends the session, clears the user and the chat, back to the books
     const handleLogout = async () => {
-        try {
-            await logoutUser(); // Now awaits backend
-        } catch (err) {
-            // Optional: show toast
-        } finally {
-            setIsAuthenticated(false);
-            setIsPanelOpen(false);
-        }
+        setIsPanelOpen(false);
+        await onSignOut();
     };
 
     const handleLoginRedirect = () => {

@@ -2,7 +2,7 @@
 
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Login from './components/Login.jsx';
 import Register from './components/Register.jsx';
 import Dashboard from './components/Dashboard.jsx';
@@ -42,6 +42,24 @@ function AppRoutes() {
         }
     }, [isAuthenticated]);
 
+    // Forget the signed-in user everywhere. The chat is keyed by the user (Dashboard), so its history and chat id
+    // go too: nothing of the previous user is left for the next person at the same computer.
+    const clearSignedIn = useCallback(() => {
+        signedInRef.current = false;
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        setUser({});
+        setIsAuthenticated(false);
+    }, []);
+
+    // The Sign out button: end the server session, forget the user, back to the books as a guest
+    const signOut = useCallback(async () => {
+        await logoutUser();
+        clearSignedIn();
+        setNotice(null);
+        navigate('/dashboard');
+    }, [clearSignedIn, navigate]);
+
     // The shared API client calls this when the server says the session has ended (40100) or the account is
     // banned (40301). Several calls can fail at once; only the first one signs out and redirects.
     useEffect(() => {
@@ -49,11 +67,7 @@ function AppRoutes() {
             if (endedRef.current) return true;
             if (!signedInRef.current) return false;   // a guest: the page handles the answer itself
             endedRef.current = true;
-            signedInRef.current = false;
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('token');
-            setUser({});
-            setIsAuthenticated(false);
+            clearSignedIn();
             setNotice(NOTICES[reason] || NOTICES.expired);
 
             const { pathname, search } = window.location;
@@ -64,7 +78,7 @@ function AppRoutes() {
             return true;
         });
         return () => setSessionEndedHandler(() => false);
-    }, [navigate]);
+    }, [navigate, clearSignedIn]);
 
     // Validate session on mount
     useEffect(() => {
@@ -113,6 +127,7 @@ function AppRoutes() {
                             setUser={setUser}
                             setIsAuthenticated={setIsAuthenticated}
                             isAuthenticated={isAuthenticated}
+                            onSignOut={signOut}
                         />
                     }
                 />

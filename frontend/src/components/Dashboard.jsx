@@ -1,5 +1,5 @@
 // Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { waitingListService } from "../services/waitingListService";
@@ -31,7 +31,17 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [searchTerm, setSearchTerm] = useState("");
+    // what is typed in the search box, and the search the list is showing (they differ until Search is pressed);
+    // both start from ?search=, so a reload keeps the search
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
+    const [activeSearch, setActiveSearch] = useState(initialSearch);
+    // All Books and search are paged by the server (books holds one page, totalBooks the server's total);
+    // a genre and the top 10 are small lists, paged here
+    const [serverPaged, setServerPaged] = useState(true);
+    const [totalBooks, setTotalBooks] = useState(0);
+    // each list load gets a number; only the latest one may change the list, so a slow earlier load can't
+    // replace a newer one
+    const latestLoad = useRef(0);
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [selectedBookId, setSelectedBookId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -70,7 +80,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
             params.set('book', selectedBookId.toString());
         }
 
-        if (searchTerm) params.set('search', searchTerm);
+        if (activeSearch) params.set('search', activeSearch);
         if (currentGenre) params.set('genre', currentGenre);
         if (currentView) params.set('view', currentView);
 
@@ -119,7 +129,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                 }
                 // If we have a search term, load search results
                 else if (initialSearch) {
-                    await fetchBooks(initialSearch);
+                    await fetchBooks(initialSearch, initialPage);
                 }
                 // If we have a genre filter, load genre books
                 else if (initialGenre) {
@@ -127,7 +137,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                 }
                 // Otherwise load all books
                 else {
-                    await fetchBooks();
+                    await fetchBooks('', initialPage);
                 }
 
                 // Parallelize non-critical fetches (user, waiting list, top books)
@@ -227,77 +237,48 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     }, [location.search, navigate]);
 
 
-    const fetchBooks = async (keyword = "") => {
+    // All Books, or a search: one page from the server, with the server's total
+    const fetchBooks = async (keyword = "", page = 1) => {
+        const load = ++latestLoad.current;
         try {
             setLoading(true);
             setError("");
-
-            // if (keyword !== initialSearch) {
-            //     setSearchTerm(keyword);
-            //     setCurrentGenre('');
-            //     setCurrentView('');
-            // }
-
             const response = keyword
-                ? await bookService.searchBooks(keyword)
-                : await bookService.getAllBooks();
-
+                ? await bookService.searchBooks(keyword, page, booksPerPage)
+                : await bookService.getAllBooks(page, booksPerPage);
+            if (load !== latestLoad.current) return;   // a newer list was asked for meanwhile
             if (response && response.code === 0 && response.data) {
-                const bookList = response.data.records
-                    ? response.data.records
-                    : Array.isArray(response.data)
-                        ? response.data
-                        : [];
-                const validBooks = bookList.filter(book => {
-                    const bookId = Number(book.bookId);
-                    const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    if (!isValid) {
-                        console.warn('Invalid book detected:', JSON.stringify(book, null, 2));
-                    }
-                    return true;
-                });
-                setBooks(validBooks);
+                setBooks(response.data.records || []);
+                setTotalBooks(response.data.total ?? 0);
+                setServerPaged(true);
                 setCurrentTitle(keyword ? `Search Results for "${keyword}"` : "All Books");
-                if (bookList.length > 0 && validBooks.every(book => !book.bookId)) {
-                    setError("All books have missing or invalid IDs. Please contact support.");
-                }
             } else {
                 setError("Invalid response format");
                 setBooks([]);
+                setTotalBooks(0);
             }
         } catch (err) {
+            if (load !== latestLoad.current) return;
             if (!isSessionEnded(err)) {
                 setError(err.message || "Failed to load books");
                 console.error("Error fetching books:", err);
                 setBooks([]);
+                setTotalBooks(0);
             }
         } finally {
-            setLoading(false);
-            // if (keyword !== initialSearch) {
-            //     setCurrentPage(1);
-            //     updateURL({ page: 1 });
-            // }
-            // setSelectedBookId(null);
+            if (load === latestLoad.current) setLoading(false);
         }
     };
 
+    // counted by the server over every listed book, not from the page on screen
     const fetchTotalStats = async () => {
         try {
-            const response = await bookService.getAllBooks();
+            const response = await bookService.getStats();
             if (response && response.code === 0 && response.data) {
-                const allBooks = response.data.records || response.data;
-                const totalBooks = allBooks.length;
-                const totalAvailable = allBooks.filter(book => book.available).length;
-
-                // Get unique genres
-                const uniqueGenres = new Set(
-                    allBooks.map(book => book.genre).filter(genre => genre && genre.trim() !== '')
-                );
-
                 setTotalStats({
-                    totalBooks: totalBooks,
-                    totalAvailable: totalAvailable,
-                    totalCategories: uniqueGenres.size
+                    totalBooks: response.data.totalBooks,
+                    totalAvailable: response.data.availableBooks,
+                    totalCategories: response.data.categories
                 });
             }
         } catch (err) {
@@ -305,87 +286,85 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
         }
     };
 
+    // a small list, paged here
+    const showWholeList = (list, title) => {
+        setBooks(list);
+        setTotalBooks(list.length);
+        setServerPaged(false);
+        setCurrentTitle(title);
+    };
+
     const loadTop10Books = async () => {
+        const load = ++latestLoad.current;
         try {
             setLoading(true);
+            setError("");
             const response = await bookService.getTop10Books();
+            if (load !== latestLoad.current) return;
 
-            if (response && response.code === 0 && response.data) {
-                const bookList = Array.isArray(response.data) ? response.data : [];
-                const validBooks = bookList.filter(book => {
-                    const bookId = Number(book.bookId);
-                    const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    return isValid;
-                });
-
-                if (validBooks.length === 0) {
-                    setError("No top-rated books available yet.");
-                    setBooks([]);
-                } else {
-                    setBooks(validBooks);
-                    setTopBooks(validBooks);
-                    setCurrentTitle("Top 10 Rated Books");
-                }
-            } else {
+            const bookList = response && response.code === 0 && Array.isArray(response.data) ? response.data : [];
+            const validBooks = bookList.filter(book => {
+                const bookId = Number(book.bookId);
+                return book.bookId != null && !isNaN(bookId) && bookId > 0;
+            });
+            if (validBooks.length === 0) {
                 setError("No top-rated books available yet.");
-                setBooks([]);
+                showWholeList([], "Top 10 Rated Books");
+            } else {
+                showWholeList(validBooks, "Top 10 Rated Books");
+                setTopBooks(validBooks);
             }
         } catch (err) {
+            if (load !== latestLoad.current) return;
             console.error("Error loading top 10 books:", err);
             setError("Failed to load top 10 books");
-            setBooks([]);
+            showWholeList([], "Top 10 Rated Books");
         } finally {
-            setLoading(false);
-            // if (initialView !== 'top10') {
-            //     setCurrentPage(1);
-            //     updateURL({ page: 1 });
-            // }
-            // setSelectedBookId(null);
+            if (load === latestLoad.current) setLoading(false);
         }
     };
 
     // Helper function to load genre books without setting URL states
     const loadGenreBooks = async (genre) => {
+        const load = ++latestLoad.current;
         try {
             setLoading(true);
+            setError("");
             const response = await bookService.getBooksByGenre(genre);
+            if (load !== latestLoad.current) return;
 
             if (response && response.code === 0 && response.data) {
                 const bookList = Array.isArray(response.data) ? response.data : response.data.records || [];
                 const validBooks = bookList.filter(book => {
                     const bookId = Number(book.bookId);
-                    const isValid = book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    return isValid;
+                    return book.bookId != null && !isNaN(bookId) && bookId > 0;
                 });
-                setBooks(validBooks);
-                setCurrentTitle(`${genre} Books`);
+                showWholeList(validBooks, `${genre} Books`);
             } else {
                 setError("Invalid response format for genre");
-                setBooks([]);
+                showWholeList([], `${genre} Books`);
             }
         } catch (err) {
+            if (load !== latestLoad.current) return;
             console.error("Error loading genre books:", err);
             setError(`Failed to load ${genre} books: ${err.message}`);
-            setBooks([]);
+            showWholeList([], `${genre} Books`);
         } finally {
-            setLoading(false);
-            // if (initialGenre !== genre) {
-            //     setCurrentPage(1);
-            //     updateURL({ page: 1 });
-            // }
-
-            // setSelectedBookId(null);
+            if (load === latestLoad.current) setLoading(false);
         }
     };
 
+    // a new search always starts at its first page
     const handleSearch = (e) => {
         e.preventDefault();
+        const keyword = searchTerm.trim();
         setSelectedBookId(null);
         setCurrentGenre('');
         setCurrentView('');
-        fetchBooks(searchTerm);
-        updateURL({ book: null, search: searchTerm, genre: '', view: '', page: 1 });
-        // navigate('/dashboard', { replace: true });
+        setActiveSearch(keyword);
+        setCurrentPage(1);
+        fetchBooks(keyword, 1);
+        updateURL({ book: null, search: keyword, genre: '', view: '', page: 1 });
     };
 
     const handleGenreClick = async (genre) => {
@@ -394,9 +373,11 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
             setCurrentGenre(genre);
             setCurrentView('');
             setSearchTerm('');
+            setActiveSearch('');
             setCurrentPage(1); // Explicitly set page to 1
-            await loadGenreBooks(genre);
+            // the URL changes now, not when the load ends: a later click must not be overwritten by this one
             updateURL({ book: null, genre: genre, view: '', search: '', page: 1 });
+            await loadGenreBooks(genre);
         } catch (err) {
             console.error("Error in handleGenreClick:", err);
             setError(`Failed to load ${genre} books`);
@@ -411,8 +392,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
             return;
         }
         setSelectedBookId(id);
-        setCurrentPage(1);
-        updateURL({ book: id.toString(), page: 1 });
+        // the list keeps its page, so Back returns to it
+        updateURL({ book: id.toString() });
     };
 
     const handleBackFromBook = () => {
@@ -426,9 +407,10 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
             setCurrentView('top10');
             setCurrentGenre('');
             setSearchTerm('');
+            setActiveSearch('');
             setCurrentPage(1);
-            await loadTop10Books();
             updateURL({ book: null, view: 'top10', genre: '', search: '', page: 1 });
+            await loadTop10Books();
         } catch (err) {
             console.error("Error in handleTop10Click:", err);
             setError("Failed to load top 10 books");
@@ -438,36 +420,32 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     const handleAllBooks = () => {
         setSelectedBookId(null);
         setSearchTerm("");
+        setActiveSearch("");
         setCurrentGenre("");
         setCurrentView("");
         setCurrentPage(1);
-        fetchBooks();
+        fetchBooks('', 1);
         updateURL({ book: null, search: '', genre: '', view: '', page: 1 });
     };
 
 
-    // Pagination logic
-    const indexOfLastBook = currentPage * booksPerPage;
-    const indexOfFirstBook = indexOfLastBook - booksPerPage;
-    const currentBooks = books.slice(indexOfFirstBook, indexOfLastBook);
-    const totalPages = Math.ceil(books.length / booksPerPage);
+    // Pagination: a server-paged list already holds just this page; a small list is sliced here
+    const totalCount = serverPaged ? totalBooks : books.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / booksPerPage));
+    const indexOfFirstBook = (currentPage - 1) * booksPerPage;
+    const currentBooks = serverPaged ? books : books.slice(indexOfFirstBook, indexOfFirstBook + booksPerPage);
 
     const paginate = (pageNumber) => {
         setCurrentPage(pageNumber);
         updateURL({ page: pageNumber });
+        if (serverPaged) {
+            fetchBooks(activeSearch, pageNumber);
+        }
     };
 
-    const nextPage = () => {
-        const next = Math.min(currentPage + 1, totalPages);
-        setCurrentPage(next);
-        updateURL({ page: next });
-    };
+    const nextPage = () => paginate(Math.min(currentPage + 1, totalPages));
 
-    const prevPage = () => {
-        const prev = Math.max(currentPage - 1, 1);
-        setCurrentPage(prev);
-        updateURL({ page: prev });
-    };
+    const prevPage = () => paginate(Math.max(currentPage - 1, 1));
 
     const getPaginationButtons = () => {
         const buttons = [];
@@ -599,18 +577,18 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                             <>
                                 <div className="welcome">
                                     <h1>Welcome to our Digital Library</h1>
-                                    <p>Explore our collection of {books.length} books</p>
+                                    <p>Explore our collection of {totalStats.totalBooks} books</p>
                                 </div>
                                 <div className="book-listing">
                                     <div className="book-listing-header">
                                         <h2>{currentTitle}</h2>
-                                        <div className="book-count">Showing {currentBooks.length} of {books.length} books</div>
+                                        <div className="book-count">Showing {currentBooks.length} of {totalCount} books</div>
                                     </div>
                                     {loading && <div className="loading">Loading books...</div>}
                                     {error && (
                                         <div className="error">
                                             {error}
-                                            <button onClick={() => fetchBooks()} className="retry-btn">
+                                            <button onClick={handleAllBooks} className="retry-btn">
                                                 Retry
                                             </button>
                                         </div>
@@ -669,12 +647,12 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                                             ))}
                                         </div>
                                     )}
-                                    {!loading && !error && books.length === 0 && (
+                                    {!loading && !error && currentBooks.length === 0 && (
                                         <div className="no-books">
-                                            No books found. <button onClick={() => fetchBooks()}>Load all books</button>
+                                            No books found. <button onClick={handleAllBooks}>Load all books</button>
                                         </div>
                                     )}
-                                    {!loading && !error && books.length > 0 && (
+                                    {!loading && !error && totalCount > 0 && (
                                         <div className="pagination">
                                             <button onClick={prevPage} disabled={currentPage === 1}>
                                                 Previous

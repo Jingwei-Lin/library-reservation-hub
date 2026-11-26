@@ -5,6 +5,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
+import com.comp5619.libraryreservationreviewhub.model.vo.BookStatsVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 
 import java.util.List;
@@ -28,5 +29,8 @@ public interface BookService {
     boolean restoreBook(Long id, User operator);
     boolean isBookAvailable(Long id);
     List<BookVO> getRandomBooks(int limit);
+
+    /** Counts for the Dashboard: listed books, those with a copy on the shelf, and genres */
+    BookStatsVO getStats();
 
 }

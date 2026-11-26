@@ -12,6 +12,7 @@ import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
+import com.comp5619.libraryreservationreviewhub.model.vo.BookStatsVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
@@ -65,6 +66,12 @@ public class BookController {
     }
 
     /* ============ 查询 ============ */
+
+    /** The Dashboard's statistics, counted over every listed book (the list itself is paged) */
+    @GetMapping("/stats")
+    public BaseResponse<BookStatsVO> stats() {
+        return ResultUtils.success(bookService.getStats());
+    }
 
     /** A deleted book is "not found" for everyone but admins */
     @GetMapping("/{id}")

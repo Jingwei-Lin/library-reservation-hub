@@ -11,6 +11,7 @@ import com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
+import com.comp5619.libraryreservationreviewhub.model.vo.BookStatsVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.StockService;
@@ -219,6 +220,11 @@ public class BookServiceImpl implements BookService {
             return true;
         }
         return bookMapper.restoreById((long) id) > 0;
+    }
+
+    @Override
+    public BookStatsVO getStats() {
+        return bookMapper.selectStats();
     }
 
     @Override

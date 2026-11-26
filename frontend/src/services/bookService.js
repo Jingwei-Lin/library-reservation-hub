@@ -70,6 +70,16 @@ export const bookService = {
         }
     },
 
+    // the Dashboard's statistics, counted by the server over every listed book
+    getStats: async () => {
+        try {
+            const response = await api.get('/book/stats');
+            return response.data;
+        } catch (error) {
+            throw toError(error, 'Failed to fetch library statistics');
+        }
+    },
+
     getTop10Books: async () => {
         try {
             const response = await api.get('/book-rating/top10-books');

@@ -1,6 +1,7 @@
 package com.comp5619.libraryreservationreviewhub.mapper;
 
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
+import com.comp5619.libraryreservationreviewhub.model.vo.BookStatsVO;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -162,6 +163,16 @@ public interface BookMapper {
                                         @Param("offset") long offset,
                                         @Param("limit") long limit,
                                         @Param("orderBySql") String orderBySql);
+
+    /** The Dashboard statistics, over the listed books */
+    @Select("""
+        SELECT COUNT(*) AS totalBooks,
+               COALESCE(SUM(quantity > 0), 0) AS availableBooks,
+               COUNT(DISTINCT genre) AS categories
+        FROM book
+        WHERE is_delete = FALSE
+        """)
+    BookStatsVO selectStats();
 
     /** 按体裁查询：补充 description */
     @Select("""

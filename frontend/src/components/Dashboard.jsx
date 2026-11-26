@@ -13,6 +13,7 @@ import Book from './Book';
 import { getTheme } from "../themeUtils";
 
 import "./Dashboard.css";
+import { BOOKS_PER_PAGE, pageButtons, pageOf } from '../pagination';
 
 const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignOut }) => {
     const navigate = useNavigate();
@@ -58,7 +59,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
         totalCategories: 0
     });
 
-    const booksPerPage = 12;
+    const booksPerPage = BOOKS_PER_PAGE;
 
     // Update URL when search/filter state changes
     const updateURL = (updates = {}) => {
@@ -403,10 +404,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
 
 
     // Pagination: a server-paged list already holds just this page; a small list is sliced here
-    const totalCount = serverPaged ? totalBooks : books.length;
-    const totalPages = Math.max(1, Math.ceil(totalCount / booksPerPage));
-    const indexOfFirstBook = (currentPage - 1) * booksPerPage;
-    const currentBooks = serverPaged ? books : books.slice(indexOfFirstBook, indexOfFirstBook + booksPerPage);
+    const { totalCount, totalPages, currentBooks } = pageOf({ books, serverPaged, totalBooks, currentPage, perPage: booksPerPage });
 
     const paginate = (pageNumber) => {
         setCurrentPage(pageNumber);
@@ -420,34 +418,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
 
     const prevPage = () => paginate(Math.max(currentPage - 1, 1));
 
-    const getPaginationButtons = () => {
-        const buttons = [];
-        buttons.push(1);
-        if (totalPages <= 5) {
-            for (let i = 2; i <= totalPages; i++) {
-                buttons.push(i);
-            }
-        } else {
-            if (currentPage <= 3) {
-                buttons.push(2, 3, 4);
-                buttons.push("...");
-                buttons.push(totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                buttons.push("...");
-                for (let i = totalPages - 3; i <= totalPages; i++) {
-                    buttons.push(i);
-                }
-            } else {
-                buttons.push("...");
-                buttons.push(currentPage - 1);
-                buttons.push(currentPage);
-                buttons.push(currentPage + 1);
-                buttons.push("...");
-                buttons.push(totalPages);
-            }
-        }
-        return buttons;
-    };
+    const getPaginationButtons = () => pageButtons(currentPage, totalPages);
 
     return (
         <div className={`dashboard ${theme === "dark" ? "dark-mode" : ""}`}>

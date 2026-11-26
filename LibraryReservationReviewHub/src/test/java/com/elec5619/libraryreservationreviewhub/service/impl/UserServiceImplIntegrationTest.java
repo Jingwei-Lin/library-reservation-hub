@@ -87,7 +87,8 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void testUserRegister_SQLInjectionDetected() {
+    void testUserRegister_InjectionLikeEmailsAreNotValidEmails() {
+        // refused by the e-mail format check; the queries are parameterised, so nothing here could inject SQL
         String[] badInputs = {
                 "user@example.com' OR '1'='1",
                 "robert'); --",

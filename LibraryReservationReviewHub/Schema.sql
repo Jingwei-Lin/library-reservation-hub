@@ -21,7 +21,8 @@ CREATE TABLE users (
 	first_name VARCHAR(50) NOT NULL,
 	last_name VARCHAR(50) NOT NULL,
 	is_admin BOOLEAN DEFAULT FALSE,
-	phone VARCHAR(10),
+	-- 8 to 15 digits, as registration and the profile allow
+	phone VARCHAR(15),
 	status INT DEFAULT 1 COMMENT '1 means active, 0 means inactive',
 	create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
 	update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

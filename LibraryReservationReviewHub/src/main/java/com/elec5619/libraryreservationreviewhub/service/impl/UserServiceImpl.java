@@ -21,7 +21,6 @@ import com.elec5619.libraryreservationreviewhub.model.vo.UserVO;
 import com.elec5619.libraryreservationreviewhub.service.LoginAttempts;
 import com.elec5619.libraryreservationreviewhub.service.UserService;
 import com.elec5619.libraryreservationreviewhub.utils.PasswordUtil;
-import com.elec5619.libraryreservationreviewhub.utils.SqlInjectionUtil;
 import com.elec5619.libraryreservationreviewhub.utils.ValidCheckUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,18 +72,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Passwords do not match");
-        }
-        // refuse input that looks like SQL injection
-        try {
-            SqlInjectionUtil.checkSqlInjection(userAccount, "userAccount");
-            SqlInjectionUtil.checkSqlInjection(userPassword, "userPassword");
-            SqlInjectionUtil.checkSqlInjection(checkPassword, "checkPassword");
-            SqlInjectionUtil.checkSqlInjection(firstName, "firstName");
-            SqlInjectionUtil.checkSqlInjection(lastName, "lastName");
-            SqlInjectionUtil.checkSqlInjection(phone, "phone");
-        } catch (RuntimeException ex) {
-            // the same error type as every other refusal
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Illegal input detected");
         }
         // a simple e-mail format check
         if (!ValidCheckUtil.isValidEmail(userAccount)) {

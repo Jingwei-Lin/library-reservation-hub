@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 
 /**
- * 用户查询请求
+ * User search
  */
 @EqualsAndHashCode(callSuper = true)
 @Data

@@ -5,35 +5,23 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 图书视图对象 - 修正字段映射
+ * A book, as the API returns it
  */
 @Data
 public class BookVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 图书ID - 改为Integer以匹配Book实体
-     */
     private Long bookId;
 
-    /**
-     * 书名
-     */
     private String title;
 
-    /**
-     * 作者
-     */
     private String author;
 
-    /**
-     * 图书类别 - 改为genre以匹配Book实体
-     */
     private String genre;
 
     /**
-     * 总库存
+     * Copies on the shelf
      */
     private Integer quantity;
 
@@ -43,12 +31,12 @@ public class BookVO implements Serializable {
     private Integer heldQuantity;
 
     /**
-     * 是否可用
+     * A copy can be reserved now
      */
     private Boolean available;
 
     /**
-     * 封面路径
+     * Cover image file name
      */
     private String path;
 

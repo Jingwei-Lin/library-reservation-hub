@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * UserController 单元测试（Mockito 版本）
+ * UserController unit tests, with Mockito
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -223,7 +223,7 @@ class UserControllerTest {
     void testGetUserById_AsAdmin_Success() throws Exception {
 
 
-        // 模拟数据库中存在该用户
+        // the user exists
         User user = new User();
         user.setId(1L);
         user.setFirstName("Test");
@@ -242,7 +242,6 @@ class UserControllerTest {
     }
     @Test
     void testListUserVOByPage_AsAdmin_Success() throws Exception {
-        // 准备模拟分页数据
         Page<User> userPage = new Page<>(1, 5, 1);
         User user1 = new User();
         user1.setId(1L);
@@ -250,18 +249,15 @@ class UserControllerTest {
         user1.setLastName("Smith");
         userPage.setRecords(List.of(user1));
 
-        // 模拟 UserVOList
         UserVO vo1 = new UserVO();
         vo1.setId(1L);
         vo1.setUserName("Alice Smith");
         vo1.setUserRole("user");
         List<UserVO> voList = List.of(vo1);
 
-        // Mock service 层调用
         when(userService.page(any(Page.class), any())).thenReturn(userPage);
         when(userService.getUserVOList(any())).thenReturn(voList);
 
-        // 构造请求参数
         UserQueryRequest queryRequest = new UserQueryRequest();
         queryRequest.setCurrent(1);
         queryRequest.setPageSize(5);

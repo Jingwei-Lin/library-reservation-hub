@@ -65,7 +65,7 @@ class WaitingListControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 确保 LocalDateTime 的 @JsonFormat 生效
+        // so LocalDateTime's @JsonFormat applies
         ObjectMapper om = new ObjectMapper();
         om.registerModule(new JavaTimeModule());
 
@@ -100,17 +100,17 @@ class WaitingListControllerTest {
         fulfilledVO.setStatus(WaitingStatusEnum.FULFILLED);
     }
 
-    /** ---------- 工具：通用链式 mock，避免重载歧义 ---------- */
+    /** ---------- helper: a chain mock, without overload ambiguity ---------- */
     @SuppressWarnings("unchecked")
     private LambdaQueryChainWrapper<WaitingList> mkChain() {
-        // 通过通用 Answer：凡是方法名为 eq/ne/in/orderByAsc/last 都返回自身（实现链式）
+        // eq/ne/in/orderByAsc/last return the mock itself, so calls chain
         return mock(LambdaQueryChainWrapper.class, invocation -> {
             String name = invocation.getMethod().getName();
             if ("eq".equals(name) || "ne".equals(name) || "in".equals(name)
                     || "orderByAsc".equals(name) || "last".equals(name)) {
                 return invocation.getMock();
             }
-            // 其它方法用默认返回（如 one()/count() 我们会单独 thenReturn）
+            // everything else gets the default answer (the tests stub one() and count() themselves)
             return org.mockito.Mockito.RETURNS_DEFAULTS.answer(invocation);
         });
     }

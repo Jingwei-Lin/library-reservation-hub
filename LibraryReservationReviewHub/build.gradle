@@ -45,7 +45,7 @@ dependencies {
     // lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    // --- Lombok（测试用）---
+    // Lombok in the tests too
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
@@ -55,21 +55,21 @@ dependencies {
     implementation("com.baomidou:mybatis-plus-jsqlparser:3.5.14")
     // knife4j
     implementation("com.github.xingfudeshi:knife4j-openapi3-jakarta-spring-boot-starter:4.6.0")
-    // Hutool 工具库 https://doc.hutool.cn/pages/index/
+    // Hutool utilities https://doc.hutool.cn/pages/index/
     implementation 'cn.hutool:hutool-all:5.8.26'
     
-    // 数据验证
+    // Bean Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // BCrypt password hashing only (no Spring Security filters or auto-configuration)
     implementation 'org.springframework.security:spring-security-crypto'
 
-    // 添加 Alibaba AI Starter
+    // Alibaba DashScope: the chat model
     implementation "com.alibaba.cloud.ai:spring-ai-alibaba-starter-dashscope"
-    // ====== Spring AI 依赖（升级正式版，由 BOM 管理） ======
+    // Spring AI (versions from the BOM)
     // (the unused Ollama model and MCP client/server starters were removed: the MCP server exposed
     // an endpoint nothing used, and Ollama added a second ChatModel)
-    // 支持文件会话记忆持久化的序列化
+    // Kryo: writes the chat memory to files
     implementation 'com.esotericsoftware:kryo:5.6.2'
 
     // test dependencies

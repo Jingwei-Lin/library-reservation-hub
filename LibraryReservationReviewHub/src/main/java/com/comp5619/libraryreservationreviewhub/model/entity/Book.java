@@ -6,31 +6,22 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 图书实体类
+ * A book
  */
-@TableName(value = "book")  // 数据库表名小写 book
+@TableName(value = "book")
 @Data
 public class Book implements Serializable {
 
     /**
-     * 图书ID - 主键 (对应 book_id)
+     * Primary key (book_id)
      */
     @TableId(value = "book_id")
     private Long bookId;
 
-    /**
-     * 书名
-     */
     private String title;
 
-    /**
-     * 作者
-     */
     private String author;
 
-    /**
-     * 图书类别 (genre)
-     */
     private String genre;
 
     /**
@@ -56,7 +47,7 @@ public class Book implements Serializable {
     private Boolean isDelete;
 
     /**
-     * 封面路径
+     * Cover image file name, under static/books
      */
     private String path;
 

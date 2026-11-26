@@ -12,21 +12,19 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * MyBatis Plus 配置类
  * MyBatis Plus Configuration
  */
 @Configuration
 public class MybatisPlusConfig {
 
     /**
-     * 拦截器配置
+     * The interceptors
      *
      * @return {@link MybatisPlusInterceptor}
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        // 分页插件
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
         return interceptor;
     }

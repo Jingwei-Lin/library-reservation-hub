@@ -32,15 +32,12 @@ public class PersonalAgentController {
 
 
     /**
-     * SSE 流式调用 Personal Agent
-     * 该方法使用 Server-Sent Events (SSE) 实现与 AI 助手的流式对话
-
- *
-     * @param message 用户输入的消息内容
-     * @param chatId 对话的唯一标识符
-
- * @param request HTTP 请求对象，用于获取会话信息
-     * @return 返回一个 Flux 流，包含 ServerSentEvent 类型的响应数据，用于流式传输 AI 的回复
+     * Chat with the assistant, the reply streamed as Server-Sent Events
+     *
+     * @param message what the user typed
+     * @param chatId the conversation's id (a UUID)
+     * @param request the request, for the signed-in user
+     * @return the reply, as a stream of events
      */
     @GetMapping(value = "/personal_agent/chat/server_sent_event", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> doChatWithPersonalAppServerSentEvent(
@@ -52,7 +49,7 @@ public class PersonalAgentController {
         ThrowUtils.throwIf(!FileBasedChatMemory.isValidConversationId(chatId), ErrorCode.PARAMS_ERROR,
                 "chatId must be a UUID");
 
-        // 1. 从 Session 中获取当前用户
+        // 1. The signed-in user, from the session
         // Through getLoginUser, like every other route: it reloads the user from the database, so a user who has
         // since been banned or deleted chats as a guest and the tools can't read their data. Guests keep the chat.
         User currentUser;
@@ -62,12 +59,12 @@ public class PersonalAgentController {
             currentUser = null;
         }
         if (currentUser != null) {
-            log.info("[SSE] 已从 Session 取到用户: id={}, name={}", currentUser.getId(), currentUser.getFirstName());
+            log.info("[SSE] user from the session: id={}, name={}", currentUser.getId(), currentUser.getFirstName());
         } else {
-            log.warn("[SSE] Session 中没有用户（未登录或 Session 丢失）");
+            log.warn("[SSE] no user in the session (a guest, or the session has ended)");
         }
 
-        // 2. 把用户信息转换为 AI 可以理解的 context
+        // 2. The user's details, as context the model can read
         String userContext;
         if (currentUser == null) {
             userContext = "{\"status\":\"not_logged_in\"}";
@@ -79,7 +76,7 @@ public class PersonalAgentController {
             );
         }
 
-        // 3. 把 userContext 一起传给 AI（比如拼接 message 或放到参数中）
+        // 3. The context goes to the agent with the message
         // The user id also goes to the tools through ToolContext, set by the server, so get_user_info can only
         // read the signed-in user (null for a guest), whatever the model or the message asks for.
         Long userId = currentUser == null ? null : currentUser.getId();

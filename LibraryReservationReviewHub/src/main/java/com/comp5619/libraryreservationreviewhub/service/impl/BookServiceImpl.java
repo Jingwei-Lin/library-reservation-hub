@@ -37,7 +37,7 @@ public class BookServiceImpl implements BookService {
     private final WaitingListMapper waitingListMapper;
     private final StockService stockService;
 
-    /* ---------- 分页与排序拼装（带字段白名单） ---------- */
+    /* ---------- paging and sorting (sort fields from a whitelist) ---------- */
     private record PageCalc(long offset, long limit, String orderBySql) {}
 
     private PageCalc calc(PageRequest pr, Set<String> sortWhitelist) {
@@ -45,7 +45,7 @@ public class BookServiceImpl implements BookService {
         int size = Math.min(Math.max(1, pr.getPageSize()), 101);
         long offset = (long) (current - 1) * size;
 
-        // 默认按主键倒序
+        // newest first by default
         String orderBySql = "ORDER BY book_id DESC";
         if (StrUtil.isNotBlank(pr.getSortField()) && sortWhitelist.contains(pr.getSortField())) {
             String dir = "descend".equalsIgnoreCase(pr.getSortOrder()) ? "DESC" : "ASC";
@@ -54,7 +54,7 @@ public class BookServiceImpl implements BookService {
         return new PageCalc(offset, size, orderBySql);
     }
 
-    /* ===================== 图书 ===================== */
+    /* ===================== Books ===================== */
 
     @Override
     public Long addBook(BookAddRequest req, User operator) {
@@ -229,14 +229,14 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public List<BookVO> getRandomBooks(int limit) {
-        // 默认取 10 本
+        // between 1 and 20 books
         int realLimit = Math.min(Math.max(limit, 1), 20);
         log.info("Fetching {} random books as top books (no score field, random selection)", realLimit);
 
-        // 先查出部分书籍（防止全表取出性能太差）
+        // pick from the first 100 rather than load the whole table
         PageRequest pr = new PageRequest();
         pr.setCurrent(1);
-        pr.setPageSize(100); // 取前100本进行随机
+        pr.setPageSize(100);
         PageResult<BookVO> page = searchBooks("", pr, true);
 
         List<BookVO> list = page.getRecords();

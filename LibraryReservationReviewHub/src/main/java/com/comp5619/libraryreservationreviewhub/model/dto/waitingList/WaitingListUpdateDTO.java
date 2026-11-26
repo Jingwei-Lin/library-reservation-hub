@@ -7,7 +7,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/** 更新等待记录（部分字段可选） */
+/** A waiting-list update (fields left out are unchanged) */
 @Data
 public class WaitingListUpdateDTO {
 

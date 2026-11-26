@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration Test for UserServiceImpl
- * 自动加载 Spring Boot + MyBatis + 事务自动回滚
+ * the full Spring context; each test's transaction is rolled back
  */
 @SpringBootTest
 @Transactional
@@ -33,7 +33,7 @@ class UserServiceImplIntegrationTest {
     private UserService userService;
 
     // ============================================================
-    // A. userRegister() 用户注册测试
+    // A. userRegister()
     // ============================================================
 
     @Test
@@ -103,7 +103,7 @@ class UserServiceImplIntegrationTest {
 
 
     // ============================================================
-    // B. userLogin() 登录测试
+    // B. userLogin()
     // ============================================================
 
     @Test
@@ -151,7 +151,7 @@ class UserServiceImplIntegrationTest {
     }
 
     // ============================================================
-    // C. getLoginUser() 测试
+    // C. getLoginUser()
     // ============================================================
 
     @Test
@@ -193,7 +193,7 @@ class UserServiceImplIntegrationTest {
     }
 
     // ============================================================
-    // D. userLogout() 测试
+    // D. userLogout()
     // ============================================================
 
     @Test
@@ -212,7 +212,7 @@ class UserServiceImplIntegrationTest {
     }
 
     // ============================================================
-    // E. updateUserProfile() 测试
+    // E. updateUserProfile()
     // ============================================================
 
     @Test
@@ -275,7 +275,7 @@ class UserServiceImplIntegrationTest {
     }
 
     // ============================================================
-    // F. getQueryWrapper() 测试
+    // F. getQueryWrapper()
     // ============================================================
 
     @Test
@@ -298,7 +298,7 @@ class UserServiceImplIntegrationTest {
     }
 
     // ============================================================
-    // G. 其他方法测试
+    // G. the rest
     // ============================================================
 
     @Test

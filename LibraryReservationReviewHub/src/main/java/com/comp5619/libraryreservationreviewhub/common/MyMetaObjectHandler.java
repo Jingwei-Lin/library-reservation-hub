@@ -9,15 +9,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 自定义元数据对象处理器
- * 公共填充功能
+ * Fills the common columns automatically
  * MyBatisPlus
  */
 @Component
 @Slf4j
 public class MyMetaObjectHandler implements MetaObjectHandler {
     /**
-     * 插入操作自动填充
+     * Fills them on insert
      * @param metaObject
      */
     @Override
@@ -27,7 +26,7 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     }
 
     /**
-     * 更新操作自动填充
+     * Fills them on update
      * @param metaObject
      */
     @Override

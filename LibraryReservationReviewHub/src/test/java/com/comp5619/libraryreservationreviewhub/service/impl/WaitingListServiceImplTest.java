@@ -50,7 +50,7 @@ class WaitingListServiceImplTest {
 
     @BeforeEach
     void injectBaseMapper() {
-        // ServiceImpl 父类里的 baseMapper 用反射塞入
+        // baseMapper lives in the ServiceImpl superclass, so it is set by reflection
         ReflectionTestUtils.setField(service, "baseMapper", waitingListMapper);
     }
 
@@ -62,7 +62,7 @@ class WaitingListServiceImplTest {
         dto.setUserId(1L);
         dto.setBookId(100L);
 
-        // insert 时顺便给实体设置主键
+        // the insert also sets the entity's id
         doAnswer(inv -> {
             WaitingList e = inv.getArgument(0);
             e.setWaitId(10L);
@@ -188,7 +188,7 @@ class WaitingListServiceImplTest {
         PageRequest pr = new PageRequest();
         pr.setCurrent(1);
         pr.setPageSize(10);
-        pr.setSortField("wait_id"); // 在白名单里
+        pr.setSortField("wait_id"); // a whitelisted field
         pr.setSortOrder("descend");
 
         PageResult<WaitingListVO> page = service.pageByQuery(q, pr);

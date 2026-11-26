@@ -4,7 +4,6 @@ public class ThrowUtils {
 
     /**
      * Throw an exception if the condition is true.
-     * 条件成立则抛异常
      * @param condition        the condition to evaluate
      * @param runtimeException the runtime exception to throw
      */
@@ -16,7 +15,6 @@ public class ThrowUtils {
 
     /**
      * Throw a BusinessException if the condition is true.
-     * 条件成立则抛异常
      * @param condition the condition to evaluate
      * @param errorCode the error code
      */

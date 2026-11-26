@@ -6,7 +6,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 
 /**
- * 用户数据访问层
  * User Mapper interface for database operations
  */
 @Mapper

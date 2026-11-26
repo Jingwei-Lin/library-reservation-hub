@@ -7,7 +7,6 @@ public class ResultUtils {
 
     /**
      * Success response.
-     * 成功
      * @param data the response data
      * @param <T>  the type of the response data
      * @return a successful response
@@ -18,7 +17,6 @@ public class ResultUtils {
 
     /**
      * Error response using an ErrorCode.
-     * 失败
      * @param errorCode the error code
      * @return an error response
      */

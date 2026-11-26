@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 用户管理控制器
  * User Management Controller
  */
 @RestController
@@ -39,7 +38,7 @@ public class UserController {
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     /**
-     * 用户注册
+     * Register
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
@@ -55,7 +54,7 @@ public class UserController {
     }
 
     /**
-     * 用户登录
+     * Sign in
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
@@ -69,7 +68,7 @@ public class UserController {
     }
 
     /**
-     * 获取当前登录用户
+     * The signed-in user
      */
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
@@ -78,7 +77,7 @@ public class UserController {
     }
 
     /**
-     * 用户注销
+     * Sign out
      */
     @PostMapping("/logout")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
@@ -108,7 +107,7 @@ public class UserController {
     }
 
     /**
-     * 根据 id 获取用户（仅管理员）
+     * A user by id (admins only)
      */
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -121,7 +120,7 @@ public class UserController {
     }
 
     /**
-     * 更新用户
+     * Update a user (admins only)
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -135,14 +134,13 @@ public class UserController {
     }
 
     /**
-     * 分页获取用户封装列表（仅管理员）
+     * A page of users (admins only)
      *
-     * @param userQueryRequest 查询请求参数
+     * @param userQueryRequest the filters, sort order and page
      */
     @PostMapping("/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
-        // 防止空参数
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = userQueryRequest.getCurrent();
         long pageSize = userQueryRequest.getPageSize();

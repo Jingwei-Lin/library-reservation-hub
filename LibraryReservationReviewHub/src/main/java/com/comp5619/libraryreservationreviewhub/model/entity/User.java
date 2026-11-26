@@ -11,7 +11,7 @@ import lombok.Data;
 import lombok.ToString;
 
 /**
- * 用户
+ * A user account
  * @TableName user
  */
 @TableName(value = "users")
@@ -63,7 +63,7 @@ public class User implements Serializable {
     private String phone;
 
     /**
-     * 1表示可用 0表示禁用
+     * 1 = active, 0 = banned
      */
     private Integer status;
 

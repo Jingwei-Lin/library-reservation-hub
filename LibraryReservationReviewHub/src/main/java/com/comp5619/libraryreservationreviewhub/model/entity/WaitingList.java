@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 对应表：Waiting_list
+ * A waiting-list entry (table waiting_list)
  */
 @TableName("waiting_list")
 @Data

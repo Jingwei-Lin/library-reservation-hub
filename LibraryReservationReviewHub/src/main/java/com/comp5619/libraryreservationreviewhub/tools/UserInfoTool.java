@@ -18,8 +18,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * 用户信息工具 - 供 AI 调用，用于查询当前用户的基础资料、借阅历史和评论
- * 已去掉日志输出，使用 userId 作为传参
+ * The AI assistant's user tool: the signed-in user's profile, reservations and reviews.
  */
 @Component
 public class UserInfoTool {
@@ -49,8 +48,8 @@ public class UserInfoTool {
     }
 
     /**
-     * 查询当前登录用户的详细信息
-     * 如果未登录，返回 {"status":"not_logged_in"}
+     * The signed-in user's details.
+     * A guest gets {"status":"not_logged_in"}
      * <p>
      * The user id comes from the ToolContext the server sets for the request, not from a tool argument, so the
      * model can't be asked to read another user's data. A ToolContext parameter is left out of the tool's JSON
@@ -69,14 +68,13 @@ public class UserInfoTool {
 
     private String getUserInfo(Long userId) {
         try {
-            // 未登录或未传 userId
+            // a guest
             if (userId == null) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("status", "not_logged_in");
                 return JSONUtil.toJsonPrettyStr(result);
             }
 
-            // 查找用户
             User user = userService.getById(userId);
             if (user == null) {
                 Map<String, Object> result = new HashMap<>();
@@ -84,16 +82,13 @@ public class UserInfoTool {
                 return JSONUtil.toJsonPrettyStr(result);
             }
 
-            // 获取用户基础信息
             LoginUserVO userVO = userService.getLoginUserVO(user);
 
-            // 获取借阅历史
             List<ReservationVO> reservations = reservationService.getReservationsByUser(userId);
 
-            // 获取评论记录
             List<ReviewVO> reviews = reviewService.getReviewsByUserId(userId);
 
-            // 获取关联的书籍信息
+            // the books they reserved
             Map<Long, Book> borrowedBooks = new HashMap<>();
             if (reservations != null) {
                 for (ReservationVO r : reservations) {
@@ -102,7 +97,6 @@ public class UserInfoTool {
                 }
             }
 
-            // 组织返回数据
             Map<String, Object> result = new HashMap<>();
             result.put("status", "logged_in");
             result.put("userInfo", userVO);

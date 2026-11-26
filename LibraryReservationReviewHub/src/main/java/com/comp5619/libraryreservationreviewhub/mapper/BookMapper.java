@@ -9,9 +9,9 @@ import java.util.List;
 @Mapper
 public interface BookMapper {
 
-    /* ================= 基础 CRUD ================= */
+    /* ================= Basic CRUD ================= */
 
-    /** 按 ID 查询：加入 description；去掉无意义的 ORDER BY */
+    /** By id, with the description */
     @Select("""
         SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
         FROM book
@@ -45,7 +45,7 @@ public interface BookMapper {
     @Options(useGeneratedKeys = true, keyProperty = "bookId", keyColumn = "book_id")
     int insertBook(Book b);
 
-    /** 动态更新：仅更新非空字段，补充 description 与 path */
+    /** Updates only the fields that are set, description and path included */
     @Update("""
         <script>
         UPDATE book
@@ -104,9 +104,9 @@ public interface BookMapper {
     @Update("UPDATE book SET quantity = quantity + 1 WHERE book_id = #{id}")
     int returnCopy(@Param("id") Long id);
 
-    /* ================== 分页 / 搜索 ================== */
+    /* ================== Paging and search ================== */
 
-    /** 统计：把 description 纳入关键词匹配 */
+    /** Count: the keyword also matches the description */
     @Select("""
         <script>
         SELECT COUNT(1)
@@ -131,10 +131,6 @@ public interface BookMapper {
                         @Param("available") Boolean available,
                         @Param("includeDeleted") boolean includeDeleted);
 
-    /**
-     *
-     *
-     */
     @Select("""
         <script>
         SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
@@ -174,7 +170,7 @@ public interface BookMapper {
         """)
     BookStatsVO selectStats();
 
-    /** 按体裁查询：补充 description */
+    /** By genre, with the description */
     @Select("""
         SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
         FROM book

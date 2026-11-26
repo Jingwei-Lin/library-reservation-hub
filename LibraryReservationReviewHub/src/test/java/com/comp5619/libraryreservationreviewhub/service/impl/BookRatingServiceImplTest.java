@@ -33,7 +33,7 @@ class BookRatingServiceImplTest {
     @InjectMocks
     private BookRatingServiceImpl service;
 
-    /** 工具：用 compareTo 比较 BigDecimal，避免 4.2 vs 4.20 刻度问题 */
+    /** compares BigDecimals with compareTo, so 4.2 equals 4.20 */
     private static void assertBdEq(String expected, BigDecimal actual) {
         assertNotNull(actual, "actual BigDecimal is null");
         assertEquals(0, actual.compareTo(new BigDecimal(expected)),
@@ -82,10 +82,10 @@ class BookRatingServiceImplTest {
 
     @Test
     void getByBookIds_filtersInvalid_andPreservesOrder_andFillsNullWhenMissing() {
-        // 入参包含 null、<=0、重复
+        // null, ids <= 0 and a duplicate
         List<Long> input = Arrays.asList(null, -1L, 0L, 3L, 3L, 5L);
 
-        // mapper 只返回 3 的评分，5 不存在 -> 5 应该映射为 avgRating=null
+        // only book 3 has a rating, so book 5 gets avgRating null
         BookRating br3 = new BookRating();
         br3.setBookId(3L);
         br3.setAvgRating(new BigDecimal("4.8"));
@@ -183,7 +183,7 @@ class BookRatingServiceImplTest {
         BookRating r2 = new BookRating(); r2.setBookId(200L); r2.setAvgRating(new BigDecimal("4.4"));
         when(bookRatingMapper.selectList(any())).thenReturn(List.of(r1, r2));
 
-        // 第一本书不存在（mapper 返回 null），第二本存在
+        // the first book is missing (the mapper returns null), the second exists
         when(bookMapper.selectById(100L)).thenReturn(null);
 
         Book b200 = new Book();

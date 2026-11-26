@@ -16,20 +16,20 @@ public class NotifyEligibilityVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime joinDate;
 
-    /** 当前用户在该书等待队列中的位置（从1开始） */
+    /** The user's place in the book's queue, from 1 */
     private Integer position;
 
-    /** 该书等待中总人数（status=waiting） */
+    /** People waiting for the book (status=waiting) */
     private Long totalWaiting;
 
-    /** 库存与可用性 */
+    /** Stock and availability */
     private Integer quantity;
     private Integer heldQuantity;
     private Boolean available;
 
-    /** 当前已被通知的用户数量（status=notified） */
+    /** Users already notified (status=notified) */
     private Integer notifiedCount;
 
-    /** 是否可以通知给当前用户 */
+    /** Whether this user can be notified */
     private Boolean canNotify;
 }

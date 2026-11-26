@@ -31,7 +31,7 @@ public class BookController {
     private final BookService bookService;
     private final UserService userService;
 
-    /* ============ 管理员操作 ============ */
+    /* ============ Admin ============ */
 
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -52,7 +52,7 @@ public class BookController {
     public BaseResponse<Boolean> update(@PathVariable Long id,
                                         @RequestBody Book book,
                                         HttpServletRequest request) {
-        // 注意：实体为 bookId 而不是 id
+        // the entity's id field is bookId, not id
         book.setBookId(id.longValue());
         User operator = userService.getLoginUser(request);
         return ResultUtils.success(bookService.updateBook(book, operator));
@@ -65,7 +65,7 @@ public class BookController {
         return ResultUtils.success(bookService.restoreBook(id, operator));
     }
 
-    /* ============ 查询 ============ */
+    /* ============ Queries ============ */
 
     /** The Dashboard's statistics, counted over every listed book (the list itself is paged) */
     @GetMapping("/stats")
@@ -82,7 +82,7 @@ public class BookController {
     }
 
     /**
-     * 搜索：
+     * Search:
      * GET /book/search?keyword=xxx&available=true&current=1&pageSize=10&sortField=title&sortOrder=asc
      * Deleted books are left out; {@code includeDeleted=true} adds them, for admins only (the admin page).
      */
@@ -97,7 +97,7 @@ public class BookController {
     }
 
     /**
-     * 按类别查询：/book/genre/Fantasy
+     * By genre:/book/genre/Fantasy
      */
     @GetMapping("/genre/{genre}")
     public BaseResponse<List<BookVO>> byGenre(@PathVariable String genre) {

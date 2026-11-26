@@ -16,5 +16,5 @@ public class BookWithRatingVO {
     private Integer heldQuantity;
     private Boolean available;
 
-    private BigDecimal avgRating; // 允许为 null
+    private BigDecimal avgRating; // null when the book has no reviews
 }

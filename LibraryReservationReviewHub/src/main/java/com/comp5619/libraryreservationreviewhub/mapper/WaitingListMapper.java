@@ -15,8 +15,6 @@ import java.util.List;
 @Mapper
 public interface WaitingListMapper extends BaseMapper<WaitingList> {
 
-    // 直接用内置 CRUD
-    // 也可以定义自定义 SQL
     List<WaitingListVO> listByUser(@Param("userId") Long userId);
 
     int updateStatus(@Param("waitId") Long waitId,

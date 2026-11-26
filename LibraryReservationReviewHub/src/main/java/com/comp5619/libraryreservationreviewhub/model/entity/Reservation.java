@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 预订实体类
+ * A reservation
  */
 @TableName(value = "reservation")
 @Data
@@ -19,64 +19,46 @@ public class Reservation implements Serializable {
     @TableId(value = "reservation_id")
     private Long reservationId;
 
-    /**
-     * 用户ID
-     */
     @TableField("user_id")
     private Long userId;
 
-    /**
-     * 图书ID
-     */
     @TableId(value = "book_id")
     private Long bookId;
 
-    /**
-     * 预订时间
-     */
     @TableId(value = "reservation_date")
     private Date reservationTime;
 
     /**
-     * 取书时间
+     * When the user collects the book
      */
 
     @TableId(value = "pickup_date")
     private Date pickupTime;
 
     /**
-     * 到期时间
+     * When the book is due back
      */
     @TableId(value = "due_date")
     private Date dueTime;
 
     /**
-     * 归还时间
+     * When it was returned
      */
     @TableId(value = "return_date")
     private Date returnTime;
 
     /**
-     * 预订状态：reserved/borrowed/returned/overdue/cancelled
+     * Status: reserved/borrowed/returned/overdue/cancelled
      */
     @TableId(value = "status")
     private String reservationStatus;
 
-    /**
-     * 创建时间
-     */
     @TableId(value = "create_time")
     private Date createTime;
 
-    /**
-     * 更新时间
-     */
     @TableId(value = "update_time")
     private Date updateTime;
 
-    /**
-     * 是否删除
-     */
     @TableLogic
     @TableId(value = "is_delete")
     private Boolean isDelete;

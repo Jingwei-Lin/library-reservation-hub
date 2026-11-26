@@ -5,7 +5,7 @@
 
 <mapper namespace="com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper">
 
-    <!-- 结果映射 -->
+    <!-- Result mapping -->
     <resultMap id="WaitingListVOMap" type="com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO">
         <id property="waitId" column="wait_id"/>
         <result property="userId" column="user_id"/>
@@ -18,7 +18,7 @@
         <result property="bookTitle" column="book_title"/>
     </resultMap>
 
-    <!-- 示例 SQL：按用户查记录 -->
+    <!-- One user's entries -->
     <select id="listByUser" resultMap="WaitingListVOMap">
         SELECT wl.*,
                CONCAT(u.first_name, ' ', u.last_name) AS user_name,

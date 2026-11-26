@@ -7,43 +7,31 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 评论实体类
+ * A review
  */
 @TableName(value = "review")
 @Data
 public class Review implements Serializable {
 
     /**
-     * 评论ID - 主键
+     * Primary key
      */
     @TableId(value = "review_id", type = IdType.AUTO)
     private Long reviewId;
 
-    /**
-     * 用户ID
-     */
     @TableField("user_id")
     private Long userId;
 
-    /**
-     * 图书ID
-     */
     @TableField("book_id")
     private Long bookId;
 
     /**
-     * 评分 (1-5星)
+     * Rating, 1 to 5
      */
     private Integer rating;
 
-    /**
-     * 评论内容
-     */
     private String comment;
 
-    /**
-     * 评论时间
-     */
     @TableField("review_date")
     private Date reviewDate;
 

@@ -3,7 +3,7 @@ package com.comp5619.libraryreservationreviewhub.model.dto.waitingList;
 import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import lombok.Data;
 
-/** 条件查询/分页 */
+/** Waiting-list filters, for lists and pages */
 @Data
 public class WaitingListQueryDTO {
 

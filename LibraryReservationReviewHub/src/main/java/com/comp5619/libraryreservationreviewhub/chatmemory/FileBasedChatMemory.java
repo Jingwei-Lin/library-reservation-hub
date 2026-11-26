@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * 基于文件持久化的对话记忆
+ * Chat memory kept in files
  * <p>
  * One file per conversation, {@code <conversationId>.kryo}. The id must be a UUID (the front end makes one per
  * page with {@code uuidv4()}), and the resolved file must stay inside the base directory, so a forged id such as
@@ -50,7 +50,6 @@ public class FileBasedChatMemory implements ChatMemory {
     private static final ThreadLocal<Kryo> KRYO = ThreadLocal.withInitial(() -> {
         Kryo kryo = new Kryo();
         kryo.setRegistrationRequired(false);
-        // 设置实例化策略
         kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
         return kryo;
     });
@@ -71,7 +70,7 @@ public class FileBasedChatMemory implements ChatMemory {
         return LOCKS[Math.floorMod(conversationId.hashCode(), LOCKS.length)];
     }
 
-    // 构造对象时，指定文件保存目录
+    // the folder the conversations are saved in
     public FileBasedChatMemory(String dir) {
         this(dir, DEFAULT_MAX_MESSAGES);
     }

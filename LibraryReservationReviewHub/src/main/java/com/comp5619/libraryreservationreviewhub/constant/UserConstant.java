@@ -1,25 +1,25 @@
 package com.comp5619.libraryreservationreviewhub.constant;
 
 /**
- * 用户常量
+ * User constants
  */
 public interface UserConstant {
 
     /**
-     * 用户登录态键
+     * Session attribute holding the signed-in user
      */
     String USER_LOGIN_STATE = "user_login";
 
-    //  region 权限
+    //  region roles
 
     /**
-     * 默认角色
+     * Default role
      */
     String DEFAULT_ROLE = "user";
 
 
     /**
-     * 管理员角色
+     * Admin role
      */
     String ADMIN_ROLE = "admin";
 

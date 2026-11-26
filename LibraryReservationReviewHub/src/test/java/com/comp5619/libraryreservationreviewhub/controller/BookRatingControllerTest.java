@@ -82,7 +82,7 @@ class BookRatingControllerTest {
                 .andExpect(jsonPath("$.data[1].bookId").value(8))
                 .andExpect(jsonPath("$.data[1].avgRating").value(4.7));
 
-        // 校验参数解析是否为 [7,8]
+        // the ids parsed as [7, 8]
         ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
         verify(bookRatingService).getByBookIds(captor.capture());
         assertEquals(List.of(7L, 8L), captor.getValue());

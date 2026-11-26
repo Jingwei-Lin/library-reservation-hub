@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 已登录用户视图（脱敏）
+ * The signed-in user, without the password hash
  */
 @Data
 public class LoginUserVO implements Serializable {

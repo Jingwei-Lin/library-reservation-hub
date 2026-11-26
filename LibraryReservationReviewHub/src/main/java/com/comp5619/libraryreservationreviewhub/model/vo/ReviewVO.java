@@ -5,7 +5,7 @@ import java.sql.Date;
 import lombok.Data;
 
 /**
- * 评论视图对象
+ * A review, as the API returns it
  */
 @Data
 public class ReviewVO {
@@ -16,5 +16,5 @@ public class ReviewVO {
     private Integer rating;
     private String comment;
     private Date reviewDate;
-    private String userName; // 暂定
+    private String userName;
 }

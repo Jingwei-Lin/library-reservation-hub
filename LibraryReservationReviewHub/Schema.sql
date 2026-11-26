@@ -32,7 +32,7 @@ CREATE TABLE book (
 	title VARCHAR(255) NOT NULL,
 	author VARCHAR(50) NOT NULL,
 	genre VARCHAR(50) NOT NULL,
-	description TEXT NULL,          -- 新增字段
+	description TEXT NULL,
 	-- copies on the shelf that anyone can reserve now
 	quantity INT,
 	-- copies set aside for notified waiting-list users; not part of quantity
@@ -175,7 +175,7 @@ INSERT INTO users (user_id, email, password, first_name, last_name, is_admin) VA
 	(2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE),
 	(3, 'admin@admin.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'admin', 'admin', TRUE);
 
--- Books（含 description 全量 101 本）
+-- Books (all 101, with descriptions)
 INSERT INTO book (book_id, title, author, genre, description, quantity, available, `path`) VALUES
 	(1, 'The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 'A reluctant hobbit, Bilbo Baggins, is swept into an epic quest with dwarves and a wizard to reclaim treasure guarded by the dragon Smaug; a warm, playful adventure about courage, home, and unexpected heroism.', 5, TRUE, 'The_Hobbit.jpg'),
 	(2, 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasy', 'An epic trilogy-scale tale of friendship and sacrifice as a small fellowship seeks to destroy the One Ring and defeat the dark power of Sauron.', 5, TRUE, 'The_Lord_of_the_Rings.jpg'),
@@ -293,7 +293,7 @@ INSERT INTO book (book_id, title, author, genre, description, quantity, availabl
 INSERT INTO waiting_list (wait_id, user_id, book_id, join_date, status) VALUES
     (1, 1, 1, CURRENT_TIMESTAMP, 'waiting');
 
--- Reviews（示例）
+-- Reviews (samples)
 INSERT INTO review (review_id, user_id, book_id, rating, comment, review_date) VALUES
 	(1, 1, 1, 4, 'Great book!', CURRENT_TIMESTAMP),
 	(2, 1, 1, 5, 'An epic adventure with rich world-building!', CURRENT_TIMESTAMP),

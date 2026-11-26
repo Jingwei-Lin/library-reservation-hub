@@ -4,7 +4,7 @@ import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-/** 新增等待记录 */
+/** A new waiting-list entry */
 @Data
 public class WaitingListCreateDTO {
 

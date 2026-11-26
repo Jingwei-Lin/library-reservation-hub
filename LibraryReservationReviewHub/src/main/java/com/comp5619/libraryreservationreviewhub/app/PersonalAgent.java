@@ -78,14 +78,14 @@ public class PersonalAgent {
 
 
 
-    // AI 调用工具能力
+    // the tools the model may call
     @Resource
     private ToolCallback[] allTools;
 
 
 
     /**
-     * 初始化 ChatClient
+     * Builds the ChatClient
      * @param dashscopeChatModel
      */
     public PersonalAgent(ChatModel dashscopeChatModel, FileBasedChatMemory chatMemory) {
@@ -94,23 +94,14 @@ public class PersonalAgent {
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
-                        // 自定义日志 Advisor，可按需开启
+                        // the logging advisor; optional
                         ,new MyLoggerAdvisor()
                 )
                 .build();
         }
 
-
-        /**
-         * AI 基础对话
-         * 支持多轮对话记忆，SSE 流式传输，工具调用
-         *
-         * @param message
-         * @param chatId
-         * @return
-         */
     /**
-     * SSE 流式对话 + 用户上下文
+     * Streaming (SSE) chat, with the user's details as context
      *
      * @param userId the signed-in user's id, taken from the session by the caller, or null for a guest. It reaches
      *               the tools through {@link UserInfoTool#toolContextFor(Long)}, never through the model.

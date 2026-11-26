@@ -14,9 +14,9 @@ public interface BookRatingService {
     /** Manually recalculate (generally not necessary, as the trigger will automatically maintain it) */
     void recalc(Long bookId);
 
-    /** A. 只返回 bookId + avgRating */
+    /** Top 10: bookId and avgRating only */
     List<BookRatingVO> top10();
 
-    /** B. 返回完整书籍信息 + avgRating */
+    /** Top 10: the whole book and avgRating */
     List<BookWithRatingVO> top10Books();
 }

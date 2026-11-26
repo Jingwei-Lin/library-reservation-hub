@@ -34,18 +34,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * @description 针对表【Users】的数据库操作Service实现
+ * Users: accounts, sign-in and sessions
  */
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     /**
-     * 用户注册
+     * Registers a user
      *
-     * @param userAccount   用户账户 (email)
-     * @param userPassword  用户密码
-     * @param checkPassword 校验密码
+     * @param userAccount   e-mail address
+     * @param userPassword  password
+     * @param checkPassword password, typed again
      * @param firstName     first_name
      * @param lastName      last_name
      * @param phone         phone
@@ -53,7 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword, String firstName, String lastName, String phone) {
-        // 1. 校验参数
+        // 1. Check the fields
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword, firstName, lastName,phone)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
@@ -66,9 +66,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Passwords do not match");
         }
-        // ========== 新增：输入安全检查（防 SQL 注入 / 格式校验） ==========
+        // refuse input that looks like SQL injection
         try {
-            // 检查常见注入特征（单引号、注释、关键字等）
             SqlInjectionUtil.checkSqlInjection(userAccount, "userAccount");
             SqlInjectionUtil.checkSqlInjection(userPassword, "userPassword");
             SqlInjectionUtil.checkSqlInjection(checkPassword, "checkPassword");
@@ -76,27 +75,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             SqlInjectionUtil.checkSqlInjection(lastName, "lastName");
             SqlInjectionUtil.checkSqlInjection(phone, "phone");
         } catch (RuntimeException ex) {
-            // 把工具类的异常转换为业务异常，保持统一错误类型
+            // the same error type as every other refusal
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Illegal input detected");
         }
-        // 简单邮箱格式校验（最小严格性）
+        // a simple e-mail format check
         if (!ValidCheckUtil.isValidEmail(userAccount)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid email format");
         }
-        // 电话格式校验（只允许 8-15 位数字，可按需调整）
+        // phone: 8 to 15 digits
         if (StrUtil.isNotBlank(phone) && !ValidCheckUtil.isValidPhone(phone)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Invalid phone format");
         }
-        // 2. 检查用户账号 (email) 是否和数据库中已有的重复
+        // 2. The e-mail must not be registered already
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         long count = this.baseMapper.selectCount(queryWrapper);
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Account already exists");
         }
-        // 3. 密码一定要加密
+        // 3. Hash the password
         String encryptPassword = PasswordUtil.encode(userPassword);
-        // 4. 插入数据到数据库中
+        // 4. Save the user
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
@@ -112,30 +111,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 用户登录
+     * Signs a user in
      *
-     * @param userAccount  用户账户 (email)
-     * @param userPassword 用户密码
+     * @param userAccount  e-mail address
+     * @param userPassword password
      * @param request
-     * @return 脱敏后的用户信息
+     * @return the user, without the password hash
      */
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
-        // 1. 校验
+        // 1. Check the fields
         if (StrUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
 
         
-        // 2. 查询数据库中的用户是否存在
+        // 2. Find the user
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
-        // 不存在，抛异常
         if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "User does not exist");
         }
-        // 3. 密码校验
+        // 3. Check the password
         if (!PasswordUtil.matches(userPassword, user.getUserPassword())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Incorrect password");
         }
@@ -158,7 +156,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                         ErrorCode.PARAMS_ERROR, "Incorrect password");
             }
         }
-        // 4. 获取脱敏后的用户信息
+        // 4. The user, without the password hash
         LoginUserVO loginUserVO = getLoginUserVO(user);
 
 
@@ -167,7 +165,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginUserVO.setUserName(user.getFirstName() + " " + user.getLastName());
         loginUserVO.setUserRole(user.getIsAdmin() ? "admin" : "user");
 
-        // 5. 记录用户的登录态
+        // 5. Remember the user in the session
         // a new session id at login, so an id set or seen before login (session fixation) is not signed in
         request.getSession();
         request.changeSessionId();
@@ -177,13 +175,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        // 判断是否已经登录
         Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         if (currentUser == null || currentUser.getId() == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 从数据库中查询
+        // reload the user from the database
         Long userId = currentUser.getId();
         String passwordAtLogin = currentUser.getUserPassword();
         currentUser = this.getById(userId);
@@ -206,10 +203,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 获取脱敏类的用户信息
+     * The signed-in user, without the password hash
      *
-     * @param user 用户
-     * @return 脱敏后的用户信息
+     * @param user the user
+     * @return the view
      */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
@@ -224,7 +221,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 获得脱敏后的用户信息
+     * A user, without the password hash
      *
      * @param user
      * @return
@@ -242,7 +239,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 获取脱敏后的用户列表
+     * Users, without their password hashes
      *
      * @param userList
      * @return
@@ -260,12 +257,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public boolean userLogout(HttpServletRequest request) {
-        // 判断是否已经登录
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute(UserConstant.USER_LOGIN_STATE) == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "Not logged in");
         }
-        // 移除登录态: invalidate the whole session, so its id can't be used again
+        // Invalidate the whole session, so its id can't be used again
         session.invalidate();
         return true;
     }

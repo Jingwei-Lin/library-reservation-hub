@@ -27,7 +27,7 @@ public class BookRatingServiceImpl implements BookRatingService {
 
     @Override
     public BookRatingVO getByBookId(Long bookId) {
-        ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "bookId 非法");
+        ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         BookRating br = bookRatingMapper.selectById(bookId);
 
         BookRatingVO vo = new BookRatingVO();
@@ -44,7 +44,7 @@ public class BookRatingServiceImpl implements BookRatingService {
     public List<BookRatingVO> getByBookIds(List<Long> bookIds) {
         if (CollUtil.isEmpty(bookIds)) return Collections.emptyList();
 
-        // 过滤非法 & 去重，同时保留输入顺序以便返回时按入参顺序
+        // drop invalid ids and duplicates, keeping the order they came in, which the result follows
         List<Long> ids = bookIds.stream()
                 .filter(Objects::nonNull)
                 .filter(id -> id > 0)
@@ -52,7 +52,7 @@ public class BookRatingServiceImpl implements BookRatingService {
                 .collect(Collectors.toList());
         if (ids.isEmpty()) return Collections.emptyList();
 
-        // MP 批量：主键就是 book_id
+        // one query: the primary key is book_id
         List<BookRating> list = bookRatingMapper.selectBatchIds(ids);
         Map<Long, BookRating> map = list.stream()
                 .collect(Collectors.toMap(BookRating::getBookId, x -> x));
@@ -74,14 +74,14 @@ public class BookRatingServiceImpl implements BookRatingService {
 
     @Override
     public void recalc(Long bookId) {
-        ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "bookId 非法");
+        ThrowUtils.throwIf(bookId == null || bookId <= 0, ErrorCode.PARAMS_ERROR, "Invalid book ID");
         bookRatingMapper.recalcOne(bookId);
     }
 
     /** Deleted books never appear in the top 10 */
     private static final String LISTED_BOOK_IDS = "SELECT book_id FROM book WHERE is_delete = FALSE";
 
-    /** A. 只返回 bookId + avgRating 的前 10 条 */
+    /** Top 10: bookId and avgRating only */
     @Override
     public List<BookRatingVO> top10() {
         LambdaQueryWrapper<BookRating> qw = new LambdaQueryWrapper<>();
@@ -98,24 +98,24 @@ public class BookRatingServiceImpl implements BookRatingService {
         }).collect(Collectors.toList());
     }
 
-    /** B. 返回完整书籍信息 + avgRating 的前 10 条 */
+    /** Top 10: the whole book and avgRating */
     @Override
     public List<BookWithRatingVO> top10Books() {
-        // 先取评分 top10
+        // the 10 best ratings first
         LambdaQueryWrapper<BookRating> qw = new LambdaQueryWrapper<>();
         qw.isNotNull(BookRating::getAvgRating)
                 .inSql(BookRating::getBookId, LISTED_BOOK_IDS)
-                // 如希望把同分再按 book_id ASC 排序，可加 .orderByAsc(BookRating::getBookId)
+                // ties are in no set order; add .orderByAsc(BookRating::getBookId) to fix one
                 .orderByDesc(BookRating::getAvgRating)
                 .last("LIMIT 10");
 
         List<BookRating> ratings = bookRatingMapper.selectList(qw);
 
-        // 按顺序逐本取书（只有 10 本，性能 OK）
+        // then each book, in that order (only 10 queries)
         List<BookWithRatingVO> res = new ArrayList<>(ratings.size());
         for (BookRating r : ratings) {
             Book book = bookMapper.selectById(r.getBookId());
-            if (book == null) { // 数据不一致时兜底
+            if (book == null) { // a rating without its book
                 continue;
             }
             BookWithRatingVO vo = new BookWithRatingVO();

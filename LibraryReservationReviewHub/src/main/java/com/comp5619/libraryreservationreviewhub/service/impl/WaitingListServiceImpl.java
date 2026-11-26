@@ -32,7 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 等待列表业务实现类（参照 BookServiceImpl 风格）
+ * The waiting list
  */
 @Service
 @Slf4j
@@ -41,10 +41,10 @@ public class WaitingListServiceImpl
         extends ServiceImpl<WaitingListMapper, WaitingList>
         implements WaitingListService {
 
-    /* ---------- 分页与排序拼装（带字段白名单） ---------- */
+    /* ---------- paging and sorting (sort fields from a whitelist) ---------- */
     private record PageCalc(int current, int size, String sortField, boolean asc) {}
 
-    /** 仅允许这些字段参与排序（列名与数据库一致） */
+    /** The only fields a list may be sorted by (column names) */
     private static final Set<String> SORT_WHITELIST = Set.of(
             "wait_id", "user_id", "book_id", "join_date", "notification_date", "is_notified", "status"
     );
@@ -52,13 +52,13 @@ public class WaitingListServiceImpl
     private final StockService stockService;
     private final ReservationMapper reservationMapper;
 
-    /** 计算分页与排序参数（默认 wait_id DESC） */
+    /** Paging and sorting from the request (wait_id DESC by default) */
     private PageCalc calc(PageRequest pr) {
         int current = Math.max(1, pr.getCurrent());
         int size = Math.min(Math.max(1, pr.getPageSize()), 101);
 
         String sortField = "wait_id";
-        boolean asc = false; // 默认 DESC
+        boolean asc = false;
 
         if (pr.getSortField() != null && SORT_WHITELIST.contains(pr.getSortField())) {
             sortField = pr.getSortField();
@@ -90,7 +90,7 @@ public class WaitingListServiceImpl
         ThrowUtils.throwIf(dto == null || dto.getWaitId() == null, ErrorCode.PARAMS_ERROR);
 
         WaitingList entity = baseMapper.selectById(dto.getWaitId());
-        ThrowUtils.throwIf(entity == null, ErrorCode.NOT_FOUND_ERROR, "等待记录不存在");
+        ThrowUtils.throwIf(entity == null, ErrorCode.NOT_FOUND_ERROR, "Waiting-list entry not found");
 
         if (dto.getStatus() != null) {
             entity.setStatus(dto.getStatus());
@@ -124,7 +124,7 @@ public class WaitingListServiceImpl
         return vo;
     }
 
-    /* ===================== 查询 ===================== */
+    /* ===================== Queries ===================== */
 
     @Override
     public List<WaitingListVO> listByQuery(WaitingListQueryDTO dto) {
@@ -163,23 +163,21 @@ public class WaitingListServiceImpl
     }
 
     /**
-     * 分页查询
+     * A page of entries
      */
     public PageResult<WaitingListVO> pageByQuery(WaitingListQueryDTO dto, PageRequest pageReq) {
         PageCalc p = calc(pageReq);
         QueryWrapper<WaitingList> wrapper = buildWrapper(dto);
 
-        // 排序
         if (p.asc) {
             wrapper.orderByAsc(p.sortField);
         } else {
             wrapper.orderByDesc(p.sortField);
         }
 
-        // 统计总数
         long total = baseMapper.selectCount(wrapper);
 
-        // 计算分页窗口
+        // the page's window
         if (total == 0) {
             return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), 0, List.of());
         }
@@ -195,7 +193,7 @@ public class WaitingListServiceImpl
         return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), entityPage.getTotal(), records);
     }
 
-    /* ===================== 私有工具 ===================== */
+    /* ===================== Helpers ===================== */
 
     private WaitingListVO toVO(WaitingList entity) {
         WaitingListVO vo = new WaitingListVO();

@@ -13,52 +13,52 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 
 public interface ReviewService {
     /**
-     * 添加review，必须是登录后的
+     * Adds a review; the user must be signed in
      *
      * @param bookId
      * @param req
      * @param user
-     * @return 添加result
+     * @return the new review's id
      */
     long addReview(Long bookId, ReviewAddRequest req, User user);
 
     /**
-     * 更新review
+     * Updates a review
      * 
      * @param req
      * @param user
-     * @return 更新result
+     * @return whether it was updated
      */
     boolean updateReview(ReviewUpdateRequest req, User user);
 
     /**
-     * 根据id删除review
+     * Deletes a review
      * 
      * @param reviewId
-     * @return 是否成功
+     * @return whether it was deleted
      */
     boolean deleteReview(Long reviewId, User user);
 
     /**
-     * 根据id获取review
+     * A review by id
      * 
      * @param reviewId
-     * @return review对象
+     * @return the review
      */
     Review getReviewById(long reviewId);
 
     /**
-     * 根据用户ID获取该用户的所有评论
+     * All of one user's reviews
      *
-     * @param userId 用户ID
-     * @return 评论VO列表
+     * @param userId the user's id
+     * @return the reviews
      */
     List<ReviewVO> getReviewsByUserId(Long userId);
 
 
 
     /**
-     * 分页输出
+     * A page of reviews
      * 
      * @param req
      * @return pageResult
@@ -66,26 +66,26 @@ public interface ReviewService {
     PageResult<ReviewVO> listByPage(ReviewQueryRequest req);
 
     /**
-     * 将单个review类型转换成VO
+     * A review as a ReviewVO
      * 
      * @param review
-     * @return 转换后VO对象
+     * @return the view
      */
     ReviewVO getReviewVO(Review review);
 
     /**
-     * 将一组review转换成一组VO
+     * Reviews as ReviewVOs
      * 
      * @param reviewList
-     * @return 返回list<reviewVO>
+     * @return the views
      */
     List<ReviewVO> getReviewVOList(List<Review> reviewList);
 
     /**
-     * 根据BookId返还一组reviews
+     * One book's reviews
      *
      * @param bookId
-     * @return 返回list<reviewVO>
+     * @return the views
      */
     List<ReviewVO> getReviewsByBookId(long bookId);
 

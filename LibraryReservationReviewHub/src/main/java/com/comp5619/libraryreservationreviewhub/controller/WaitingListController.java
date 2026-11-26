@@ -35,11 +35,11 @@ public class WaitingListController {
     private final UserService userService;
 
 
-    /* ============ 当前用户：查询 ============ */
+    /* ============ Current user: queries ============ */
 
     /**
-     * 查询当前登录用户的所有 waitinglist
-     * 普通用户不返回 CANCELLED；管理员则全部返回
+     * The signed-in user's waiting-list entries.
+     * Users see only those still in the queue (not CANCELLED or FULFILLED); admins see all
      */
     @GetMapping("/my")
     @AuthCheck
@@ -52,7 +52,7 @@ public class WaitingListController {
 
         List<WaitingListVO> list = waitingListService.listByUserWithDetails(current.getId());
 
-        // 普通用户过滤 CANCELLED
+        // users: only the entries still in the queue
         if (!userService.isAdmin(current)) {
             list.removeIf(vo -> vo.getStatus() == WaitingStatusEnum.CANCELLED);
             list.removeIf(vo -> vo.getStatus() == WaitingStatusEnum.FULFILLED);
@@ -61,9 +61,9 @@ public class WaitingListController {
     }
 
     /**
-     * 按状态查询当前登录用户的 waitinglist
-     * 普通用户不可查询 CANCELLED
-     * 示例：GET /waiting-list/my/status?status=waiting
+     * The signed-in user's entries with one status.
+     * Users can't ask for CANCELLED
+     * Example:GET /waiting-list/my/status?status=waiting
      */
     @GetMapping("/my/status")
     @AuthCheck
@@ -77,10 +77,10 @@ public class WaitingListController {
             s = WaitingStatusEnum.valueOf(status.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "Illegal state parameter: " + status);
-            return ResultUtils.success(List.of()); // unreachable，仅为语法完整
+            return ResultUtils.success(List.of()); // unreachable; the compiler needs a return
         }
 
-        // 普通用户禁止查取消状态
+        // users can't list their cancelled entries
         ThrowUtils.throwIf(!userService.isAdmin(current) && s == WaitingStatusEnum.CANCELLED,
                 ErrorCode.FORBIDDEN_ERROR, "Ordinary users are not allowed to view the cancelled records.");
 
@@ -91,7 +91,7 @@ public class WaitingListController {
         return ResultUtils.success(waitingListService.listByQuery(query));
     }
 
-    /* ============ 当前用户：添加/取消 ============ */
+    /* ============ Current user: join and cancel ============ */
 
     /**
      * The current user joins the queue for a book. Only when no copy is on the shelf, and not twice
@@ -123,10 +123,10 @@ public class WaitingListController {
         return ResultUtils.success(true);
     }
 
-    /* ============ 管理员：按用户ID查看（可选） ============ */
+    /* ============ Admin: by user id ============ */
 
     /**
-     * 管理员按用户ID查看其所有 waitinglist（包含 CANCELLED）
+     * Admin: all of one user's entries, CANCELLED included
      */
     @GetMapping("/user/{userId}")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -136,10 +136,10 @@ public class WaitingListController {
         return ResultUtils.success(waitingListService.listByQuery(query));
     }
 
-    /* ============ 分页（如需与 PageRequest 对齐，可扩展） ============ */
+    /* ============ Paged ============ */
 
     /**
-     * 示例：GET /waiting-list/my/page?current=1&pageSize=10
+     * Example:GET /waiting-list/my/page?current=1&pageSize=10
      */
     @GetMapping("/my/page")
     @AuthCheck

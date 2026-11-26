@@ -11,6 +11,6 @@ import lombok.EqualsAndHashCode;
 public class ReviewQueryRequest extends PageRequest {
     private Long bookId;
     private Long userId;
-    private Integer minRating;// 根据rating范围输出
+    private Integer minRating; // with maxRating: a rating range
     private Integer maxRating;
 }

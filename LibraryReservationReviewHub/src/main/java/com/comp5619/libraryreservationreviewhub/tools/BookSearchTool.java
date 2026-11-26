@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 /**
  * BookSearchTool
  *
- * 用途：
- *  - 向 AI Agent 暴露可调用的书籍搜索与推荐接口。
- *  - 所有方法均标注为 @Tool，可被 AI 模型通过自然语言调用。
+ * The book tools the AI assistant can call:
+ *  - search, genres, recommendations, details and availability;
+ *  - every method is a @Tool, which the model picks from the user's request.
  */
 @Component
 @Slf4j
@@ -33,11 +33,11 @@ public class BookSearchTool {
 
 
     /**
-     * 搜索书籍
-     * @param keyword 关键词（书名、作者、类别）
-     * @param available 是否只显示可借
-     * @param current 页码
-     * @param pageSize 每页数量
+     * Search
+     * @param keyword keyword (title, author or genre)
+     * @param available only books with a copy available
+     * @param current page number
+     * @param pageSize page size
      * @return PageResult<BookVO>
      */
     @Tool(
@@ -54,7 +54,7 @@ public class BookSearchTool {
     }
 
     /**
-     * 根据类别获取书籍列表
+     * The books in one genre
      */
     @Tool(
             name = "get_books_by_genre",
@@ -86,7 +86,7 @@ public class BookSearchTool {
 
 
     /**
-     * 根据 ID 获取书籍详情
+     * One book's details (a deleted book is not found)
      */
     @Tool(name = "get_book_by_id", description = "Get detailed information for a book by ID")
     public BookVO getBookById(Long id) {
@@ -97,7 +97,7 @@ public class BookSearchTool {
     }
 
     /**
-     * 检查某本书是否可借
+     * Whether a copy of the book can be reserved now
      */
     @Tool(name = "check_book_availability", description = "Check whether a specific book is available for borrowing")
     public boolean isBookAvailable(Long id) {

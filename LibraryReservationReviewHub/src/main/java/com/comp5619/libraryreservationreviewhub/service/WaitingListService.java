@@ -10,28 +10,28 @@ import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
 import java.util.List;
 
 /**
- * 等待列表业务接口
+ * The waiting list
  */
 public interface WaitingListService extends IService<WaitingList> {
 
-    /** 创建等待记录 */
+    /** Creates an entry */
     Long create(WaitingListCreateDTO dto);
 
-    /** 更新等待记录状态 */
+    /** Changes an entry's status */
     boolean updateStatus(WaitingListUpdateDTO dto);
 
-    /** 删除等待记录 */
+    /** Deletes an entry */
     boolean deleteById(Long id);
 
-    /** 按ID查询 */
+    /** An entry by id */
     WaitingListVO getById(Long id);
 
-    /** 条件查询列表 */
+    /** Entries matching the filters */
     List<WaitingListVO> listByQuery(WaitingListQueryDTO dto);
 
     List<WaitingListVO> listByUserWithDetails(Long userId);
 
-    /**分页**/
+    /** A page of entries */
     PageResult<WaitingListVO> pageByQuery(WaitingListQueryDTO query, PageRequest pageReq);
 
     /**

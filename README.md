@@ -7,7 +7,7 @@ is taken, and share reviews. Built by a team of five for ELEC5619 (Object-Orient
 the University of Sydney, Aug – Nov 2025.
 
 **Stack:** Java 17 · Spring Boot 3.5 · MyBatis-Plus · MySQL · Spring AI · React 19 · Vite ·
-JUnit 5 · Mockito · JaCoCo · Docker · GitHub Actions
+JUnit 5 · Mockito · Testcontainers · JaCoCo · Vitest · Docker · GitHub Actions
 
 | Browse the catalogue | Book details |
 |---|---|
@@ -93,6 +93,13 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - the assistant's "recommend some books" tool returns five real books with their details (it returned ids and
     ratings, so the model invented titles);
   - any listed book can be reviewed, even with every copy out, and a new review is validated like an edit.
+- **Cleaned up the codebase**, without changing what users see:
+  - the back-end tests start their own MySQL with Testcontainers, so `./gradlew test` needs only Docker;
+  - table names are lowercase, so the app runs on any MySQL (it needed `lower_case_table_names=1`);
+  - removed 12 unused libraries, dead classes and components, debug logging, and 100 duplicate cover images;
+  - brought back the disabled tests, with real assertions, and added front-end unit tests (Vitest);
+  - split the three largest React components (the admin page, the book page and the book list) into parts;
+  - translated the Chinese comments, and rewrote the design document from the code.
 
 ## Architecture
 
@@ -153,23 +160,26 @@ Compose starts three containers:
 
 ## Tests and coverage
 
-`./gradlew test` runs 180 JUnit tests:
+**Back end:** `./gradlew test` runs 324 JUnit tests:
 - Mockito unit tests for the services and controllers;
-- Spring Boot integration tests that run against MySQL, including the concurrency tests.
-
-CI runs the same command on every push and uploads the JaCoCo report.
-- **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
-  real key.
-- **Coverage:** line coverage is 81% overall and 96% for the service layer. The report excludes configuration,
-  DTO/VO, exception and `common/` classes.
+- Spring Boot integration tests, including the concurrency tests, against a MySQL 8.4 that Testcontainers starts
+  for the run and loads from `Schema.sql`. Docker must be running; no database or environment variables are
+  needed.
 
 ```bash
 cd LibraryReservationReviewHub
 ./gradlew test jacocoTestReport   # HTML report: build/reports/jacoco/test/html/index.html
 ```
 
-The integration tests start their own MySQL 8.4 with Testcontainers, loaded from `Schema.sql`, so Docker must be
-running; they need no database or environment variables of their own.
+- **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
+  real key.
+- **Coverage:** line coverage is 96% overall and 98% for the service layer. The report excludes configuration,
+  DTO/VO, exception and `common/` classes.
+
+**Front end:** `npm test` (in `frontend/`) runs the Vitest unit tests: the API client's handling of ended
+sessions, the sign-in return address, the book-list paging, and the admin helpers.
+
+CI runs both on every push, with the front-end lint and build, and uploads the JaCoCo report.
 
 How the app is built (architecture, data model, the stock and waiting-list rules, sessions and the AI assistant)
 is described in [docs/DESIGN.md](docs/DESIGN.md).

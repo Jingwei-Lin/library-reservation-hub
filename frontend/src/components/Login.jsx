@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { loginUser } from '../services/authApi';
 import { safeRedirect } from '../safeRedirect';
+import { getTheme } from '../themeUtils';
 
-const Login = ({ setIsAuthenticated, setUser, theme }) => {
+const Login = ({ setIsAuthenticated, setUser }) => {
+    const theme = getTheme();
     const [formData, setFormData] = useState({ userAccount: '', userPassword: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);

@@ -11,6 +11,7 @@ import RatingSummary from "./book/RatingSummary";
 import AvailabilityActions from "./book/AvailabilityActions";
 import ReviewForm from "./book/ReviewForm";
 import ReviewList from "./book/ReviewList";
+import { coverUrl, showPlaceholderCover } from "../covers";
 import "./Book.css";
 
 /**
@@ -129,7 +130,7 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
         };
 
         fetchBookAndReviews();
-    }, [id, setIsAuthenticated, isAuthenticated, hasActiveReservation, setHasActiveReservation]);
+    }, [id, setIsAuthenticated, isAuthenticated]);
 
     // Check for ?reserve=true in URL and set flag to auto-open popup
     useEffect(() => {
@@ -297,17 +298,9 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
                     <div className="book-detail-cover">
                         {book.path ? (
                             <img
-                                src={`/api/images/books/${encodeURIComponent(book.path)}`}
+                                src={coverUrl(book.path)}
                                 alt={book.title}
-                                onError={(e) => {
-                                    console.error('Image failed to load:', {
-                                        bookTitle: book.title,
-                                        databasePath: book.path,
-                                        imageSrc: `/api/images/books/${encodeURIComponent(book.path)}`,
-                                        timestamp: new Date().toISOString(),
-                                    });
-                                    e.target.src = '/placeholder-book-cover.jpg';
-                                }}
+                                onError={showPlaceholderCover(book)}
                             />
                         ) : (
                             <div className="book-cover-placeholder">📖</div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { coverUrl, showPlaceholderCover } from "../../covers";
 
 /**
  * The books on the current page, as cards.
@@ -16,17 +17,9 @@ const BookGrid = ({ books, onSelect }) => (
                 <div className="book-cover">
                     {book.path ? (
                         <img
-                            src={`/api/images/books/${encodeURIComponent(book.path)}`}
+                            src={coverUrl(book.path)}
                             alt={book.title}
-                            onError={(e) => {
-                                console.error('Image failed to load:', {
-                                    bookTitle: book.title,
-                                    databasePath: book.path,
-                                    imageSrc: `/api/images/books/${encodeURIComponent(book.path)}`,
-                                    timestamp: new Date().toISOString(),
-                                });
-                                e.target.src = '/placeholder-book-cover.jpg';
-                            }}
+                            onError={showPlaceholderCover(book)}
                         />
                     ) : (
                         <div className="book-cover-placeholder">📖</div>

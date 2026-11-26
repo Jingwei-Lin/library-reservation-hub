@@ -14,6 +14,7 @@ import { setSessionEndedHandler } from './services/api';
 import { safeRedirect } from './safeRedirect';
 import WaitingList from "./components/WaitingList.jsx";
 import Profile from "./components/Profile.jsx";
+import NotFound from "./components/NotFound.jsx";
 
 // pages that need an account: when the session ends there, the user signs in again and comes back
 const ACCOUNT_PAGES = ['/reservations', '/waitinglist', '/profile', '/admin/dashboard'];
@@ -161,10 +162,11 @@ function AppRoutes() {
                     element={<Reservations isAuthenticated={isAuthenticated} />}
                 />
                 <Route path="/waitinglist" element={<WaitingList isAuthenticated={isAuthenticated} />} />
-                <Route path="/profile" element={<Profile user={user} />} />
+                <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
                 <Route path="/admin/login" element={<AdminLogin setIsAuthenticated={setIsAuthenticated} setUser={setUser} />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard user={user} isAuthenticated={isAuthenticated} onSignOut={signOut} />} />
                 <Route path="/admin" element={<Navigate to="/admin/login" />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </div>
     );

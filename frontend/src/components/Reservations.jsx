@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { localDate } from "../dates";
 import { useNavigate } from "react-router-dom";
 import { reservationService } from "../services/reservationService";
 import { isSessionEnded } from "../services/api";
@@ -72,8 +73,8 @@ const Reservations = ({ isAuthenticated }) => {
 
     const startUpdatePickup = (reservationId, currentPickup) => {
         setUpdatingPickup(reservationId);
-        // Format current pickup date to YYYY-MM-DD
-        setNewPickupDate(currentPickup ? new Date(currentPickup).toISOString().slice(0, 10) : "");
+        // the current pickup date as the local YYYY-MM-DD
+        setNewPickupDate(currentPickup ? localDate(new Date(currentPickup)) : "");
     };
 
     const handleUpdatePickup = async (reservationId) => {
@@ -153,7 +154,7 @@ const Reservations = ({ isAuthenticated }) => {
                                         type="date" // Changed from datetime-local to date
                                         value={newPickupDate}
                                         onChange={(e) => setNewPickupDate(e.target.value)}
-                                        min={new Date().toISOString().slice(0, 10)} // Prevent past dates
+                                        min={localDate()} // no past dates
                                     />
                                 ) : (
                                     formatDate(res.pickupTime)

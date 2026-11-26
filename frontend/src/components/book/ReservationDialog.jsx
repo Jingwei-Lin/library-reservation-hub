@@ -3,15 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { reservationService } from "../../services/reservationService";
 import { isSessionEnded } from "../../services/api";
 import Portal from '../Portal';
+import { addDays, localDate, parseLocalDate } from "../../dates";
 
-const isoDate = (date) => date.toISOString().split("T")[0];
-
-/** The latest due date for a pickup date: 30 days after it */
-const maxDueFor = (pickupTime) => {
-    const maxDueDate = new Date(pickupTime);
-    maxDueDate.setDate(maxDueDate.getDate() + 30);
-    return isoDate(maxDueDate);
-};
+/** The latest due date for a pickup date (a Date or "YYYY-MM-DD"): 30 local days after it */
+const maxDueFor = (pickupTime) => addDays(pickupTime, 30);
 
 /**
  * The Reserve dialog: pickup and due dates, checked here and by the server. Shown while open; closing it forgets
@@ -51,8 +46,9 @@ const ReservationDialog = ({ book, bookId, isAuthenticated, onClose, onReserved 
         setReservationSuccess("");
 
         try {
-            const pickupDate = new Date(reservationForm.pickupTime);
-            const dueDate = new Date(reservationForm.dueTime);
+            // local midnight, like `today` below
+            const pickupDate = parseLocalDate(reservationForm.pickupTime);
+            const dueDate = parseLocalDate(reservationForm.dueTime);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -127,12 +123,8 @@ const ReservationDialog = ({ book, bookId, isAuthenticated, onClose, onReserved 
                                 value={reservationForm.pickupTime}
                                 onChange={handleReservationFormChange}
                                 required
-                                min={isoDate(new Date())}
-                                max={(() => {
-                                    const maxDate = new Date();
-                                    maxDate.setDate(maxDate.getDate() + 7);
-                                    return isoDate(maxDate);
-                                })()}
+                                min={localDate()}
+                                max={addDays(new Date(), 7)}
                             />
                             <small className="date-hint">Select a date within the next 7 days</small>
                         </div>
@@ -145,7 +137,7 @@ const ReservationDialog = ({ book, bookId, isAuthenticated, onClose, onReserved 
                                 value={reservationForm.dueTime}
                                 onChange={handleReservationFormChange}
                                 required
-                                min={reservationForm.pickupTime || isoDate(new Date())}
+                                min={reservationForm.pickupTime || localDate()}
                                 max={reservationForm.pickupTime ? maxDueFor(reservationForm.pickupTime) : maxDueFor(new Date())}
                             />
                             <small className="date-hint">

@@ -5,7 +5,7 @@ import { isSessionEnded } from "../services/api";
 import { getTheme } from "../themeUtils";
 import "./Profile.css";
 
-const Profile = ({ user }) => {
+const Profile = ({ user, setUser }) => {
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState({
         firstName: "",
@@ -34,15 +34,16 @@ const Profile = ({ user }) => {
                 const response = await userService.getUserProfile();
                 if (response && response.code === 0 && response.data) {
                     setProfileData({
-                        firstName: response.data.firstName,
-                        lastName: response.data.lastName,
-                        email: response.data.userAccount,
-                        phone: response.data.phone,
+                        // empty strings, not null, so the inputs stay controlled
+                        firstName: response.data.firstName ?? "",
+                        lastName: response.data.lastName ?? "",
+                        email: response.data.userAccount ?? "",
+                        phone: response.data.phone ?? "",
                         password: "",
                         confirmPassword: "",
                         currentPassword: ""
                     });
-                    setSavedEmail(response.data.userAccount);
+                    setSavedEmail(response.data.userAccount ?? "");
                 } else {
                     setError(response?.message || "Failed to load profile");
                 }
@@ -111,6 +112,8 @@ const Profile = ({ user }) => {
                     phone: trimmedData.phone
                 };
                 sessionStorage.setItem("user", JSON.stringify(updatedUser));
+                // the header and the other pages show the new name at once
+                setUser?.(updatedUser);
 
                 // Optional: Update form state to reflect trimmed values
                 setProfileData({

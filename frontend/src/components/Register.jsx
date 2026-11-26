@@ -2,8 +2,10 @@ import './Register.css';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../services/authApi';
+import { getTheme } from '../themeUtils';
 
-const Register = (theme) => {
+const Register = () => {
+    const theme = getTheme();
     const [formData, setFormData] = useState({
         userAccount: '',
         userPassword: '',

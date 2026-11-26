@@ -43,4 +43,11 @@ export default tseslint.config([
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
+  {
+    // the unit tests run in Node (Vitest), so they may use its globals too
+    files: ['**/*.test.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+  },
 ])

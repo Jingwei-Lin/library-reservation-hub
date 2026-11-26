@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,9 +107,11 @@ class HoldExpiryIntegrationTest {
         insert("INSERT INTO waiting_list (user_id, book_id, join_date, notification_date, is_notified, status) VALUES ("
                 + b + ", " + bookId + ", '2026-11-20 09:00:00', '2026-11-24 10:30:00', 1, 'notified')");
 
+        // the deadline is an instant with its zone, so the browser shows it in the reader's own time
+        String expected = LocalDateTime.of(2026, 11, 27, 10, 30).atZone(ZoneId.systemDefault()).toInstant().toString();
         mockMvc.perform(get("/waiting-list/my").session(login(email)))
                 .andExpect(jsonPath("$.data[0].notificationDate").value("2026-11-24 10:30:00"))
-                .andExpect(jsonPath("$.data[0].holdExpiresAt").value("2026-11-27 10:30:00"));
+                .andExpect(jsonPath("$.data[0].holdExpiresAt").value(expected));
     }
 
     // ---- helpers ----

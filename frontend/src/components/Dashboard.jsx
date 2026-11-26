@@ -129,9 +129,8 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                     await fetchBooks();
                 }
 
-                // Parallelize non-critical fetches (user, eligibility, waiting list, top books)
-                const [eligibilityRes, waitingListRes, userRes, topBooksRes] = await Promise.all([
-                    waitingListService.getEligibility().catch(err => ({ code: -1, message: err.message })), // Graceful fail
+                // Parallelize non-critical fetches (user, waiting list, top books)
+                const [waitingListRes, userRes, topBooksRes] = await Promise.all([
                     waitingListService.getMyWaitingList().catch(err => ({ code: -1, message: err.message })),
                     validateSession().catch(err => ({ code: -1, message: err.message })),
                     bookService.getTop10Books().catch(err => ({ code: -1, message: err.message })),
@@ -139,9 +138,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated }) => {
                 ]);
 
                 // Process responses (handle errors individually to not block everything)
-                if (eligibilityRes.code !== 0) {
-                    console.warn('Eligibility check failed:', eligibilityRes.message);
-                }
                 if (waitingListRes.code === 0 && waitingListRes.data) {
                     const hasNotified = waitingListRes.data.some(item => item.status === "notified");
                     setHasNotification(hasNotified);

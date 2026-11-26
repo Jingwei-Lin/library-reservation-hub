@@ -7,15 +7,17 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
+import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
 import com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListCreateDTO;
 import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListQueryDTO;
 import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
+import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
-import com.comp5619.libraryreservationreviewhub.service.BookService;
+import com.comp5619.libraryreservationreviewhub.service.StockService;
 import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +47,8 @@ public class WaitingListServiceImpl
             "wait_id", "user_id", "book_id", "join_date", "notification_date", "is_notified", "status"
     );
 
-    private final BookService bookService;
+    private final StockService stockService;
+    private final ReservationMapper reservationMapper;
 
     /** 计算分页与排序参数（默认 wait_id DESC） */
     private PageCalc calc(PageRequest pr) {
@@ -219,45 +222,46 @@ public class WaitingListServiceImpl
 
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public List<NotifyEligibilityVO> computeNotifyEligibilityForUser(Long userId) {
+    public List<NotifyEligibilityVO> listQueuePositionsForUser(Long userId) {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
-
-        // Query current user's WAITING records with position and notified count info
         List<NotifyEligibilityVO> rows = baseMapper.selectNotifyEligibilityForUser(userId);
         if (rows == null || rows.isEmpty()) {
             return List.of();
         }
-
-        // Determine which books can notify the current user
-        List<Long> eligibleBookIds = new ArrayList<>();
-        for (var vo : rows) {
-            // Check conditions for notification:
-            // 1. Book has available copies on hold (heldQuantity > 0)
-            // 2. User's position is within available held copies (position <= heldQuantity)
-            // 3. No other users are already notified for this book (notifiedCount == 0)
-            boolean can = vo.getHeldQuantity() != null
-                    && (vo.getHeldQuantity() > 0 || vo.getQuantity() > 0)
-                    && vo.getPosition() != null
-                    && vo.getPosition() <= vo.getHeldQuantity()
-                    && vo.getNotifiedCount() != null
-                    && vo.getNotifiedCount() < vo.getHeldQuantity();
-            vo.setCanNotify(can);
-            if (can) {
-                eligibleBookIds.add(vo.getBookId());
-            }
-        }
-
-        // Batch update: set these waiting records to NOTIFIED
-        if (!eligibleBookIds.isEmpty()) {
-            int updated = baseMapper.batchNotifyByBooks(userId, eligibleBookIds);
-            ThrowUtils.throwIf(updated <= 0, ErrorCode.OPERATION_ERROR, "Failed to update the notification status");
-        }
-
-        // Log the notification
-        log.info("Notified user {} for books: {}", userId, eligibleBookIds);
-
+        // a WAITING entry has no copy held for it; once one is, the entry is NOTIFIED and leaves this list
+        rows.forEach(vo -> vo.setCanNotify(false));
         return rows;
+    }
+
+    @Override
+    @Transactional
+    public Long join(Long userId, Long bookId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        // the book lock first, so a copy coming back at the same moment is seen (and handed out) consistently
+        Book book = stockService.lockBook(bookId);
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR, "Book not found");
+        ThrowUtils.throwIf(book.getQuantity() != null && book.getQuantity() > 0, ErrorCode.OPERATION_ERROR,
+                "A copy is available: reserve it instead");
+        ThrowUtils.throwIf(reservationMapper.countActive(userId, bookId) > 0, ErrorCode.OPERATION_ERROR,
+                "You have already reserved this book");
+
+        long exists = lambdaQuery()
+                .eq(WaitingList::getUserId, userId)
+                .eq(WaitingList::getBookId, bookId)
+                .in(WaitingList::getStatus, WaitingStatusEnum.WAITING, WaitingStatusEnum.NOTIFIED)
+                .count();
+        ThrowUtils.throwIf(exists > 0, ErrorCode.PARAMS_ERROR, "This book is currently on the waiting list.");
+
+        WaitingListCreateDTO dto = new WaitingListCreateDTO();
+        dto.setUserId(userId);
+        dto.setBookId(bookId);
+        return create(dto);
+    }
+
+    @Override
+    @Transactional
+    public void leave(Long userId, Long bookId) {
+        stockService.cancelWaiting(bookId, userId);
     }
 
     @Override

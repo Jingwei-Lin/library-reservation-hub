@@ -12,6 +12,7 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
+import com.comp5619.libraryreservationreviewhub.service.StockService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class BookServiceImplTest {
 
     @Mock
     private WaitingListMapper waitingListMapper;
+
+    @Mock
+    private StockService stockService;
 
     @InjectMocks
     private BookServiceImpl bookService;
@@ -352,19 +356,50 @@ class BookServiceImplTest {
     }
 
     // =====================================================================
-    // 9. incrementHeldQuantity() & decrementHeldQuantity()
+    // 9. admin quantity changes go through the queue
     // =====================================================================
 
     @Test
-    void incrementHeldQuantity_Success() {
-        when(bookMapper.incrementHeldQuantity(1L)).thenReturn(1);
-        assertTrue(bookService.incrementHeldQuantity(1L));
+    void updateBook_MoreCopies_GoThroughTheStockService() {
+        Book update = new Book();
+        update.setBookId(1L);
+        update.setTitle("Clean Code");
+        update.setQuantity(8);   // the shelf has 5
+        when(userService.isAdmin(adminUser)).thenReturn(true);
+        when(bookMapper.selectById(1L)).thenReturn(testBook);
+        when(stockService.lockBook(1L)).thenReturn(testBook);
+        when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
+
+        assertTrue(bookService.updateBook(update, adminUser));
+        verify(stockService).addCopies(1L, 3);
+        verify(bookMapper).updateBook(argThat(b -> b.getQuantity() == null));   // not written a second time
     }
 
     @Test
-    void decrementHeldQuantity_Success() {
-        when(bookMapper.decrementHeldQuantity(1L)).thenReturn(1);
-        assertTrue(bookService.decrementHeldQuantity(1L));
+    void updateBook_FewerCopies_LowersTheShelf() {
+        Book update = new Book();
+        update.setBookId(1L);
+        update.setQuantity(2);
+        when(userService.isAdmin(adminUser)).thenReturn(true);
+        when(bookMapper.selectById(1L)).thenReturn(testBook);
+        when(stockService.lockBook(1L)).thenReturn(testBook);
+        when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
+
+        assertTrue(bookService.updateBook(update, adminUser));
+        verify(stockService, never()).addCopies(anyLong(), anyInt());
+        verify(bookMapper).updateBook(argThat(b -> b.getQuantity() == 2));
+    }
+
+    @Test
+    void updateBook_NegativeQuantity_IsRefused() {
+        Book update = new Book();
+        update.setBookId(1L);
+        update.setQuantity(-1);
+        when(userService.isAdmin(adminUser)).thenReturn(true);
+        when(bookMapper.selectById(1L)).thenReturn(testBook);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> bookService.updateBook(update, adminUser));
+        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), ex.getCode());
     }
 
     // =====================================================================

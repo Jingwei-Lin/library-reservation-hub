@@ -53,12 +53,6 @@ class WaitingListControllerTest {
     @Mock
     private UserService userService;
 
-    @Mock
-    private BookService bookService;
-
-    @Mock
-    private BookMapper bookMapper;
-
     @InjectMocks
     private WaitingListController waitingListController;
 
@@ -202,7 +196,7 @@ class WaitingListControllerTest {
         vo.setNotifiedCount(1);
         vo.setCanNotify(true);
 
-        when(waitingListService.computeNotifyEligibilityForUser(1L))
+        when(waitingListService.listQueuePositionsForUser(1L))
                 .thenReturn(List.of(vo));
 
         mockMvc.perform(get("/waiting-list/my/eligibility"))
@@ -223,16 +217,8 @@ class WaitingListControllerTest {
     @Test
     void addToMyWaitlist_Success() throws Exception {
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(normalUser);
-        Book book = new Book();
-        book.setBookId(100L);
-        book.setIsDelete(false);
-        when(bookService.getBookById(100L)).thenReturn(book);
-
-        LambdaQueryChainWrapper<WaitingList> chain = mkChain();
-        when(waitingListService.lambdaQuery()).thenReturn(chain);
-        when(chain.count()).thenReturn(0L);
-
-        when(waitingListService.create(any(WaitingListCreateDTO.class))).thenReturn(100L);
+        // the rules for joining (no shelf copy, no duplicate) live in WaitingListService.join
+        when(waitingListService.join(1L, 100L)).thenReturn(100L);
 
         mockMvc.perform(post("/waiting-list/my/add")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -242,38 +228,14 @@ class WaitingListControllerTest {
     }
 
     @Test
-    void cancelMyWait_Notified_NoNextUser_ReleasesCopy() throws Exception {
+    void cancelMyWait_LeavesTheQueue() throws Exception {
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(normalUser);
-
-        // 当前用户存在 NOTIFIED 记录
-        WaitingList record = new WaitingList();
-        record.setWaitId(5L);
-        record.setUserId(1L);
-        record.setBookId(200L);
-        record.setStatus(WaitingStatusEnum.NOTIFIED);
-
-        LambdaQueryChainWrapper<WaitingList> chain = mkChain();
-        when(waitingListService.lambdaQuery()).thenReturn(chain);
-        // 第一次 one()：找到 NOTIFIED；第二次 one()：查下一位 WAITING -> null
-        when(chain.one()).thenReturn(record).thenReturn(null);
-
-        when(waitingListService.updateStatus(any(WaitingListUpdateDTO.class))).thenReturn(true);
-
-        // 书本释放逻辑
-        Book book = new Book();
-        book.setBookId(200L);
-        book.setQuantity(0);
-        book.setHeldQuantity(1);
-        book.setAvailable(false);
-
-        when(bookService.getBookById(200L)).thenReturn(book);
-        when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
-        // 你的报错显示返回类型为 Boolean
-        when(bookService.decrementHeldQuantity(200L)).thenReturn(true);
 
         mockMvc.perform(delete("/waiting-list/my/200"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(true));
+        // a copy held for the user passes on inside WaitingListService.leave (StockService)
+        verify(waitingListService).leave(1L, 200L);
     }
 
     @Test

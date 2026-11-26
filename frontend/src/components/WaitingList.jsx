@@ -24,7 +24,7 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
         try {
             setLoading(true);
             setError("");
-            await waitingListService.getEligibility();
+            // copies are handed out when they come back, so there is nothing to check first
             const response = await waitingListService.getMyWaitingList();
             if (response && response.code === 0 && response.data) {
                 setWaitingItems(Array.isArray(response.data) ? response.data : []);
@@ -74,33 +74,6 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
         }
     };
 
-    const checkEligibility = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            setSuccessMessage("");
-            const response = await waitingListService.getEligibility();
-            if (response && response.code === 0) {
-                setSuccessMessage("Eligibility checked and notifications updated!");
-                setTimeout(() => setSuccessMessage(""), 3000);
-                await fetchWaitingList(); // Refresh to show updated statuses
-            } else {
-                setError(response?.message || "Failed to check eligibility");
-            }
-        } catch (err) {
-            console.error("checkEligibility error:", err);
-            if (err.message.includes("Session expired or user banned")) {
-                logoutUser();
-                setIsAuthenticated(false);
-                navigate("/login");
-            } else {
-                setError(err.message || "Failed to check eligibility");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Helper to format status
     const formatStatus = (status) => {
         if (!status) return 'Unknown';
@@ -113,8 +86,8 @@ const WaitingList = ({ isAuthenticated, setIsAuthenticated }) => {
             <button onClick={() => navigate("/dashboard")} className="back-button">
                 ← Back to Dashboard
             </button>
-            <button onClick={checkEligibility} disabled={loading} className="check-eligibility-btn">
-                {loading ? "Checking..." : "Check Availability"}
+            <button onClick={fetchWaitingList} disabled={loading} className="check-eligibility-btn">
+                {loading ? "Refreshing..." : "Refresh"}
             </button>
 
             {loading && <div className="loading">Loading waiting list...</div>}

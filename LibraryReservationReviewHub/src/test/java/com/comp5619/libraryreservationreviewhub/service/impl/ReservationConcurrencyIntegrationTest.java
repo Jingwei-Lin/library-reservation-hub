@@ -4,6 +4,7 @@ import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.service.ReservationService;
+import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,9 @@ class ReservationConcurrencyIntegrationTest {
 
     @Autowired
     private ReservationService reservationService;
+
+    @Autowired
+    private WaitingListService waitingListService;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -110,6 +114,70 @@ class ReservationConcurrencyIntegrationTest {
 
         assertThat(activeReservations()).isZero();
         assertThat(quantity()).isEqualTo(3);
+    }
+
+    @Test
+    void concurrentReturnsGiveEachCopyToADifferentPersonWaiting() throws Exception {
+        setQuantity(3);
+        List<Long> reservationIds = new ArrayList<>();
+        for (User user : users.subList(0, 3)) {
+            reservationIds.add(reservationService.createReservation(bookId, request(), user));
+        }
+        for (int i = 3; i < 6; i++) {
+            jdbc.update("INSERT INTO waiting_list (user_id, book_id, join_date, status) VALUES (?, ?, "
+                    + "NOW() - INTERVAL ? MINUTE, 'waiting')", users.get(i).getId(), bookId, 10 - i);
+        }
+
+        List<Callable<Boolean>> cancels = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            long reservationId = reservationIds.get(i);
+            User user = users.get(i);
+            cancels.add(() -> reservationService.cancelReservation(reservationId, user));
+        }
+        assertThat(runAtTheSameTime(cancels)).containsOnly(true);
+
+        // every copy went to a different person, and held_quantity matches the notified entries
+        assertThat(jdbc.queryForObject("SELECT COUNT(DISTINCT user_id) FROM waiting_list WHERE book_id = ? "
+                + "AND status = 'notified'", Integer.class, bookId)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT held_quantity FROM book WHERE book_id = ?", Integer.class, bookId))
+                .isEqualTo(3);
+        assertThat(quantity()).isZero();
+    }
+
+    /**
+     * A copy coming back while someone joins the queue: either the join comes first and the copy is held for
+     * them, or the return comes first and the join is refused (reserve it instead). Never both a shelf copy
+     * and someone waiting for it.
+     */
+    @Test
+    void aReturnAndAJoinAtTheSameTimeNeverLeaveSomeoneWaitingNextToAShelfCopy() throws Exception {
+        User holder = users.get(0), joiner = users.get(1);
+        for (int round = 0; round < 10; round++) {
+            jdbc.update("DELETE FROM reservation WHERE book_id = ?", bookId);
+            jdbc.update("DELETE FROM waiting_list WHERE book_id = ?", bookId);
+            setQuantity(1);
+            long reservationId = reservationService.createReservation(bookId, request(), holder);
+
+            runAtTheSameTime(List.<Callable<Boolean>>of(
+                    () -> reservationService.cancelReservation(reservationId, holder),
+                    () -> {
+                        try {
+                            waitingListService.join(joiner.getId(), bookId);
+                            return true;
+                        } catch (BusinessException e) {
+                            return false;   // "A copy is available: reserve it instead"
+                        }
+                    }));
+
+            int waiting = jdbc.queryForObject("SELECT COUNT(*) FROM waiting_list WHERE book_id = ? AND status = 'waiting'",
+                    Integer.class, bookId);
+            int notified = jdbc.queryForObject("SELECT COUNT(*) FROM waiting_list WHERE book_id = ? AND status = 'notified'",
+                    Integer.class, bookId);
+            int held = jdbc.queryForObject("SELECT held_quantity FROM book WHERE book_id = ?", Integer.class, bookId);
+            assertThat(quantity() > 0 && waiting > 0).as("round %d: a shelf copy and someone waiting", round).isFalse();
+            assertThat(held).as("round %d: held = notified", round).isEqualTo(notified);
+            assertThat(quantity() + held).as("round %d: the copy is somewhere", round).isEqualTo(1);
+        }
     }
 
     /** Starts every task together and waits for all of them. */

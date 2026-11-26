@@ -78,7 +78,9 @@ CREATE TABLE Waiting_list (
 	is_notified BOOLEAN DEFAULT FALSE,
 	status ENUM('waiting', 'notified', 'cancelled', 'fulfilled') DEFAULT 'waiting',
 	FOREIGN KEY (user_id) REFERENCES Users(user_id),
-	FOREIGN KEY (book_id) REFERENCES Book(book_id)
+	FOREIGN KEY (book_id) REFERENCES Book(book_id),
+	-- the queue: the first person waiting for a book is the oldest join, then the lowest id
+	INDEX idx_waiting_queue (book_id, status, join_date, wait_id)
 );
 
 CREATE TABLE Review (

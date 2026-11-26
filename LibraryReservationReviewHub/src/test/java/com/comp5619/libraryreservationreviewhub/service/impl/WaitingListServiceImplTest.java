@@ -11,7 +11,8 @@ import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingLis
 import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
-import com.comp5619.libraryreservationreviewhub.service.BookService;
+import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
+import com.comp5619.libraryreservationreviewhub.service.StockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +40,10 @@ class WaitingListServiceImplTest {
     private WaitingListMapper waitingListMapper;
 
     @Mock
-    private BookService bookService;
+    private StockService stockService;
+
+    @Mock
+    private ReservationMapper reservationMapper;
 
     @InjectMocks
     private WaitingListServiceImpl service;
@@ -193,56 +197,37 @@ class WaitingListServiceImplTest {
         assertEquals(1L, page.getRecords().get(0).getUserId());
     }
 
-    /* -------------------- computeNotifyEligibilityForUser -------------------- */
+    /* -------------------- listQueuePositionsForUser (read-only) -------------------- */
 
     @Test
-    void computeNotifyEligibility_noRows() {
+    void listQueuePositions_noRows() {
         when(waitingListMapper.selectNotifyEligibilityForUser(1L)).thenReturn(List.of());
-
-        List<NotifyEligibilityVO> out = service.computeNotifyEligibilityForUser(1L);
-        assertTrue(out.isEmpty());
-        verify(waitingListMapper, never()).batchNotifyByBooks(anyLong(), anyList());
+        assertTrue(service.listQueuePositionsForUser(1L).isEmpty());
     }
 
     @Test
-    void computeNotifyEligibility_notEligible_whenHeldZeroEvenIfQuantityPositive() {
-        // held = 0, quantity > 0，但 position<=held 不满足 -> 不可通知
-        NotifyEligibilityVO vo = new NotifyEligibilityVO();
-        vo.setBookId(100L);
-        vo.setHeldQuantity(0);
-        vo.setQuantity(3);
-        vo.setPosition(1);
-        vo.setNotifiedCount(0);
-
-        when(waitingListMapper.selectNotifyEligibilityForUser(1L)).thenReturn(List.of(vo));
-
-        List<NotifyEligibilityVO> out = service.computeNotifyEligibilityForUser(1L);
-        assertEquals(1, out.size());
-        assertEquals(Boolean.FALSE, out.get(0).getCanNotify());
-
-        verify(waitingListMapper, never()).batchNotifyByBooks(anyLong(), anyList());
-    }
-
-    @Test
-    void computeNotifyEligibility_canNotify_andBatchUpdateCalled() {
-        // 满足条件：held=2, position=1, notifiedCount=0
+    void listQueuePositions_onlyReports() {
         NotifyEligibilityVO vo = new NotifyEligibilityVO();
         vo.setBookId(200L);
         vo.setHeldQuantity(2);
         vo.setQuantity(0);
         vo.setPosition(1);
         vo.setNotifiedCount(0);
-
         when(waitingListMapper.selectNotifyEligibilityForUser(5L)).thenReturn(List.of(vo));
-        when(waitingListMapper.batchNotifyByBooks(eq(5L), anyList())).thenReturn(1);
 
-        List<NotifyEligibilityVO> out = service.computeNotifyEligibilityForUser(5L);
-        assertEquals(1, out.size());
-        assertEquals(Boolean.TRUE, out.get(0).getCanNotify());
+        List<NotifyEligibilityVO> out = service.listQueuePositionsForUser(5L);
 
-        ArgumentCaptor<List<Long>> idsCap = ArgumentCaptor.forClass(List.class);
-        verify(waitingListMapper).batchNotifyByBooks(eq(5L), idsCap.capture());
-        assertEquals(List.of(200L), idsCap.getValue());
+        assertEquals(1, out.get(0).getPosition());
+        assertEquals(Boolean.FALSE, out.get(0).getCanNotify());
+        // looking at the queue writes nothing: copies are handed out when they come back
+        verify(waitingListMapper, never()).markNotified(anyLong());
+        verify(waitingListMapper, never()).update(any(), any());
+    }
+
+    @Test
+    void leave_goesThroughTheStockService() {
+        service.leave(1L, 200L);
+        verify(stockService).cancelWaiting(200L, 1L);
     }
 
     /* -------------------- cancelStaleWaiting -------------------- */

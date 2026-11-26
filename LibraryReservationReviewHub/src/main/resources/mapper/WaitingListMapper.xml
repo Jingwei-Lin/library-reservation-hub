@@ -30,7 +30,7 @@
         ORDER BY wl.join_date DESC
     </select>
 
-    <!-- 当前用户在其所有 WAITING 图书上的排队位置 + 总等待人数 + 图书库存/可用性 -->
+    <!-- The user's WAITING entries: place in the queue (ties on wait_id), people waiting, stock. Read-only. -->
     <select id="selectNotifyEligibilityForUser" resultType="com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">
         SELECT
         wl.wait_id as waitId,
@@ -41,12 +41,13 @@
         b.quantity,
         b.held_quantity as heldQuantity,
         b.available,
-        <!-- Calculate position in queue (only waiting users) -->
+        <!-- Place in the queue: the same order StockService serves it in -->
         (SELECT COUNT(*) + 1
         FROM waiting_list wl2
         WHERE wl2.book_id = wl.book_id
         AND wl2.status = 'WAITING'
-        AND wl2.join_date &lt; wl.join_date) as position,
+        AND (wl2.join_date &lt; wl.join_date
+             OR (wl2.join_date = wl.join_date AND wl2.wait_id &lt; wl.wait_id))) as position,
         <!-- Total waiting users for this book -->
         (SELECT COUNT(*)
         FROM waiting_list wl3
@@ -89,20 +90,6 @@
 <!--        ORDER BY q.join_date ASC-->
 <!--    </select>-->
 
-
-    <!-- 2) 批量将该用户对这些书的 waiting 记录改为 notified -->
-    <update id="batchNotifyByBooks">
-        UPDATE waiting_list
-        SET status = 'notified',
-        is_notified = 1,
-        notification_date = NOW()
-        WHERE user_id = #{userId}
-        AND book_id IN
-        <foreach collection="bookIds" item="bookId" open="(" separator="," close=")">
-            #{bookId}
-        </foreach>
-        AND status = 'WAITING'
-    </update>
 
     <!-- 将 join_date 超过 7 天且仍为 notified 的条目设为 cancelled -->
     <update id="cancelStaleWaiting">

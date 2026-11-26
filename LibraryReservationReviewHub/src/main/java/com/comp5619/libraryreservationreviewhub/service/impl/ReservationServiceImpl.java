@@ -4,7 +4,6 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
-import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.comp5619.libraryreservationreviewhub.mapper.ReservationMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.reservation.ReservationUpdatePickupRequest;
@@ -14,18 +13,14 @@ import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.ReservationVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReservationService;
+import com.comp5619.libraryreservationreviewhub.service.StockService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
-import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
-import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
-import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
-import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -38,9 +33,8 @@ public class ReservationServiceImpl implements ReservationService {
 
     private final ReservationMapper reservationMapper;
     private final BookService bookService;
-    private final BookMapper bookMapper;
     private final UserService userService;
-    private final WaitingListService waitingListService;
+    private final StockService stockService;
 
     @Override
     @Transactional
@@ -89,23 +83,17 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(adjustedDueTime.before(pickupTime) || adjustedDueTime.equals(pickupTime),
                 ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
 
-        // Check if book is available
-        // ThrowUtils.throwIf(!bookService.isBookAvailable(bookId), ErrorCode.OPERATION_ERROR, "Book is not available");
-
-        // Check if user already has an active reservation for this book
-        List<Reservation> activeReservations = reservationMapper.selectActiveByBookId(bookId);
-        log.info("Active reservations for bookId {}: {}", bookId, activeReservations);
-        boolean hasActiveReservation = activeReservations.stream()
-                .anyMatch(r -> {
-                    if (r == null || r.getUserId() == null || r.getReservationStatus() == null) {
-                        log.warn("Invalid reservation data: {}", r);
-                        return false;
-                    }
-                    return r.getUserId().equals(user.getId()) &&
-                            List.of("reserved", "borrowed").contains(r.getReservationStatus());
-                });
-        ThrowUtils.throwIf(hasActiveReservation, ErrorCode.OPERATION_ERROR,
+        // Lock the book row first: requests for the same book then run one at a time, so the checks below see
+        // the latest data (a second click waits here and then finds the first reservation), and every stock
+        // path takes its locks in the same order (book, then waiting list and reservations).
+        Book book = stockService.lockBook(bookId);
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR, "Book not found");
+        ThrowUtils.throwIf(reservationMapper.countActive(user.getId(), bookId) > 0, ErrorCode.OPERATION_ERROR,
                 "You have already reserved this book");
+
+        // A notified user takes the copy held for them, everyone else a shelf copy; their waiting-list entry,
+        // if any, is fulfilled
+        stockService.takeCopy(bookId, user.getId());
 
         // Create reservation
         Reservation reservation = new Reservation();
@@ -118,47 +106,10 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setCreateTime(new Date());
         log.info("Reservation object: {}", reservation);
 
-        Book book = bookService.getBookById(bookId);
-        ThrowUtils.throwIf(book == null || Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR,
-                "Book not found");
-
-        // Take the copy first, with one atomic conditional UPDATE: a notified user takes the copy held for
-        // them, everyone else a public copy. Checking stock in Java and writing it back let two concurrent
-        // requests both get the last copy. Doing this before the insert also locks the book row first
-        // (the reservation's foreign key needs a shared lock on it), so concurrent requests queue
-        // instead of deadlocking.
-        boolean isNotified = isUserNotifiedForBook(user.getId(), bookId);
-        if (isNotified) {
-            ThrowUtils.throwIf(!bookService.decrementHeldQuantity(bookId), ErrorCode.OPERATION_ERROR,
-                    "The copy held for you is no longer available");
-            log.info("Reserved held copy for notified user {} on book {} (decremented held_quantity).", user.getId(), bookId);
-        } else {
-            ThrowUtils.throwIf(bookMapper.takeAvailableCopy(bookId) == 0, ErrorCode.OPERATION_ERROR,
-                    "No available copies");
-        }
-
         // Insert reservation
         int rows = reservationMapper.insertReservation(reservation);
         log.info("Inserted reservation, rows affected: {}", rows);
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to create reservation");
-
-        // Update waiting list status to 'fulfilled' if there's a 'notified' entry for this user/book
-        WaitingList notifiedEntry = getNotifiedWaitingEntry(user.getId(), bookId);
-
-        if (notifiedEntry != null) {
-            log.info("Fulfilling waiting list entry for userId: {}, bookId: {}, waitId: {}",
-                    user.getId(), bookId, notifiedEntry.getWaitId());
-
-            WaitingListUpdateDTO updateDto = new WaitingListUpdateDTO();
-            updateDto.setWaitId(notifiedEntry.getWaitId());
-            updateDto.setStatus(WaitingStatusEnum.FULFILLED);
-            // Optionally set other fields like notificationDate if needed
-            boolean updated = waitingListService.updateStatus(updateDto);
-            if (!updated) {
-                log.warn("Failed to update waiting list to fulfilled for userId: {}, bookId: {}", user.getId(), bookId);
-                // Don't throw here to avoid rolling back the reservation—treat as non-critical
-            }
-        }
 
         log.info("Reservation created successfully with ID: {}", reservation.getReservationId());
 
@@ -183,7 +134,7 @@ public class ReservationServiceImpl implements ReservationService {
         // Update book quantity if reservation is active
         String status = reservation.getReservationStatus();
         if (status != null && List.of("reserved", "borrowed").contains(status)) {
-            releaseCopy(reservation.getBookId());
+            stockService.giveBackCopy(reservation.getBookId());
         } else {
             log.info("Reservation status {} does not require book quantity update", status);
         }
@@ -207,7 +158,7 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(reservation == null || reservation.getIsDelete(), ErrorCode.NOT_FOUND_ERROR);
 
         if ("returned".equals(status) && "borrowed".equals(reservation.getReservationStatus())) {
-            releaseCopy(reservation.getBookId());
+            stockService.giveBackCopy(reservation.getBookId());
         } else if ("borrowed".equals(status) && "reserved".equals(reservation.getReservationStatus())) {
             reservation.setPickupTime(new Date());
             long dueTimeMillis = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000;
@@ -340,44 +291,4 @@ public class ReservationServiceImpl implements ReservationService {
         return true;
     }
 
-    /**
-     * Gives a cancelled or returned copy back: held for the waiting list if anyone is waiting,
-     * otherwise put back on the shelf. Both are single atomic UPDATEs, so concurrent cancellations
-     * cannot overwrite each other's counts.
-     */
-    void releaseCopy(Long bookId) {
-        ThrowUtils.throwIf(bookService.getBookById(bookId) == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
-        if (getWaitingUserCount(bookId) > 0) {
-            ThrowUtils.throwIf(!bookService.incrementHeldQuantity(bookId), ErrorCode.OPERATION_ERROR,
-                    "Failed to hold the copy for the waiting list");
-            log.info("Held copy for book {} (waitlist exists).", bookId);
-        } else {
-            ThrowUtils.throwIf(bookMapper.returnCopy(bookId) == 0, ErrorCode.OPERATION_ERROR,
-                    "Failed to update book quantity");
-            log.info("Returned a copy of book {} to the shelf (no waitlist).", bookId);
-        }
-    }
-
-    boolean isUserNotifiedForBook(Long userId, Long bookId) {
-        return waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, userId)
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .exists();
-    }
-
-    WaitingList getNotifiedWaitingEntry(Long userId, Long bookId) {
-        return waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, userId)
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.NOTIFIED)
-                .one();
-    }
-
-    long getWaitingUserCount(Long bookId) {
-        return waitingListService.lambdaQuery()
-                .eq(WaitingList::getBookId, bookId)
-                .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                .count();
-    }
 }

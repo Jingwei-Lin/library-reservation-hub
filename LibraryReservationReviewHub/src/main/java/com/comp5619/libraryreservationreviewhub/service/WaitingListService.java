@@ -34,8 +34,20 @@ public interface WaitingListService extends IService<WaitingList> {
     /**分页**/
     PageResult<WaitingListVO> pageByQuery(WaitingListQueryDTO query, PageRequest pageReq);
 
-    /**Notify users of the current books available for borrowing**/
-    List<NotifyEligibilityVO> computeNotifyEligibilityForUser(Long id);
+    /**
+     * The user's WAITING entries with their place in each queue. Read-only: copies are handed out when they
+     * come back (StockService), not when someone looks.
+     */
+    List<NotifyEligibilityVO> listQueuePositionsForUser(Long userId);
+
+    /**
+     * Joins the queue for a book. Refused when the book is missing or deleted, when a copy is on the shelf
+     * (reserve it instead), and when the user already has an active reservation or entry for it.
+     */
+    Long join(Long userId, Long bookId);
+
+    /** Leaves the queue; a copy held for the user passes to the next person */
+    void leave(Long userId, Long bookId);
 
     /**Automatically update the status of the waiting list**/
     int cancelStaleWaiting();

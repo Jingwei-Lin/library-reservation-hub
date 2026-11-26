@@ -9,14 +9,10 @@ import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.dto.waitingList.*;
-import com.comp5619.libraryreservationreviewhub.model.entity.Book;
-import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
-import com.comp5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.comp5619.libraryreservationreviewhub.model.Enum.WaitingStatusEnum;
 import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
-import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import com.comp5619.libraryreservationreviewhub.service.WaitingListService;
 
@@ -26,8 +22,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,9 +33,6 @@ public class WaitingListController {
 
     private final WaitingListService waitingListService;
     private final UserService userService;
-    private final BookService bookService;
-    private static final Logger log = LoggerFactory.getLogger(WaitingListController.class);
-    private final BookMapper bookMapper;
 
 
     /* ============ 当前用户：查询 ============ */
@@ -103,8 +94,8 @@ public class WaitingListController {
     /* ============ 当前用户：添加/取消 ============ */
 
     /**
-     * 当前用户添加一本书到自己的 waitinglist
-     * 限制：同一用户对同一本书，存在“有效(非 CANCELLED)”记录则不允许重复添加
+     * The current user joins the queue for a book. Only when no copy is on the shelf, and not twice
+     * (see {@link WaitingListService#join}).
      */
     @PostMapping("/my/add")
     @AuthCheck
@@ -112,30 +103,15 @@ public class WaitingListController {
         User current = userService.getLoginUser(request);
         ThrowUtils.throwIf(current == null, ErrorCode.NOT_LOGIN_ERROR);
 
-        Book book = bookService.getBookById(req.getBookId());
-        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR, "Book not found");
-
-        // 是否已存在有效记录
-        long exists = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, current.getId())
-                .eq(WaitingList::getBookId, req.getBookId())
-                .ne(WaitingList::getStatus, WaitingStatusEnum.CANCELLED)
-                .ne(WaitingList::getStatus, WaitingStatusEnum.FULFILLED)
-                .count();
-        ThrowUtils.throwIf(exists > 0, ErrorCode.PARAMS_ERROR, "This book is currently on the waiting list.");
-
-        WaitingListCreateDTO dto = new WaitingListCreateDTO();
-        dto.setUserId(current.getId());
-        dto.setBookId(req.getBookId());
-
-        Long id = waitingListService.create(dto);
+        Long id = waitingListService.join(current.getId(), req.getBookId());
         ThrowUtils.throwIf(id == null, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(id);
     }
 
     /**
-     * 当前用户取消自己对某本书的 waiting（设为 CANCELLED）
-     * 示例：DELETE /waiting-list/my/123
+     * The current user leaves the queue for a book (the entry becomes CANCELLED). A copy held for them passes to
+     * the next person waiting, or goes on the shelf.
+     * Example: DELETE /waiting-list/my/123
      */
     @DeleteMapping("/my/{bookId}")
     @AuthCheck
@@ -143,56 +119,7 @@ public class WaitingListController {
         User current = userService.getLoginUser(request);
         ThrowUtils.throwIf(current == null, ErrorCode.NOT_LOGIN_ERROR);
 
-        // 找到“有效”记录
-        WaitingList record = waitingListService.lambdaQuery()
-                .eq(WaitingList::getUserId, current.getId())
-                .eq(WaitingList::getBookId, bookId)
-                .in(WaitingList::getStatus, WaitingStatusEnum.WAITING, WaitingStatusEnum.NOTIFIED)
-                .one();
-        ThrowUtils.throwIf(record == null, ErrorCode.NOT_FOUND_ERROR, "No cancelable waiting record was found.");
-
-        Long waitId = record.getWaitId();
-        WaitingStatusEnum oldStatus = record.getStatus();
-
-        // Mark as CANCELLED
-        WaitingListUpdateDTO dto = new WaitingListUpdateDTO();
-        dto.setWaitId(record.getWaitId());
-        dto.setStatus(WaitingStatusEnum.CANCELLED);
-        dto.setIsNotified(false);
-        boolean ok = waitingListService.updateStatus(dto);
-        ThrowUtils.throwIf(!ok, ErrorCode.OPERATION_ERROR, "Cancellation failed");
-
-        // Only if it was NOTIFIED → release the held copy
-        if (WaitingStatusEnum.NOTIFIED.equals(oldStatus)) {
-            Book book = bookService.getBookById(bookId);
-            ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR);
-
-            // Find next waiting user
-            WaitingList nextWaiting = waitingListService.lambdaQuery()
-                    .eq(WaitingList::getBookId, bookId)
-                    .eq(WaitingList::getStatus, WaitingStatusEnum.WAITING)
-                    .orderByAsc(WaitingList::getJoinDate)
-                    .last("LIMIT 1")
-                    .one();
-
-            if (nextWaiting != null) {
-                // Notify next user
-                // waitingListService.computeNotifyEligibilityForUser(current.getId());
-                log.info("Cancelled NOTIFIED entry; next user in line → held_quantity incremented for book {}", bookId);
-            } else {
-                // No one waiting → release held copy back to public quantity
-                book.setHeldQuantity(Math.max(0, book.getHeldQuantity() - 1));
-                book.setQuantity(book.getQuantity() + 1);
-                book.setAvailable(true);
-
-                int rows = bookMapper.updateBook(book);
-                bookService.decrementHeldQuantity(bookId);
-                ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to release held copy");
-
-                log.info("Cancelled NOTIFIED entry; no next user → held_quantity--, quantity++ for book {}", bookId);
-            }
-        }
-
+        waitingListService.leave(current.getId(), bookId);
         return ResultUtils.success(true);
     }
 
@@ -237,18 +164,16 @@ public class WaitingListController {
         return ResultUtils.success(page);
     }
 
-    /**通知该用户当前可以借阅的书籍**/
+    /**
+     * The user's place in each queue they are waiting in. Read-only, kept for API compatibility: copies are
+     * handed out when they come back, so looking here no longer notifies anyone.
+     */
     @GetMapping("/my/eligibility")
     @AuthCheck
     public BaseResponse<List<NotifyEligibilityVO>> myNotifyEligibility(HttpServletRequest request) {
         User current = userService.getLoginUser(request);
         ThrowUtils.throwIf(current == null, ErrorCode.NOT_LOGIN_ERROR);
-
-        // 仅基于 WAITING 的记录计算
-        List<NotifyEligibilityVO> list = waitingListService.computeNotifyEligibilityForUser(current.getId());
-
-        // （可选）普通用户只看自己，不做额外过滤。若你要隐藏库存字段给普通用户，这里可做脱敏。
-        return ResultUtils.success(list);
+        return ResultUtils.success(waitingListService.listQueuePositionsForUser(current.getId()));
     }
 
 

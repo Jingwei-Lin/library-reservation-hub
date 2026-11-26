@@ -75,4 +75,10 @@ public interface ReservationMapper {
         """)
     int updatePickupTime(@Param("reservationId") Long reservationId, @Param("pickupTime") Date pickupTime);
 
+    @Select("""
+        SELECT COUNT(*) FROM Reservation
+        WHERE user_id = #{userId} AND book_id = #{bookId} AND status IN ('reserved', 'borrowed') AND is_delete = FALSE
+        """)
+    long countActive(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
 }

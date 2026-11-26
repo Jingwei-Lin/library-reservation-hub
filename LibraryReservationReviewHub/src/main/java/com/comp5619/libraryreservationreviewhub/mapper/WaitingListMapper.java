@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
@@ -21,12 +22,8 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
     int updateStatus(@Param("waitId") Long waitId,
                      @Param("status") WaitingStatusEnum status);
 
-    /** 取当前用户在所有 WAITING 图书队列中的位置 + 图书库存 */
+    /** The user's WAITING entries with their place in each queue and the book's stock. Read-only. */
     List<NotifyEligibilityVO> selectNotifyEligibilityForUser(@Param("userId") Long userId);
-
-    /** 将该用户在这些 bookIds 的 WAITING 记录改为 NOTIFIED，写入通知时间、is_notified */
-    int batchNotifyByBooks(@Param("userId") Long userId,
-                           @Param("bookIds") List<Long> bookIds);
 
     /** 将超过 7 天仍为 waiting 的记录置为 cancelled，返回受影响行数 */
     int cancelStaleWaiting();
@@ -38,5 +35,60 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
         WHERE book_id = #{bookId} AND status IN ('waiting', 'notified')
         """)
     int cancelActiveForBook(@Param("bookId") Long bookId);
+
+    /*
+     * The queue. These are only called with the book row locked (StockService), so the reads are locking reads:
+     * they see the latest rows, not a snapshot from before the lock.
+     */
+
+    /** The first person waiting for the book: the oldest join, then the lowest id */
+    @Select("""
+        SELECT wait_id AS waitId, user_id AS userId, book_id AS bookId, status
+        FROM waiting_list
+        WHERE book_id = #{bookId} AND status = 'waiting'
+        ORDER BY join_date, wait_id
+        LIMIT 1
+        FOR UPDATE
+        """)
+    WaitingList selectNextWaitingForUpdate(@Param("bookId") Long bookId);
+
+    /** The user's waiting or notified entry for the book */
+    @Select("""
+        SELECT wait_id AS waitId, user_id AS userId, book_id AS bookId, status
+        FROM waiting_list
+        WHERE user_id = #{userId} AND book_id = #{bookId} AND status IN ('waiting', 'notified')
+        ORDER BY wait_id
+        LIMIT 1
+        FOR UPDATE
+        """)
+    WaitingList selectActiveForUpdate(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    /** A copy is held for this entry from now on */
+    @Update("""
+        UPDATE waiting_list
+        SET status = 'notified', is_notified = TRUE, notification_date = NOW()
+        WHERE wait_id = #{waitId} AND status = 'waiting'
+        """)
+    int markNotified(@Param("waitId") Long waitId);
+
+    /** The user reserved the copy held for them */
+    @Update("""
+        UPDATE waiting_list SET status = 'fulfilled'
+        WHERE user_id = #{userId} AND book_id = #{bookId} AND status = 'notified'
+        """)
+    int fulfilNotified(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    /** The user reserved a shelf copy of a book they were still waiting for */
+    @Update("""
+        UPDATE waiting_list SET status = 'fulfilled'
+        WHERE user_id = #{userId} AND book_id = #{bookId} AND status = 'waiting'
+        """)
+    int fulfilWaiting(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    @Update("""
+        UPDATE waiting_list SET status = 'cancelled', is_notified = FALSE
+        WHERE wait_id = #{waitId} AND status IN ('waiting', 'notified')
+        """)
+    int cancelEntry(@Param("waitId") Long waitId);
 }
 

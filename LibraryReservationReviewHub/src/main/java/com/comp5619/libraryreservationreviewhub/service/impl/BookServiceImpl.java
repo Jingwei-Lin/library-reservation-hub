@@ -13,6 +13,7 @@ import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
+import com.comp5619.libraryreservationreviewhub.service.StockService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class BookServiceImpl implements BookService {
     private final UserService userService;
     private final BookMapper bookMapper;
     private final WaitingListMapper waitingListMapper;
+    private final StockService stockService;
 
     /* ---------- 分页与排序拼装（带字段白名单） ---------- */
     private record PageCalc(long offset, long limit, String orderBySql) {}
@@ -106,13 +108,28 @@ public class BookServiceImpl implements BookService {
         return true;
     }
 
+    /**
+     * Admin edit. {@code quantity} is the shelf count: copies added while people are waiting go to them first
+     * (each is held for the next person), and lowering it only removes shelf copies, never held ones.
+     */
     @Override
+    @Transactional
     public boolean updateBook(Book book, User operator) {
         ThrowUtils.throwIf(book == null || book.getBookId() == null, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
         Book old = bookMapper.selectById(book.getBookId());
         ThrowUtils.throwIf(old == null, ErrorCode.NOT_FOUND_ERROR);
+
+        if (book.getQuantity() != null) {
+            ThrowUtils.throwIf(book.getQuantity() < 0, ErrorCode.PARAMS_ERROR, "Quantity cannot be negative");
+            Book locked = stockService.lockBook(book.getBookId());
+            int added = book.getQuantity() - (locked.getQuantity() == null ? 0 : locked.getQuantity());
+            if (added > 0) {
+                stockService.addCopies(book.getBookId(), added);
+                book.setQuantity(null);   // already written, through the queue
+            }
+        }
 
         // `available` follows the stock and can't be set, so an edit may leave nothing to write
         boolean nothingToWrite = book.getTitle() == null && book.getAuthor() == null && book.getGenre() == null
@@ -187,20 +204,6 @@ public class BookServiceImpl implements BookService {
         Book b = bookMapper.selectById(id.longValue());
         return b != null && !Boolean.TRUE.equals(b.getIsDelete()) && Boolean.TRUE.equals(b.getAvailable())
                 && b.getQuantity() != null && b.getQuantity() > 0;
-    }
-
-    @Override
-    public boolean incrementHeldQuantity(Long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        int rows = bookMapper.incrementHeldQuantity(id);
-        return rows > 0;
-    }
-
-    @Override
-    public boolean decrementHeldQuantity(Long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        int rows = bookMapper.decrementHeldQuantity(id);
-        return rows > 0;
     }
 
     @Override

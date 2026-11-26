@@ -77,6 +77,13 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - holds run out three days after the notification (it was seven days after joining, and the copy stayed held);
   - two cancels of one reservation gave back two copies, and a borrowed reservation could be cancelled; a status
     now changes with one conditional `UPDATE`, and unique keys stop duplicate reservations or queue entries.
+- **Made the front end notice when a session ends.** The API reports it in the body (`code` 40100, or 40301 for
+  a ban) while the pages only checked HTTP 401/403, so nothing ever reacted.
+  - Seven axios clients became one, with an interceptor that handles an ended session in one place: a notice,
+    and on pages that need an account, sign in and come back to the same page.
+  - A refused review no longer signs the user out, and Sign out clears the previous user's chat.
+  - Admin page: a failed user edit is no longer retried as an edit of the admin's own profile, the server's
+    error text is shown, and there is a Sign out button.
 
 ## Architecture
 

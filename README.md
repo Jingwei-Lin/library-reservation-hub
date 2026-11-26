@@ -171,5 +171,5 @@ cd LibraryReservationReviewHub
 The integration tests start their own MySQL 8.4 with Testcontainers, loaded from `Schema.sql`, so Docker must be
 running; they need no database or environment variables of their own.
 
-The original design notes from the start of the course are in [docs/DESIGN.md](docs/DESIGN.md). They describe
-the initial idea (an online bookstore) rather than the app as built.
+How the app is built (architecture, data model, the stock and waiting-list rules, sessions and the AI assistant)
+is described in [docs/DESIGN.md](docs/DESIGN.md).

@@ -125,8 +125,7 @@ Compose starts three containers:
 
 **Requirements:** JDK 17, MySQL 8, Node.js 20.19+
 
-1. **Create the database.** Run `LibraryReservationReviewHub/Schema.sql` in MySQL. On Linux or macOS, start
-   MySQL with `lower_case_table_names=1`, which is already the default on Windows.
+1. **Create the database.** Run `LibraryReservationReviewHub/Schema.sql` in MySQL.
 2. **Set environment variables.** The back end reads them through `application.yml`:
 
    | Variable | Default | Purpose |

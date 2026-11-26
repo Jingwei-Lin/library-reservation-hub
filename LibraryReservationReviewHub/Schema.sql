@@ -7,14 +7,14 @@ DROP TRIGGER IF EXISTS tr_review_after_update;
 DROP TRIGGER IF EXISTS tr_review_after_delete;
 DROP PROCEDURE IF EXISTS update_book_rating;
 
-DROP TABLE IF EXISTS Reservation;
-DROP TABLE IF EXISTS Review;
-DROP TABLE IF EXISTS Waiting_list;
-DROP TABLE IF EXISTS Users;
-DROP TABLE IF EXISTS Book_Rating;
-DROP TABLE IF EXISTS Book;
+DROP TABLE IF EXISTS reservation;
+DROP TABLE IF EXISTS review;
+DROP TABLE IF EXISTS waiting_list;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS book_rating;
+DROP TABLE IF EXISTS book;
 
-CREATE TABLE Users (
+CREATE TABLE users (
 	user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	email VARCHAR(100) UNIQUE NOT NULL,
 	password VARCHAR(255) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE Users (
 	update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Book (
+CREATE TABLE book (
 	book_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	title VARCHAR(255) NOT NULL,
 	author VARCHAR(50) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE Book (
 -- `available` is worked out from the shelf count on every write, so no code path can get it wrong
 DELIMITER $$
 CREATE TRIGGER trg_book_bi_set_available
-    BEFORE INSERT ON Book
+    BEFORE INSERT ON book
     FOR EACH ROW
 BEGIN
     IF NEW.quantity IS NULL OR NEW.quantity < 0 THEN
@@ -59,7 +59,7 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE TRIGGER trg_book_bu_set_available
-    BEFORE UPDATE ON Book
+    BEFORE UPDATE ON book
     FOR EACH ROW
 BEGIN
     IF NEW.quantity IS NULL OR NEW.quantity < 0 THEN
@@ -69,7 +69,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-CREATE TABLE Waiting_list (
+CREATE TABLE waiting_list (
 	wait_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	user_id INT NOT NULL,
 	book_id INT NOT NULL,
@@ -80,33 +80,33 @@ CREATE TABLE Waiting_list (
 	-- 1 while the entry is in the queue, NULL once it is over; NULLs never clash in a unique key, so the key
 	-- below allows any number of finished entries but only one active entry per user and book
 	active_key TINYINT GENERATED ALWAYS AS (IF(status IN ('waiting', 'notified'), 1, NULL)) VIRTUAL,
-	FOREIGN KEY (user_id) REFERENCES Users(user_id),
-	FOREIGN KEY (book_id) REFERENCES Book(book_id),
+	FOREIGN KEY (user_id) REFERENCES users(user_id),
+	FOREIGN KEY (book_id) REFERENCES book(book_id),
 	-- the queue: the first person waiting for a book is the oldest join, then the lowest id
 	INDEX idx_waiting_queue (book_id, status, join_date, wait_id),
 	UNIQUE KEY uk_waiting_active (user_id, book_id, active_key)
 );
 
-CREATE TABLE Review (
+CREATE TABLE review (
 	review_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	user_id INT NOT NULL,
 	book_id INT NOT NULL,
 	rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
 	comment TEXT,
 	review_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY (user_id) REFERENCES Users(user_id),
-	FOREIGN KEY (book_id) REFERENCES Book(book_id),
+	FOREIGN KEY (user_id) REFERENCES users(user_id),
+	FOREIGN KEY (book_id) REFERENCES book(book_id),
 	INDEX idx_review_book (book_id),
 	INDEX idx_review_user (user_id)
 );
 
-CREATE TABLE Book_Rating (
+CREATE TABLE book_rating (
 	book_id INT NOT NULL PRIMARY KEY,
 	avg_rating DECIMAL(3,2) NULL,
-	CONSTRAINT fk_book_rating_book FOREIGN KEY (book_id) REFERENCES Book(book_id)
+	CONSTRAINT fk_book_rating_book FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
 
-CREATE TABLE Reservation (
+CREATE TABLE reservation (
 	reservation_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	user_id INT NOT NULL,
 	book_id INT NOT NULL,
@@ -120,20 +120,20 @@ CREATE TABLE Reservation (
 	is_delete BOOLEAN DEFAULT FALSE,
 	-- 1 while the reservation holds a copy, NULL once it is over: one active reservation per user and book
 	active_key TINYINT GENERATED ALWAYS AS (IF(status IN ('reserved', 'borrowed') AND NOT is_delete, 1, NULL)) VIRTUAL,
-	FOREIGN KEY (user_id) REFERENCES Users(user_id),
-	FOREIGN KEY (book_id) REFERENCES Book(book_id),
+	FOREIGN KEY (user_id) REFERENCES users(user_id),
+	FOREIGN KEY (book_id) REFERENCES book(book_id),
 	UNIQUE KEY uk_reservation_active (user_id, book_id, active_key)
 );
 
 DELIMITER $$
 CREATE PROCEDURE update_book_rating(IN p_book_id INT)
 BEGIN
-    INSERT INTO Book_Rating (book_id, avg_rating)
+    INSERT INTO book_rating (book_id, avg_rating)
     SELECT
         b.book_id,
         CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating
-    FROM Book b
-             LEFT JOIN Review r ON r.book_id = b.book_id
+    FROM book b
+             LEFT JOIN review r ON r.book_id = b.book_id
     WHERE b.book_id = p_book_id
     GROUP BY b.book_id
     ON DUPLICATE KEY UPDATE
@@ -141,14 +141,14 @@ BEGIN
 END$$
 
 CREATE TRIGGER tr_review_after_insert
-    AFTER INSERT ON Review
+    AFTER INSERT ON review
     FOR EACH ROW
 BEGIN
     CALL update_book_rating(NEW.book_id);
 END$$
 
 CREATE TRIGGER tr_review_after_update
-    AFTER UPDATE ON Review
+    AFTER UPDATE ON review
     FOR EACH ROW
 BEGIN
     IF NEW.book_id <> OLD.book_id THEN
@@ -158,7 +158,7 @@ BEGIN
 END$$
 
 CREATE TRIGGER tr_review_after_delete
-    AFTER DELETE ON Review
+    AFTER DELETE ON review
     FOR EACH ROW
 BEGIN
     CALL update_book_rating(OLD.book_id);
@@ -170,13 +170,13 @@ DELIMITER ;
 -- =========================
 
 -- Users
-INSERT INTO Users (user_id, email, password, first_name, last_name, is_admin) VALUES
+INSERT INTO users (user_id, email, password, first_name, last_name, is_admin) VALUES
 	(1, 'jingwei.lin2@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Jingwei', 'Lin', FALSE),
 	(2, 'hanchen.wang@example.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'Hanchen', 'Wang', FALSE),
 	(3, 'admin@admin.com', '0fcfcbbb420d3b6f81cd5a0d70a96579', 'admin', 'admin', TRUE);
 
 -- Books（含 description 全量 101 本）
-INSERT INTO Book (book_id, title, author, genre, description, quantity, available, `path`) VALUES
+INSERT INTO book (book_id, title, author, genre, description, quantity, available, `path`) VALUES
 	(1, 'The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 'A reluctant hobbit, Bilbo Baggins, is swept into an epic quest with dwarves and a wizard to reclaim treasure guarded by the dragon Smaug; a warm, playful adventure about courage, home, and unexpected heroism.', 5, TRUE, 'The_Hobbit.jpg'),
 	(2, 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasy', 'An epic trilogy-scale tale of friendship and sacrifice as a small fellowship seeks to destroy the One Ring and defeat the dark power of Sauron.', 5, TRUE, 'The_Lord_of_the_Rings.jpg'),
 	(3, 'Harry Potter and the Philosopher''s Stone', 'J.K. Rowling', 'Fantasy', 'A young boy discovers he''s a wizard and enters Hogwarts, where magic, friendship, and a dark mystery await.', 5, TRUE, 'Harry_Potter_and_the_Philosophers_Stone.jpg'),
@@ -290,11 +290,11 @@ INSERT INTO Book (book_id, title, author, genre, description, quantity, availabl
 
 
 -- Waiting list
-INSERT INTO Waiting_list (wait_id, user_id, book_id, join_date, status) VALUES
+INSERT INTO waiting_list (wait_id, user_id, book_id, join_date, status) VALUES
     (1, 1, 1, CURRENT_TIMESTAMP, 'waiting');
 
 -- Reviews（示例）
-INSERT INTO Review (review_id, user_id, book_id, rating, comment, review_date) VALUES
+INSERT INTO review (review_id, user_id, book_id, rating, comment, review_date) VALUES
 	(1, 1, 1, 4, 'Great book!', CURRENT_TIMESTAMP),
 	(2, 1, 1, 5, 'An epic adventure with rich world-building!', CURRENT_TIMESTAMP),
 	(3, 2, 1, 3, 'Good story, but a bit slow in the middle.', CURRENT_TIMESTAMP),
@@ -307,13 +307,13 @@ INSERT INTO Review (review_id, user_id, book_id, rating, comment, review_date) V
 -- =========================
 -- Initialize ratings once (batch)
 -- =========================
-INSERT INTO Book_Rating (book_id, avg_rating)
+INSERT INTO book_rating (book_id, avg_rating)
 SELECT
     b.book_id,
     CASE WHEN COUNT(r.review_id) = 0 THEN NULL ELSE ROUND(AVG(r.rating), 2) END AS avg_rating
-FROM Book b
-         LEFT JOIN Review r ON r.book_id = b.book_id
+FROM book b
+         LEFT JOIN review r ON r.book_id = b.book_id
 GROUP BY b.book_id
 ON DUPLICATE KEY UPDATE avg_rating = VALUES(avg_rating);
 
-SELECT * FROM Book_Rating ORDER BY book_id;
+SELECT * FROM book_rating ORDER BY book_id;

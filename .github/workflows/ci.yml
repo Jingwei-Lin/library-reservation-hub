@@ -25,11 +25,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      # Started by hand rather than as a service container, because it needs a server flag:
-      # the schema uses Book/Users while the queries use book/users, and Linux MySQL is case-sensitive
       - name: Start MySQL
         run: |
-          docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=ci-pass -p 3306:3306 mysql:8.4 --lower-case-table-names=1
+          docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=ci-pass -p 3306:3306 mysql:8.4
           # TCP only answers once initialisation has finished and the real server is up
           until docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-pass --silent >/dev/null 2>&1; do sleep 2; done
       - name: Load the database schema

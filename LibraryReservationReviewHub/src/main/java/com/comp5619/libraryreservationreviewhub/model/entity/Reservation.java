@@ -10,7 +10,7 @@ import java.util.Date;
 /**
  * 预订实体类
  */
-@TableName(value = "Reservation")
+@TableName(value = "reservation")
 @Data
 public class Reservation implements Serializable {
     /**

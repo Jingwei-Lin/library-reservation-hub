@@ -14,7 +14,7 @@ import lombok.ToString;
  * 用户
  * @TableName user
  */
-@TableName(value = "Users")
+@TableName(value = "users")
 @Data
 public class User implements Serializable {
     /**

@@ -24,8 +24,8 @@
                CONCAT(u.first_name, ' ', u.last_name) AS user_name,
                b.title AS book_title
         FROM waiting_list wl
-                 LEFT JOIN Users u ON u.user_id = wl.user_id
-                 LEFT JOIN Book b ON b.book_id = wl.book_id
+                 LEFT JOIN users u ON u.user_id = wl.user_id
+                 LEFT JOIN book b ON b.book_id = wl.book_id
         WHERE wl.user_id = #{userId}
         ORDER BY wl.join_date DESC
     </select>
@@ -85,7 +85,7 @@
 <!--            FROM waiting_list wl-->
 <!--            WHERE wl.status = 'waiting'-->
 <!--            ) q-->
-<!--            JOIN Book b ON b.book_id = q.book_id-->
+<!--            JOIN book b ON b.book_id = q.book_id-->
 <!--        WHERE q.user_id = #{userId}-->
 <!--        ORDER BY q.join_date ASC-->
 <!--    </select>-->

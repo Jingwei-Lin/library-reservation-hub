@@ -95,7 +95,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         vo.setBookId(review.getBookId());
         vo.setReviewId(review.getReviewId());
-        vo.setReviewDate(review.getReviewDate() != null ? new java.sql.Date(review.getReviewDate().getTime()) : null);
+        vo.setReviewDate(review.getReviewDate());
         vo.setUserId(review.getUserId());
         vo.setComment(review.getComment());
         vo.setRating(review.getRating());
@@ -155,7 +155,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setReviewId(req.getReviewId());
         review.setRating(req.getRating());
         review.setComment(req.getComment());
-        review.setReviewDate(new java.util.Date());
+        // review_date stays the date the review was posted
         int rows = reviewMapper.updateReview(review);
         log.info("Updated reviewId: {}, rows affected: {}", req.getReviewId(), rows);
         ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR, "Failed to update review");

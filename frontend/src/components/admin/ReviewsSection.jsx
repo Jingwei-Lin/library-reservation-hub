@@ -228,7 +228,7 @@ const ReviewsSection = ({ canLoad }) => {
               <td>{r.userName || r.userId}</td>
               <td><NumericStepper min={1} max={5} step={1} value={r.rating ?? 1} onChange={(val) => handleReviewFieldChange(r.reviewId, 'rating', val)} /></td>
               <td><input className="input" value={r.comment || ''} onChange={(e) => handleReviewFieldChange(r.reviewId, 'comment', e.target.value)} /></td>
-              <td>{r.reviewDate}</td>
+              <td>{r.reviewDate ? new Date(r.reviewDate).toLocaleString() : ''}</td>
               <td className="actions">
                 <button className="btn btn-primary" onClick={() => handleReviewUpdate(r)}>Save</button>
                 <button className="btn btn-danger" onClick={() => handleReviewDelete(r.reviewId)}>Delete</button>

@@ -1,6 +1,6 @@
 package com.elec5619.libraryreservationreviewhub.model.vo;
 
-import java.sql.Date;
+import java.util.Date;
 
 import lombok.Data;
 
@@ -15,6 +15,7 @@ public class ReviewVO {
     private Long bookId;
     private Integer rating;
     private String comment;
+    /** When the review was posted, with the time of day; an edit doesn't change it */
     private Date reviewDate;
     private String userName;
 }

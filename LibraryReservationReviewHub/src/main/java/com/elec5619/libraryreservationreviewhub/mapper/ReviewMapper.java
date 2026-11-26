@@ -42,7 +42,7 @@ public interface ReviewMapper {
     /**
      * Update an existing review's rating and comment
      */
-    @Update("UPDATE review SET rating = #{rating}, comment = #{comment}, review_date = #{reviewDate} " +
+    @Update("UPDATE review SET rating = #{rating}, comment = #{comment} " +
             "WHERE review_id = #{reviewId}")
     int updateReview(Review review);
 

@@ -332,7 +332,8 @@ class ReviewServiceImplTest {
         assertEquals(1L, captured.getReviewId());
         assertEquals(4, captured.getRating());
         assertEquals("Good book", captured.getComment());
-        assertNotNull(captured.getReviewDate());
+        // the date the review was posted is kept
+        assertNull(captured.getReviewDate());
     }
 
     @Test

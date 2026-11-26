@@ -10,10 +10,14 @@ import Header from "./Header";
 import ChatPanel from "./ChatPanel";
 
 import Book from './Book';
-import { getTheme } from "../themeUtils";
+import Sidebar from "./dashboard/Sidebar";
+import BookGrid from "./dashboard/BookGrid";
+import Pagination from "./dashboard/Pagination";
+import StatsPanel from "./dashboard/StatsPanel";
+import { useTheme } from "../hooks/useTheme";
 
 import "./Dashboard.css";
-import { BOOKS_PER_PAGE, pageButtons, pageOf } from '../pagination';
+import { BOOKS_PER_PAGE, pageOf } from '../pagination';
 
 const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignOut }) => {
     const navigate = useNavigate();
@@ -48,7 +52,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
         const id = Number(bookIdFromUrl);
         return (!isNaN(id) && id > 0) ? id : null;
     });
-    const [theme, setTheme] = useState(getTheme());
+    const theme = useTheme();
     const [hasNotification, setHasNotification] = useState(false);
     const [currentGenre, setCurrentGenre] = useState(initialGenre);
     const [currentView, setCurrentView] = useState(initialView);
@@ -164,35 +168,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
 
         initializeDashboard();
     }, []);
-
-    // Apply theme from localStorage
-    useEffect(() => {
-        document.body.classList.remove("light", "dark");
-        document.body.classList.add(theme);
-    }, [theme]);
-
-    // Listen for custom themeChange event (in-page sync)
-    useEffect(() => {
-        const handleThemeChange = (event) => {
-            setTheme(event.detail.theme);
-        };
-        window.addEventListener("themeChange", handleThemeChange);
-        return () => {
-            window.removeEventListener("themeChange", handleThemeChange);
-        };
-    }, []);
-
-    // Poll localStorage for theme changes (cross-tab sync)
-    useEffect(() => {
-        const handleStorageChange = () => {
-            setTheme(getTheme());
-        };
-        window.addEventListener("storage", handleStorageChange);
-        return () => {
-            window.removeEventListener("storage", handleStorageChange);
-        };
-    }, []);
-
 
     // Sync URL with selected book state
     useEffect(() => {
@@ -414,91 +389,26 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
         }
     };
 
-    const nextPage = () => paginate(Math.min(currentPage + 1, totalPages));
+    // leaving the Dashboard for another page: the URL first drops the open book
+    const leaveFor = (path) => {
+        setSelectedBookId(null);
+        updateURL({ book: null });
+        navigate(path);
+    };
 
-    const prevPage = () => paginate(Math.max(currentPage - 1, 1));
-
-    const getPaginationButtons = () => pageButtons(currentPage, totalPages);
+    const selectBook = (book) => (book.bookId ? handleBookClick(book.bookId) : setError('Cannot navigate: Book ID is missing'));
 
     return (
         <div className={`dashboard ${theme === "dark" ? "dark-mode" : ""}`}>
-            <nav className="sidebar">
-                <div className="logo">
-                    <span className="logo-icon">📚</span>
-                    <span className="logo-text">Library Hub</span>
-                </div>
-                <div className="nav-box">
-                    <h3>Navigation</h3>
-                    <ul>
-                        <li onClick={handleAllBooks}>
-                            All Books
-                        </li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            updateURL({ book: null });
-                            navigate("/reservations");
-                        }}>
-                            My Reservations
-                        </li>
-                        <li
-                            onClick={() => {
-                                setSelectedBookId(null);
-                                updateURL({ book: null });
-                                navigate("/waitinglist");
-                            }}
-                            className={hasNotification ? "shiny" : ""}
-                        >
-                            My Waiting List
-                            {hasNotification && <span className="notification-dot"></span>}
-                        </li>
-                    </ul>
-                </div>
-                <div className="category-box">
-                    <h3>Categories</h3>
-                    <ul>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Fantasy");
-                        }}>Fantasy</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Science Fiction");
-                        }}>Science Fiction</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Mystery");
-                        }}>Mystery</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Romance");
-                        }}>Romance</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Historical Fiction");
-                        }}>Historical Fiction</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Horror");
-                        }}>Horror</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Thriller");
-                        }}>Thriller</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Young Adult");
-                        }}>Young Adult</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Non-Fiction");
-                        }}>Non-Fiction</li>
-                        <li onClick={() => {
-                            setSelectedBookId(null);
-                            handleGenreClick("Poetry Classic");
-                        }}>Poetry/Classic</li>
-                    </ul>
-                </div>
-            </nav>
+            <Sidebar
+                hasNotification={hasNotification}
+                onAllBooks={handleAllBooks}
+                onGenre={(genre) => {
+                    setSelectedBookId(null);
+                    handleGenreClick(genre);
+                }}
+                onLeave={leaveFor}
+            />
             <div className="main-content">
                 <Header
                     user={user}
@@ -538,57 +448,7 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                                         </div>
                                     )}
                                     {!loading && !error && (
-                                        <div className="books-grid">
-                                            {currentBooks.map((book) => (
-                                                <div
-                                                    key={book.bookId || book.title + book.author}
-                                                    className="book-card"
-                                                    onClick={() => book.bookId ? handleBookClick(book.bookId) : setError('Cannot navigate: Book ID is missing')}
-                                                    style={{ cursor: book.bookId ? 'pointer' : 'not-allowed' }}
-                                                >
-                                                    <div className="book-cover">
-                                                        {book.path ? (
-                                                            <img
-                                                                src={`/api/images/books/${encodeURIComponent(book.path)}`}
-                                                                alt={book.title}
-                                                                onError={(e) => {
-                                                                    console.error('Image failed to load:', {
-                                                                        bookTitle: book.title,
-                                                                        databasePath: book.path,
-                                                                        imageSrc: `/api/images/books/${encodeURIComponent(book.path)}`,
-                                                                        timestamp: new Date().toISOString(),
-                                                                    });
-                                                                    e.target.src = '/placeholder-book-cover.jpg';
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <div className="book-cover-placeholder">📖</div>
-                                                        )}
-                                                    </div>
-                                                    <div className="book-info">
-                                                        <h3>{book.title || 'Untitled'}</h3>
-                                                        <p className="books-author">by {book.author || 'Unknown'}</p>
-                                                        <p className="books-genre">{book.genre || 'Unknown'}</p>
-                                                        {book.avgRating != null && (
-                                                            <div className="book-rating">
-                                                                {book.avgRating.toFixed(1)} ★
-                                                            </div>
-                                                        )}
-                                                        <div className="book-status">
-                                                            <span className={`availability ${book.available ? 'available' : 'unavailable'}`}>
-                                                                {book.available ? 'Available' : 'Unavailable'}
-                                                            </span>
-                                                            {book.quantity !== undefined && (
-                                                                <span className="quantity">Qty: {book.quantity}</span>
-                                                            )}
-                                                            {!book.bookId && (
-                                                                <span className="error-text">Missing Book ID</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <BookGrid books={currentBooks} onSelect={selectBook} />
                                     )}
                                     {!loading && !error && currentBooks.length === 0 && (
                                         <div className="no-books">
@@ -596,47 +456,13 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                                         </div>
                                     )}
                                     {!loading && !error && totalCount > 0 && (
-                                        <div className="pagination">
-                                            <button onClick={prevPage} disabled={currentPage === 1}>
-                                                Previous
-                                            </button>
-                                            {getPaginationButtons().map((page, index) => (
-                                                <React.Fragment key={index}>
-                                                    {typeof page === "number" ? (
-                                                        <button
-                                                            onClick={() => paginate(page)}
-                                                            className={`pagination-number ${currentPage === page ? 'active' : ''}`}
-                                                        >
-                                                            {page}
-                                                        </button>
-                                                    ) : (
-                                                        <span className="pagination-ellipsis">...</span>
-                                                    )}
-                                                </React.Fragment>
-                                            ))}
-                                            <button onClick={nextPage} disabled={currentPage === totalPages}>
-                                                Next
-                                            </button>
-                                        </div>
+                                        <Pagination currentPage={currentPage} totalPages={totalPages} onPage={paginate} />
                                     )}
                                 </div>
                             </>
                         )}
                     </div>
-                    <div className="right-panel">
-                        <div className="stats-box">
-                            <h3>Library Statistics</h3>
-                            <p>Total books: {totalStats.totalBooks}</p>
-                            <p>Available books: {totalStats.totalAvailable}</p>
-                            <p>Categories: {totalStats.totalCategories}</p>
-                        </div>
-                        <div className="recommend-box">
-                            <h3>Quick Actions</h3>
-                            <ul>
-                                <li onClick={handleTop10Click}>Top 10 Rated Books</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <StatsPanel totalStats={totalStats} onTop10={handleTop10Click} />
                 </div>
             </div>
             {/* AI Assistant Chat Panel */}

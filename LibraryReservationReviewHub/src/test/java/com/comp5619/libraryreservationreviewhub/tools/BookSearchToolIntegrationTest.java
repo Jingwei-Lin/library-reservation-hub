@@ -1,6 +1,5 @@
 package com.comp5619.libraryreservationreviewhub.tools;
 
-import com.comp5619.libraryreservationreviewhub.model.vo.BookRatingVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import org.junit.jupiter.api.*;
@@ -50,7 +49,7 @@ class BookSearchToolIntegrationTest {
      */
     @Test
     void testGetRandomBooks() {
-        List<BookRatingVO> randomBooks = bookSearchTool.getRandomBooks();
+        List<BookVO> randomBooks = bookSearchTool.getRandomBooks();
         assertThat(randomBooks).isNotNull();
     }
 

@@ -6,9 +6,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
-import com.comp5619.libraryreservationreviewhub.model.vo.BookRatingVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
-import com.comp5619.libraryreservationreviewhub.service.BookRatingService;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +30,6 @@ public class BookSearchTool {
 
     @Autowired
     private BookService bookService;
-    @Autowired
-    private BookRatingService bookRatingService;
 
 
     /**
@@ -71,18 +67,19 @@ public class BookSearchTool {
     }
 
     /**
-     * 获取热门书籍
+     * Five random books to recommend, with everything the reply needs to name them. It used to return the top 10's
+     * ids and ratings only, so the model had nothing to name and invented titles.
      */
     @Tool(
             name = "get_random_books",
-            description = "Return top 10 book recommendations from the entire library catalog. " +
-                    "Use this when the user asks for general, non-specific book recommendations " +
-                    "such as 'recommend me some books' or 'popular books' without giving any genre or author."
+            description = "Return 5 random books from the library catalog that have a copy available now, each with " +
+                    "its title, author, genre, description and cover path. Use this when the user asks for general, " +
+                    "non-specific book recommendations such as 'recommend me some books' or 'popular books' " +
+                    "without giving any genre or author."
     )
-    public List<BookRatingVO> getRandomBooks() {
-
-        List<BookRatingVO> books = bookRatingService.top10();
-        log.info("ToolCall: get_top_books "+books);
+    public List<BookVO> getRandomBooks() {
+        List<BookVO> books = bookService.getRandomBooks(5);
+        log.info("ToolCall: get_random_books returned {} books", books.size());
         return books;
     }
 

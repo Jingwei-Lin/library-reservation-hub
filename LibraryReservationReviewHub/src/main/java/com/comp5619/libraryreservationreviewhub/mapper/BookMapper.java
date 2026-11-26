@@ -12,11 +12,20 @@ public interface BookMapper {
 
     /** 按 ID 查询：加入 description；去掉无意义的 ORDER BY */
     @Select("""
-        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path
+        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
         FROM book
         WHERE book_id = #{id}
         """)
     Book selectById(@Param("id") Long id);
+
+    /** Reads the book and locks its row until the transaction ends, so stock changes on it run one at a time */
+    @Select("""
+        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
+        FROM book
+        WHERE book_id = #{id}
+        FOR UPDATE
+        """)
+    Book selectByIdForUpdate(@Param("id") Long id);
 
     @Select("""
         SELECT COUNT(1)
@@ -53,11 +62,21 @@ public interface BookMapper {
         """)
     int updateBook(Book b);
 
-    /** 逻辑删除：将 available 标记为 false（仅当当前为 true 时才更新） */
-    @Update("UPDATE book SET available = FALSE WHERE book_id = #{id} AND available = TRUE")
+    /**
+     * Soft delete. Copies held for the queue go back to the shelf count, because deleting the book ends its queue
+     * (the caller cancels the entries in the same transaction).
+     */
+    @Update("""
+        UPDATE book
+        SET is_delete = TRUE,
+            quantity = quantity + held_quantity,
+            held_quantity = 0,
+            available = (quantity > 0)
+        WHERE book_id = #{id} AND is_delete = FALSE
+        """)
     int deleteById(@Param("id") Long id);
 
-    @Update("UPDATE book SET available = TRUE WHERE book_id = #{id}")
+    @Update("UPDATE book SET is_delete = FALSE WHERE book_id = #{id} AND is_delete = TRUE")
     int restoreById(@Param("id") Long id);
 
     /*
@@ -93,7 +112,7 @@ public interface BookMapper {
         UPDATE book
         SET quantity = quantity - 1,
             available = (quantity - held_quantity > 0)
-        WHERE book_id = #{id} AND quantity - held_quantity > 0
+        WHERE book_id = #{id} AND quantity - held_quantity > 0 AND is_delete = FALSE
         """)
     int takeAvailableCopy(@Param("id") Long id);
 
@@ -123,11 +142,15 @@ public interface BookMapper {
           <if test="available != null">
             AND available = #{available}
           </if>
+          <if test="!includeDeleted">
+            AND is_delete = FALSE
+          </if>
         </where>
         </script>
         """)
     long countByKeyword(@Param("kw") String keyword,
-                        @Param("available") Boolean available);
+                        @Param("available") Boolean available,
+                        @Param("includeDeleted") boolean includeDeleted);
 
     /**
      *
@@ -135,7 +158,7 @@ public interface BookMapper {
      */
     @Select("""
         <script>
-        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path
+        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
         FROM book
         <where>
           <if test="kw != null and kw != ''">
@@ -147,6 +170,9 @@ public interface BookMapper {
           <if test="available != null">
             AND available = #{available}
           </if>
+          <if test="!includeDeleted">
+            AND is_delete = FALSE
+          </if>
         </where>
         ${orderBySql}
         LIMIT #{limit} OFFSET #{offset}
@@ -154,15 +180,16 @@ public interface BookMapper {
         """)
     List<Book> searchByKeywordWithOrder(@Param("kw") String keyword,
                                         @Param("available") Boolean available,
+                                        @Param("includeDeleted") boolean includeDeleted,
                                         @Param("offset") long offset,
                                         @Param("limit") long limit,
                                         @Param("orderBySql") String orderBySql);
 
     /** 按体裁查询：补充 description */
     @Select("""
-        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path
+        SELECT book_id AS bookId, title, author, genre, description, quantity, held_quantity, available, path, is_delete AS isDelete
         FROM book
-        WHERE genre = #{genre}
+        WHERE genre = #{genre} AND is_delete = FALSE
         ORDER BY title
         """)
     List<Book> selectByGenre(@Param("genre") String genre);

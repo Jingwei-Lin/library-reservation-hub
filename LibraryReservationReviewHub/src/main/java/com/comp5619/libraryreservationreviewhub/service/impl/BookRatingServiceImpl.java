@@ -78,11 +78,15 @@ public class BookRatingServiceImpl implements BookRatingService {
         bookRatingMapper.recalcOne(bookId);
     }
 
+    /** Deleted books never appear in the top 10 */
+    private static final String LISTED_BOOK_IDS = "SELECT book_id FROM book WHERE is_delete = FALSE";
+
     /** A. 只返回 bookId + avgRating 的前 10 条 */
     @Override
     public List<BookRatingVO> top10() {
         LambdaQueryWrapper<BookRating> qw = new LambdaQueryWrapper<>();
         qw.isNotNull(BookRating::getAvgRating)
+                .inSql(BookRating::getBookId, LISTED_BOOK_IDS)
                 .orderByDesc(BookRating::getAvgRating)
                 .last("LIMIT 10");
 
@@ -100,6 +104,7 @@ public class BookRatingServiceImpl implements BookRatingService {
         // 先取评分 top10
         LambdaQueryWrapper<BookRating> qw = new LambdaQueryWrapper<>();
         qw.isNotNull(BookRating::getAvgRating)
+                .inSql(BookRating::getBookId, LISTED_BOOK_IDS)
                 // 如希望把同分再按 book_id ASC 排序，可加 .orderByAsc(BookRating::getBookId)
                 .orderByDesc(BookRating::getAvgRating)
                 .last("LIMIT 10");

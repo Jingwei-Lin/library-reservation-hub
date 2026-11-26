@@ -3,6 +3,8 @@ package com.comp5619.libraryreservationreviewhub.tools;
 
 import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
+import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookRatingVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.BookVO;
@@ -93,6 +95,7 @@ public class BookSearchTool {
     public BookVO getBookById(Long id) {
         log.info("ToolCall: get_book_by_id, id={}", id);
         Book book = bookService.getBookById(id);
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR);
         return bookService.getBookVO(book);
     }
 

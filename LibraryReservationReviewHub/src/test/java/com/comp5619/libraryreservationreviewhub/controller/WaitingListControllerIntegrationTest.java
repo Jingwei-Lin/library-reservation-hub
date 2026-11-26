@@ -223,6 +223,10 @@ class WaitingListControllerTest {
     @Test
     void addToMyWaitlist_Success() throws Exception {
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(normalUser);
+        Book book = new Book();
+        book.setBookId(100L);
+        book.setIsDelete(false);
+        when(bookService.getBookById(100L)).thenReturn(book);
 
         LambdaQueryChainWrapper<WaitingList> chain = mkChain();
         when(waitingListService.lambdaQuery()).thenReturn(chain);

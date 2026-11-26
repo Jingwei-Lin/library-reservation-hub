@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.comp5619.libraryreservationreviewhub.model.vo.WaitingListVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -29,5 +30,13 @@ public interface WaitingListMapper extends BaseMapper<WaitingList> {
 
     /** 将超过 7 天仍为 waiting 的记录置为 cancelled，返回受影响行数 */
     int cancelStaleWaiting();
+
+    /** Ends a deleted book's queue: its waiting and notified entries are cancelled */
+    @Update("""
+        UPDATE waiting_list
+        SET status = 'cancelled', is_notified = FALSE
+        WHERE book_id = #{bookId} AND status IN ('waiting', 'notified')
+        """)
+    int cancelActiveForBook(@Param("bookId") Long bookId);
 }
 

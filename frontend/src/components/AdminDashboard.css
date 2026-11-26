@@ -312,6 +312,12 @@
 .admin-table tbody tr.row-red td {
     color: var(--danger);
 }
+.book-deleted-label {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--danger);
+}
 .actions {
     display: flex;
     align-items: center;

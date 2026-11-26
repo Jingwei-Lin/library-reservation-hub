@@ -119,7 +119,8 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Reservation object: {}", reservation);
 
         Book book = bookService.getBookById(bookId);
-        ThrowUtils.throwIf(book == null, ErrorCode.NOT_FOUND_ERROR, "Book not found");
+        ThrowUtils.throwIf(book == null || Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR,
+                "Book not found");
 
         // Take the copy first, with one atomic conditional UPDATE: a notified user takes the copy held for
         // them, everyone else a public copy. Checking stock in Java and writing it back let two concurrent

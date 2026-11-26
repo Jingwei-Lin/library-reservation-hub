@@ -18,7 +18,11 @@ public interface BookService {
     BookVO getBookVO(Book book);
     List<BookVO> getBookVOList(List<Book> books);
 
+    /** Search for users: deleted books are left out */
     PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available);
+
+    /** Search that can include deleted books, for the admin page */
+    PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available, boolean includeDeleted);
     List<BookVO> getBooksByGenre(String genre);
 
     boolean incrementHeldQuantity(Long id);

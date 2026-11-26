@@ -6,6 +6,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
+import com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
@@ -35,6 +36,9 @@ class BookServiceImplTest {
 
     @Mock
     private BookMapper bookMapper;
+
+    @Mock
+    private WaitingListMapper waitingListMapper;
 
     @InjectMocks
     private BookServiceImpl bookService;
@@ -147,10 +151,21 @@ class BookServiceImplTest {
     @Test
     void deleteBook_Success() {
         when(userService.isAdmin(adminUser)).thenReturn(true);
-        when(bookMapper.selectById(1L)).thenReturn(testBook);
+        when(bookMapper.selectByIdForUpdate(1L)).thenReturn(testBook);
         when(bookMapper.deleteById(1L)).thenReturn(1);
 
         assertTrue(bookService.deleteBook(1L, adminUser));
+        verify(waitingListMapper).cancelActiveForBook(1L);   // deleting ends the book's queue
+    }
+
+    @Test
+    void deleteBook_AlreadyDeleted_IsANoOp() {
+        testBook.setIsDelete(true);
+        when(userService.isAdmin(adminUser)).thenReturn(true);
+        when(bookMapper.selectByIdForUpdate(1L)).thenReturn(testBook);
+
+        assertTrue(bookService.deleteBook(1L, adminUser));
+        verify(bookMapper, never()).deleteById(anyLong());
     }
 
     @Test
@@ -165,7 +180,7 @@ class BookServiceImplTest {
     @Test
     void deleteBook_NotFound_ThrowsException() {
         when(userService.isAdmin(adminUser)).thenReturn(true);
-        when(bookMapper.selectById(999L)).thenReturn(null);
+        when(bookMapper.selectByIdForUpdate(999L)).thenReturn(null);
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> bookService.deleteBook(999L, adminUser));
@@ -251,8 +266,8 @@ class BookServiceImplTest {
         pageReq.setSortField("title");
         pageReq.setSortOrder("ascend");
 
-        when(bookMapper.countByKeyword("code", true)).thenReturn(1L);
-        when(bookMapper.searchByKeywordWithOrder(eq("code"), eq(true), eq(0L), eq(10L), contains("title ASC")))
+        when(bookMapper.countByKeyword("code", true, false)).thenReturn(1L);
+        when(bookMapper.searchByKeywordWithOrder(eq("code"), eq(true), eq(false), eq(0L), eq(10L), contains("title ASC")))
                 .thenReturn(List.of(testBook));
 
         PageResult<BookVO> result = bookService.searchBooks("code", pageReq, true);
@@ -267,7 +282,7 @@ class BookServiceImplTest {
         pageReq.setCurrent(1);
         pageReq.setPageSize(10);
 
-        when(bookMapper.countByKeyword("xyz", null)).thenReturn(0L);
+        when(bookMapper.countByKeyword("xyz", null, false)).thenReturn(0L);
 
         PageResult<BookVO> result = bookService.searchBooks("xyz", pageReq, null);
         assertEquals(0, result.getTotal());
@@ -279,8 +294,8 @@ class BookServiceImplTest {
         PageRequest pageReq = new PageRequest();
         pageReq.setSortField("1=1; DROP TABLE book");
 
-        when(bookMapper.countByKeyword("", true)).thenReturn(1L);
-        when(bookMapper.searchByKeywordWithOrder(eq(""), eq(true), eq(0L), eq(10L), contains("book_id DESC")))
+        when(bookMapper.countByKeyword("", true, false)).thenReturn(1L);
+        when(bookMapper.searchByKeywordWithOrder(eq(""), eq(true), eq(false), eq(0L), eq(10L), contains("book_id DESC")))
                 .thenReturn(List.of(testBook));
 
         PageResult<BookVO> result = bookService.searchBooks("", pageReq, true);
@@ -358,7 +373,7 @@ class BookServiceImplTest {
 
     @Test
     void restoreBook_Success() {
-        testBook.setAvailable(false);
+        testBook.setIsDelete(true);
         when(userService.isAdmin(adminUser)).thenReturn(true);
         when(bookMapper.selectById(1L)).thenReturn(testBook);
         when(bookMapper.restoreById(1L)).thenReturn(1);
@@ -367,8 +382,8 @@ class BookServiceImplTest {
     }
 
     @Test
-    void restoreBook_AlreadyAvailable_Idempotent() {
-        testBook.setAvailable(true);
+    void restoreBook_NotDeleted_Idempotent() {
+        testBook.setIsDelete(false);
         when(userService.isAdmin(adminUser)).thenReturn(true);
         when(bookMapper.selectById(1L)).thenReturn(testBook);
 
@@ -386,8 +401,8 @@ class BookServiceImplTest {
         pr.setCurrent(1);
         pr.setPageSize(100);
 
-        when(bookMapper.countByKeyword("", true)).thenReturn(5L);
-        when(bookMapper.searchByKeywordWithOrder(eq(""), eq(true), eq(0L), eq(100L), any()))
+        when(bookMapper.countByKeyword("", true, false)).thenReturn(5L);
+        when(bookMapper.searchByKeywordWithOrder(eq(""), eq(true), eq(false), eq(0L), eq(100L), any()))
                 .thenReturn(List.of(testBook));
 
         List<BookVO> result = bookService.getRandomBooks(3);
@@ -401,7 +416,7 @@ class BookServiceImplTest {
         pr.setCurrent(1);
         pr.setPageSize(100);
 
-        when(bookMapper.countByKeyword("", true)).thenReturn(0L);
+        when(bookMapper.countByKeyword("", true, false)).thenReturn(0L);
 
         assertTrue(bookService.getRandomBooks(5).isEmpty());
     }

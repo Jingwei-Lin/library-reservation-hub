@@ -112,6 +112,9 @@ public class WaitingListController {
         User current = userService.getLoginUser(request);
         ThrowUtils.throwIf(current == null, ErrorCode.NOT_LOGIN_ERROR);
 
+        Book book = bookService.getBookById(req.getBookId());
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()), ErrorCode.NOT_FOUND_ERROR, "Book not found");
+
         // 是否已存在有效记录
         long exists = waitingListService.lambdaQuery()
                 .eq(WaitingList::getUserId, current.getId())

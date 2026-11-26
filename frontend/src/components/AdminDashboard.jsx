@@ -271,7 +271,7 @@ useEffect(() => {
   const fetchBooks = async () => {
     try {
       setBooksLoading(true); setBooksError(''); setBooksSuccess('');
-      const res = await bookService.getAllBooks(booksPage, BOOKS_PAGE_SIZE);
+      const res = await bookService.getAllBooks(booksPage, BOOKS_PAGE_SIZE, true);
       if (res && res.code === 0 && res.data) {
         const records = res.data.records || [];
         setBooks(records);
@@ -1010,7 +1010,7 @@ useEffect(() => {
               </tr>
             ) : filteredBooks.map((b, idx) => (
               <tr key={b.bookId || idx}>
-                <td>{b.bookId}</td>
+                <td>{b.bookId}{b.deleted && <div className="book-deleted-label">Deleted</div>}</td>
                 <td><input className="input" value={b.title || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'title', e.target.value)} /></td>
                 <td><input className="input" value={b.author || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'author', e.target.value)} /></td>
                 <td><input className="input" value={b.genre || ''} onChange={(e) => handleBookFieldChange(b.bookId, 'genre', e.target.value)} /></td>
@@ -1018,8 +1018,9 @@ useEffect(() => {
                 <td><input className="checkbox" type="checkbox" checked={!!b.available} onChange={(e) => handleBookFieldChange(b.bookId, 'available', e.target.checked)} /></td>
                 <td className="actions">
                   <button className="btn btn-primary" onClick={() => handleBookUpdate(b)}>Save</button>
-                  <button className="btn btn-danger" onClick={() => handleBookDelete(b.bookId)}>Delete</button>
-                  <button className="btn btn-outline" onClick={() => handleBookRestore(b.bookId)}>Restore</button>
+                  {b.deleted
+                    ? <button className="btn btn-outline" onClick={() => handleBookRestore(b.bookId)}>Restore</button>
+                    : <button className="btn btn-danger" onClick={() => handleBookDelete(b.bookId)}>Delete</button>}
                 </td>
               </tr>
             ))}

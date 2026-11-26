@@ -50,10 +50,10 @@ public class Book implements Serializable {
     private Boolean available;
 
     /**
-     * 逻辑删除标记 (如果你需要软删除，可加上；不需要就去掉)
+     * Deleted by an admin (is_delete). Kept apart from {@code available}, which only describes stock, so a copy
+     * coming back can't bring a deleted book back.
      */
-    @TableLogic
-    private Integer isDelete;
+    private Boolean isDelete;
 
     /**
      * 封面路径

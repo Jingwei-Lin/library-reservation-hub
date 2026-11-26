@@ -7,6 +7,7 @@ import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.mapper.BookMapper;
+import com.comp5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +32,7 @@ public class BookServiceImpl implements BookService {
 
     private final UserService userService;
     private final BookMapper bookMapper;
+    private final WaitingListMapper waitingListMapper;
 
     /* ---------- 分页与排序拼装（带字段白名单） ---------- */
     private record PageCalc(long offset, long limit, String orderBySql) {}
@@ -80,15 +83,26 @@ public class BookServiceImpl implements BookService {
         return b.getBookId().longValue();
     }
 
+    /**
+     * Soft delete: the book is hidden from users and its queue ends. Copies held for the queue go back to the
+     * shelf count, and copies still out come back to it as usual. Deleting an already deleted book is a no-op.
+     */
     @Override
+    @Transactional
     public boolean deleteBook(Long id, User operator) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
-        Book exist = bookMapper.selectById((long) id);
+        Book exist = bookMapper.selectByIdForUpdate(id);
         ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
+        if (Boolean.TRUE.equals(exist.getIsDelete())) {
+            return true;
+        }
 
-        return bookMapper.deleteById((long) id) > 0;
+        bookMapper.deleteById(id);
+        int cancelled = waitingListMapper.cancelActiveForBook(id);
+        log.info("Deleted book {}; cancelled {} waiting-list entries", id, cancelled);
+        return true;
     }
 
     @Override
@@ -124,6 +138,7 @@ public class BookServiceImpl implements BookService {
         vo.setAvailable(book.getAvailable());
         vo.setPath(book.getPath());
         vo.setDescription(book.getDescription());
+        vo.setDeleted(Boolean.TRUE.equals(book.getIsDelete()));
         return vo;
     }
 
@@ -135,14 +150,19 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available) {
+        return searchBooks(keyword, pageReq, available, false);
+    }
+
+    @Override
+    public PageResult<BookVO> searchBooks(String keyword, PageRequest pageReq, Boolean available, boolean includeDeleted) {
         Set<String> whitelist = Set.of("book_id", "title", "author", "genre", "quantity", "available" , "description");
         PageCalc p = calc(pageReq, whitelist);
 
         String kw = StrUtil.emptyToDefault(keyword, "");
-        long total = bookMapper.countByKeyword(kw, available);
+        long total = bookMapper.countByKeyword(kw, available, includeDeleted);
         List<Book> list = total == 0
                 ? List.of()
-                : bookMapper.searchByKeywordWithOrder(kw, available, p.offset(), p.limit(), p.orderBySql());
+                : bookMapper.searchByKeywordWithOrder(kw, available, includeDeleted, p.offset(), p.limit(), p.orderBySql());
 
         return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), total, getBookVOList(list));
     }
@@ -158,7 +178,7 @@ public class BookServiceImpl implements BookService {
     public boolean isBookAvailable(Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
         Book b = bookMapper.selectById(id.longValue());
-        return b != null && Boolean.TRUE.equals(b.getAvailable())
+        return b != null && !Boolean.TRUE.equals(b.getIsDelete()) && Boolean.TRUE.equals(b.getAvailable())
                 && b.getQuantity() != null && b.getQuantity() > 0;
     }
 
@@ -184,8 +204,8 @@ public class BookServiceImpl implements BookService {
         Book exist = bookMapper.selectById((long) id);
         ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
 
-        // 已经是可用状态则视为幂等成功
-        if (Boolean.TRUE.equals(exist.getAvailable())) {
+        // restoring a book that isn't deleted is a no-op
+        if (!Boolean.TRUE.equals(exist.getIsDelete())) {
             return true;
         }
         return bookMapper.restoreById((long) id) > 0;

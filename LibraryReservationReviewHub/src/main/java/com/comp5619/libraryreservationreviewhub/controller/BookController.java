@@ -6,6 +6,9 @@ import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
+import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
+import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
+import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.comp5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.entity.Book;
 import com.comp5619.libraryreservationreviewhub.model.entity.User;
@@ -63,20 +66,27 @@ public class BookController {
 
     /* ============ 查询 ============ */
 
+    /** A deleted book is "not found" for everyone but admins */
     @GetMapping("/{id}")
-    public BaseResponse<BookVO> get(@PathVariable long id) {
-        return ResultUtils.success(bookService.getBookVO(bookService.getBookById(id)));
+    public BaseResponse<BookVO> get(@PathVariable long id, HttpServletRequest request) {
+        Book book = bookService.getBookById(id);
+        ThrowUtils.throwIf(Boolean.TRUE.equals(book.getIsDelete()) && !isAdmin(request), ErrorCode.NOT_FOUND_ERROR);
+        return ResultUtils.success(bookService.getBookVO(book));
     }
 
     /**
      * 搜索：
      * GET /book/search?keyword=xxx&available=true&current=1&pageSize=10&sortField=title&sortOrder=asc
+     * Deleted books are left out; {@code includeDeleted=true} adds them, for admins only (the admin page).
      */
     @GetMapping("/search")
     public BaseResponse<PageResult<BookVO>> search(@RequestParam(required = false) String keyword,
                                                    @RequestParam(required = false) Boolean available,
-                                                   PageRequest pageReq) {
-        return ResultUtils.success(bookService.searchBooks(keyword, pageReq, available));
+                                                   @RequestParam(defaultValue = "false") boolean includeDeleted,
+                                                   PageRequest pageReq,
+                                                   HttpServletRequest request) {
+        return ResultUtils.success(bookService.searchBooks(keyword, pageReq, available,
+                includeDeleted && isAdmin(request)));
     }
 
     /**
@@ -85,5 +95,14 @@ public class BookController {
     @GetMapping("/genre/{genre}")
     public BaseResponse<List<BookVO>> byGenre(@PathVariable String genre) {
         return ResultUtils.success(bookService.getBooksByGenre(genre));
+    }
+
+    /** These reads are open to guests, so "not signed in" just means "not an admin" */
+    private boolean isAdmin(HttpServletRequest request) {
+        try {
+            return userService.isAdmin(userService.getLoginUser(request));
+        } catch (BusinessException e) {
+            return false;
+        }
     }
 }

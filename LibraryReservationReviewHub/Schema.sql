@@ -36,6 +36,8 @@ CREATE TABLE Book (
 	quantity INT,
     held_quantity INT DEFAULT 0,
 	available BOOLEAN DEFAULT TRUE,
+	-- deleted by an admin: hidden from users, kept for the history. Separate from `available`, which is stock
+	is_delete BOOLEAN NOT NULL DEFAULT FALSE,
 	`path` VARCHAR(255)
 );
 

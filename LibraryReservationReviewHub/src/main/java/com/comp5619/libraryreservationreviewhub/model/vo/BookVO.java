@@ -57,4 +57,9 @@ public class BookVO implements Serializable {
      */
     private String description;
 
+    /**
+     * Deleted by an admin. Only admins ever see a deleted book.
+     */
+    private Boolean deleted;
+
 }

@@ -11,9 +11,11 @@ const api = axios.create({
 });
 
 export const bookService = {
-    getAllBooks: async (page = 1, size = 101) => {
+    // includeDeleted only has an effect for admins (the admin page)
+    getAllBooks: async (page = 1, size = 101, includeDeleted = false) => {
         try {
-            const response = await api.get(`/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`);
+            const response = await api.get(`/book/search?sortField=title&sortOrder=ascend&current=${page}&pageSize=${size}`
+                + (includeDeleted ? '&includeDeleted=true' : ''));
             console.log('Get all books response:', response);
             return response.data;
         } catch (error) {

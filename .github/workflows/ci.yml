@@ -9,12 +9,6 @@ jobs:
   backend:
     name: Back end tests and coverage
     runs-on: ubuntu-latest
-    env:
-      DB_URL: jdbc:mysql://127.0.0.1:3306/library_reservation
-      DB_USERNAME: root
-      DB_PASSWORD: ci-pass
-      # a placeholder so the app context starts; the live AI test is skipped without a real key
-      DASHSCOPE_API_KEY: not-a-real-key
     defaults:
       run:
         working-directory: LibraryReservationReviewHub
@@ -25,13 +19,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - name: Start MySQL
-        run: |
-          docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=ci-pass -p 3306:3306 mysql:8.4
-          # TCP only answers once initialisation has finished and the real server is up
-          until docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-pass --silent >/dev/null 2>&1; do sleep 2; done
-      - name: Load the database schema
-        run: docker exec -i mysql mysql -uroot -pci-pass < Schema.sql
+      # the integration tests start their own MySQL with Testcontainers
       - name: Run tests with JaCoCo coverage
         run: ./gradlew test jacocoTestReport --no-daemon
       - name: Upload test and coverage reports

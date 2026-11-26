@@ -25,6 +25,10 @@ repositories {
     mavenCentral()
 }
 
+// Testcontainers 1.21.3, which Spring Boot 3.5.5 manages, speaks a Docker API that Docker Engine 29 no longer
+// accepts; 1.21.4 is the patch release that fixes it
+ext['testcontainers.version'] = '1.21.4'
+
 dependencyManagement {
     imports {
         // Alibaba AI BOM
@@ -71,6 +75,8 @@ dependencies {
     // test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // the integration tests' MySQL (support/TestDatabase); the version comes from the Spring Boot BOM
+    testImplementation 'org.testcontainers:mysql'
 }
 
 /* --------------------------------------------------------------
@@ -108,6 +114,9 @@ jacocoTestReport {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // the schema the test MySQL is created from
+    systemProperty 'testDatabase.schema', file('Schema.sql').absolutePath
+    inputs.file('Schema.sql')
     // 排除指定包或类，不运行
     exclude '**/tools/**'
     exclude '**/agent/**'

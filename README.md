@@ -157,7 +157,7 @@ Compose starts three containers:
 - Mockito unit tests for the services and controllers;
 - Spring Boot integration tests that run against MySQL, including the concurrency tests.
 
-CI runs the same command on every push, in a MySQL container, and uploads the JaCoCo report.
+CI runs the same command on every push and uploads the JaCoCo report.
 - **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
   real key.
 - **Not run by default:** the 12 AI-tool tests in `src/test/.../tools/`, which `build.gradle` excludes.
@@ -169,7 +169,8 @@ cd LibraryReservationReviewHub
 ./gradlew test jacocoTestReport   # HTML report: build/reports/jacoco/test/html/index.html
 ```
 
-The integration tests need the database from step 1.
+The integration tests start their own MySQL 8.4 with Testcontainers, loaded from `Schema.sql`, so Docker must be
+running; they need no database or environment variables of their own.
 
 The original design notes from the start of the course are in [docs/DESIGN.md](docs/DESIGN.md). They describe
 the initial idea (an online bookstore) rather than the app as built.

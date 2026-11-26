@@ -104,7 +104,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setLastName(lastName);
         user.setPhone(phone);
         user.setIsAdmin(false); // Default non-admin
-//        user.setCreateTime(new Date()); // Set current time
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Registration failed, database error");

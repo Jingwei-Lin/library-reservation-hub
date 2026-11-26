@@ -486,12 +486,6 @@ class ReviewServiceImplTest {
     }
 
     @Test
-    void moderate_Success() {
-        boolean result = reviewService.moderate(1L, "approved", testAdmin);
-        assertTrue(result);
-    }
-
-    @Test
     void getUserNameByReviewId_Success() {
         when(reviewMapper.selectById(1L)).thenReturn(testReview);
         when(userService.getById(1L)).thenReturn(testUser);

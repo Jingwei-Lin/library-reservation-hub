@@ -9,7 +9,6 @@ import Portal from './Portal';
 import "./Book.css";
 
 const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
-    // const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const [book, setBook] = useState(null);
@@ -185,7 +184,6 @@ const Book = ({ isAuthenticated, setIsAuthenticated, id, onBack }) => {
             return;
         }
         setShowReservationPopup(true);
-        // navigate(`/reservation/form/${id}?fromBook=${id}`);
     };
 
     const handleReservationSubmit = async (e) => {

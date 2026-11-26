@@ -98,7 +98,6 @@ const Profile = ({ user }) => {
             setSuccess("");
 
             const response = await userService.updateUserProfile(trimmedData);
-            console.log(response);
 
             if (response && response.code === 0) {
                 setSuccess("Profile updated successfully!");
@@ -136,7 +135,6 @@ const Profile = ({ user }) => {
             <button
                 onClick={() => {
                     navigate("/dashboard");
-                    // window.location.reload();
                 }}
                 className="back-button"
             >

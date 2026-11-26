@@ -64,30 +64,4 @@
         AND wl.status = 'WAITING'
         ORDER BY wl.join_date ASC
     </select>
-
-<!--    <select id="selectNotifyEligibilityForUser" resultType="com.comp5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO">-->
-<!--        SELECT-->
-<!--            q.book_id           AS bookId,-->
-<!--            b.title             AS bookTitle,-->
-<!--            q.join_date         AS joinDate,-->
-<!--            q.pos               AS position,-->
-<!--      q.total_waiting     AS totalWaiting,-->
-<!--      b.quantity          AS quantity,-->
-<!--      b.held_quantity     AS heldQuantity,-->
-<!--      b.available         AS available-->
-<!--        FROM (-->
-<!--            SELECT-->
-<!--            wl.book_id,-->
-<!--            wl.user_id,-->
-<!--            wl.join_date,-->
-<!--            ROW_NUMBER() OVER (PARTITION BY wl.book_id ORDER BY wl.join_date ASC, wl.wait_id ASC) AS pos,-->
-<!--            COUNT(*)    OVER (PARTITION BY wl.book_id)                                         AS total_waiting-->
-<!--            FROM waiting_list wl-->
-<!--            WHERE wl.status = 'waiting'-->
-<!--            ) q-->
-<!--            JOIN book b ON b.book_id = q.book_id-->
-<!--        WHERE q.user_id = #{userId}-->
-<!--        ORDER BY q.join_date ASC-->
-<!--    </select>-->
-
 </mapper>

@@ -2,7 +2,6 @@ package com.comp5619.libraryreservationreviewhub.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.comp5619.libraryreservationreviewhub.common.PageRequest;
 import com.comp5619.libraryreservationreviewhub.common.PageResult;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
@@ -18,7 +17,6 @@ import com.comp5619.libraryreservationreviewhub.model.vo.ReviewVO;
 import com.comp5619.libraryreservationreviewhub.service.BookService;
 import com.comp5619.libraryreservationreviewhub.service.ReviewService;
 import com.comp5619.libraryreservationreviewhub.service.UserService;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -199,12 +197,6 @@ public class ReviewServiceImpl implements ReviewService {
 
         List<ReviewVO> records = getReviewVOList(list);
         return new PageResult<>(current, pageSize, total, records);
-    }
-
-    @Override
-    public boolean moderate(long id, String status, User operator) {
-        // Placeholder implementation for admin moderation (not used currently)
-        return true;
     }
 
     @Override

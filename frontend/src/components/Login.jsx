@@ -12,13 +12,6 @@ const Login = ({ setIsAuthenticated, setUser, theme }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
-    // map backend messages to English (add more if needed)
-    const errorMessages = {
-        "参数为空": "No empty input allowed",
-        "密码错误": "Incorrect password",
-        "用户不存在": "User not found",
-    };
-
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -30,7 +23,6 @@ const Login = ({ setIsAuthenticated, setUser, theme }) => {
 
         try {
             const response = await loginUser(formData); // call backend
-            // console.log("Login response:", response);  // log backend response
             sessionStorage.setItem('user', JSON.stringify(response));
             setUser(response);             // update app-level user state
             setIsAuthenticated(true);      // update app-level auth state
@@ -39,7 +31,7 @@ const Login = ({ setIsAuthenticated, setUser, theme }) => {
         } catch (err) {
             // Axios error message from authApi.js
             const backendMessage = err.message;
-            setError(errorMessages[backendMessage] || backendMessage || 'Login failed');
+            setError(backendMessage || 'Login failed');
         } finally {
             setLoading(false);
         }

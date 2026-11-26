@@ -19,6 +19,9 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+    },
   },
   {
     // most of the app is plain JSX; lint it too
@@ -36,6 +39,8 @@ export default tseslint.config([
     rules: {
       // components are used in JSX, which the core rule can't see (same setting as Vite's JS template)
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', caughtErrors: 'none' }],
+      // no debug logging in the browser console; real problems may still be reported
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
 ])

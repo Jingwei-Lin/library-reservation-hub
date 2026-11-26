@@ -16,17 +16,6 @@ const Register = (theme) => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    // map backend messages to English (add more if needed)
-    const errorMessages = {
-        "参数为空": "No empty input allowed",
-        "用户账号过短": "Too short account",
-        "用户密码过短": "Too short password",
-        "两次输入的密码不一致": "Inconsistent password",
-        "账号重复": "Account already exists",
-        "注册失败，数据库错误": "Registration failed caused by database error"
-
-    };
-
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -48,7 +37,7 @@ const Register = (theme) => {
             navigate('/login');
         } catch (err) {
             const backendMessage = err.message;
-            setError(errorMessages[backendMessage] || backendMessage || 'Registration failed');
+            setError(backendMessage || 'Registration failed');
         } finally {
             setLoading(false);
         }

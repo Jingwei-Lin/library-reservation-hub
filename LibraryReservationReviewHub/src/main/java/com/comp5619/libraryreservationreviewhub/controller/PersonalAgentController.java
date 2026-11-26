@@ -2,7 +2,6 @@ package com.comp5619.libraryreservationreviewhub.controller;
 
 import com.comp5619.libraryreservationreviewhub.app.PersonalAgent;
 import com.comp5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
-import com.comp5619.libraryreservationreviewhub.common.UserContextHolder;
 import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
 import com.comp5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.comp5619.libraryreservationreviewhub.exception.ThrowUtils;
@@ -11,14 +10,11 @@ import com.comp5619.libraryreservationreviewhub.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -34,30 +30,6 @@ public class PersonalAgentController {
 
 
 
-    /**
-     * 同步调用 Personal Agent
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-//    @GetMapping("/personal_agent/chat/sync")
-//    public String doChatSync(String message, String chatId) {
-//        return personalAgent.doChat(message, chatId);
-//    }
-
-
-    /**
-     * SSE 流式调用 Personal Agent
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-//    @GetMapping(value = "/personal_agent/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-//    public Flux<String> doChatWithPersonalAppSSE(String message, String chatId) {
-//        return personalAgent.doChatByStream(message, chatId);
-//    }
 
     /**
      * SSE 流式调用 Personal Agent
@@ -70,13 +42,6 @@ public class PersonalAgentController {
  * @param request HTTP 请求对象，用于获取会话信息
      * @return 返回一个 Flux 流，包含 ServerSentEvent 类型的响应数据，用于流式传输 AI 的回复
      */
-//    @GetMapping(value = "/personal_agent/chat/server_sent_event")
-//    public Flux<ServerSentEvent<String>> doChatWithPersonalAppServerSentEvent(String message, String chatId) {
-//        return personalAgent.doChatByStream(message, chatId)
-//                .map(chunk -> ServerSentEvent.<String>builder()
-//                        .data(chunk)
-//                        .build());
-//    }
     @GetMapping(value = "/personal_agent/chat/server_sent_event", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> doChatWithPersonalAppServerSentEvent(
             String message,

@@ -1,12 +1,9 @@
 package com.comp5619.libraryreservationreviewhub.controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.comp5619.libraryreservationreviewhub.annotation.AuthCheck;
 import com.comp5619.libraryreservationreviewhub.common.BaseResponse;
-import com.comp5619.libraryreservationreviewhub.common.DeleteRequest;
 import com.comp5619.libraryreservationreviewhub.common.ResultUtils;
 import com.comp5619.libraryreservationreviewhub.constant.UserConstant;
 import com.comp5619.libraryreservationreviewhub.exception.BusinessException;
@@ -21,9 +18,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 
-import java.util.Date; // Existing import
 import java.util.List; // Added import
 
 import org.slf4j.Logger;
@@ -112,28 +107,6 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
-    // /**
-    // * 创建用户
-    // */
-    // @PostMapping("/add")
-    // @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    // public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest)
-    // {
-    // ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
-    // User user = new User();
-    // BeanUtil.copyProperties(userAddRequest, user);
-    // // 默认密码
-    // final String DEFAULT_PASSWORD = "12345678";
-    // String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
-    // user.setUserPassword(encryptPassword);
-    // user.setAdmin(false); // Default false
-    // user.setCreateTime(new Date()); // Use imported Date class
-    // // 插入数据库
-    // boolean result = userService.save(user);
-    // ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-    // return ResultUtils.success(user.getId());
-    // }
-
     /**
      * 根据 id 获取用户（仅管理员）
      */
@@ -147,30 +120,6 @@ public class UserController {
         return ResultUtils.success(userService.getUserVO(user));
     }
 
-    // /**
-    // * 根据 id 获取包装类
-    // */
-    // @GetMapping("/get/vo")
-    // public BaseResponse<UserVO> getUserVOById(long id) {
-    // BaseResponse<User> response = getUserById(id);
-    // User user = response.getData();
-    // return ResultUtils.success(userService.getUserVO(user));
-    // }
-
-    // /**
-    // * 删除用户
-    // */
-    // @PostMapping("/delete")
-    // @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    // public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest
-    // deleteRequest) {
-    // if (deleteRequest == null || deleteRequest.getId() <= 0) {
-    // throw new BusinessException(ErrorCode.PARAMS_ERROR);
-    // }
-    // boolean b = userService.removeById(deleteRequest.getId());
-    // return ResultUtils.success(b);
-    // }
-    //
     /**
      * 更新用户
      */
@@ -185,7 +134,6 @@ public class UserController {
         return ResultUtils.success(userService.adminUpdateUser(userUpdateRequest, operator));
     }
 
-    //
     /**
      * 分页获取用户封装列表（仅管理员）
      *

@@ -12,13 +12,11 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
 
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
 
 @Component
 @Slf4j
@@ -105,25 +103,6 @@ public class PersonalAgent {
 
         /**
          * AI 基础对话
-         * 支持多轮对话记忆，工具调用
-         * @param message
-         * @param chatId
-         * @return
-         */
-//        public String doChat(String message, String chatId) {
-//            ChatResponse chatResponse = chatClient
-//                    .prompt()
-//                    .user(message)
-//                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-//                    .toolCallbacks(allTools)
-//                    .call()
-//                    .chatResponse();
-//            String content = chatResponse.getResult().getOutput().getText();
-//            log.info("content: {}", content);
-//            return content;
-//        }
-        /**
-         * AI 基础对话
          * 支持多轮对话记忆，SSE 流式传输，工具调用
          *
          * @param message
@@ -155,36 +134,4 @@ public class PersonalAgent {
         String context = userContext == null || userContext.isEmpty() ? "{\"status\":\"not_logged_in\"}" : userContext;
         return SYSTEM_PROMPT + "\n\n[UserContext]: " + context;
     }
-
-
-
-
-//    /**
-//     * AI 使用工具 聊天
-//     *
-//     * @param message
-//     * @param chatId
-//     * @return
-//     */
-//    public String doChatWithTools(String message, String chatId) {
-//        ChatResponse chatResponse = chatClient
-//                .prompt()
-//                .user(message)
-//                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-//                // 开启日志，便于观察效果
-//                .advisors(new MyLoggerAdvisor())
-//                .toolCallbacks(allTools)
-//                .call()
-//                .chatResponse();
-//        String content = chatResponse.getResult().getOutput().getText();
-//        log.info("content: {}", content);
-//        return content;
-//    }
-
-
-
-
-
-
-
 }

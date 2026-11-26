@@ -25,7 +25,6 @@ const Reservations = ({ isAuthenticated }) => {
                 setLoading(true);
                 setError("");
                 const response = await reservationService.getUserReservations();
-                console.log("getUserReservations response:", response);
 
                 if (response && response.code === 0 && response.data) {
                     setReservations(Array.isArray(response.data) ? response.data : []);
@@ -53,7 +52,6 @@ const Reservations = ({ isAuthenticated }) => {
             setSuccessMessage("");
             setCancelling(reservationId);
             const response = await reservationService.cancelReservation(reservationId);
-            console.log("cancelReservation response:", response);
             if (response && response.code === 0) {
                 setReservations(reservations.map(r =>
                     r.reservationId === reservationId ? { ...r, reservationStatus: "cancelled" } : r
@@ -89,7 +87,6 @@ const Reservations = ({ isAuthenticated }) => {
             setSuccessMessage("");
             // Send date as YYYY-MM-DD format
             const response = await reservationService.updatePickupTime(reservationId, { pickupTime: newPickupDate });
-            console.log("updatePickupTime response:", response);
             if (response && response.code === 0) {
                 setReservations(reservations.map(r =>
                     r.reservationId === reservationId ? { ...r, pickupTime: new Date(newPickupDate) } : r

@@ -2,7 +2,6 @@ package com.comp5619.libraryreservationreviewhub.service;
 
 import java.util.List;
 
-// import com.comp5619.libraryreservationreviewhub.model.dto.book.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewAddRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewQueryRequest;
 import com.comp5619.libraryreservationreviewhub.model.dto.review.ReviewUpdateRequest;
@@ -65,16 +64,6 @@ public interface ReviewService {
      * @return pageResult
      */
     PageResult<ReviewVO> listByPage(ReviewQueryRequest req);
-
-    /**
-     * 管理员审核评论功能
-     * 
-     * @param id
-     * @param status
-     * @param operator
-     * @return succ or no
-     */
-    boolean moderate(long id, String status, User operator);
 
     /**
      * 将单个review类型转换成VO

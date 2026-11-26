@@ -26,8 +26,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     const initialPage = parseInt(urlParams.get('page')) || 1;
 
     const [books, setBooks] = useState([]);
-    // eslint-disable-next-line no-unused-vars -- fetched but never rendered; removal tracked in specs roadmap (P2 dead code)
-    const [topBooks, setTopBooks] = useState([]);
     const [currentTitle, setCurrentTitle] = useState("All Books");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -49,8 +47,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
         const id = Number(bookIdFromUrl);
         return (!isNaN(id) && id > 0) ? id : null;
     });
-    // eslint-disable-next-line no-unused-vars -- set but never read; removal tracked in specs roadmap (P2 dead code)
-    const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const [hasNotification, setHasNotification] = useState(false);
     const [currentGenre, setCurrentGenre] = useState(initialGenre);
@@ -109,22 +105,13 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     // Initial data fetch
     useEffect(() => {
         const initializeDashboard = async () => {
-            console.log(sessionStorage);
-            console.log('Initializing dashboard with URL params:', {
-                search: initialSearch,
-                genre: initialGenre,
-                view: initialView,
-                book: selectedBookId
-            });
-
             try {
                 // If we're on a book page, only load book-specific data
                 if (selectedBookId) {
-                    console.log('On book page, skipping list initialization');
+                    // the book page loads its own data
                 }
                 // If we're on Top 10 view, load top 10 books directly
                 else if (initialView === 'top10') {
-                    console.log('Loading top 10 books from URL parameter');
                     await loadTop10Books();
                 }
                 // If we have a search term, load search results
@@ -140,11 +127,10 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                     await fetchBooks('', initialPage);
                 }
 
-                // Parallelize non-critical fetches (user, waiting list, top books)
-                const [waitingListRes, userRes, topBooksRes] = await Promise.all([
+                // Parallelize non-critical fetches (waiting list, user, statistics)
+                const [waitingListRes, userRes] = await Promise.all([
                     waitingListService.getMyWaitingList().catch(err => ({ code: -1, message: err.message })),
                     validateSession().catch(err => ({ code: -1, message: err.message })),
-                    bookService.getTop10Books().catch(err => ({ code: -1, message: err.message })),
                     fetchTotalStats()
                 ]);
 
@@ -166,17 +152,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                     }
                     return; // Early exit if logged out
                 }
-                if (topBooksRes.code === 0 && topBooksRes.data) {
-                    const validBooks = topBooksRes.data.filter(book => {
-                        const bookId = Number(book.bookId);
-                        return book.bookId != null && !isNaN(bookId) && bookId > 0;
-                    });
-                    setTopBooks(validBooks);
-                } else {
-                    console.warn('Top books fetch failed:', topBooksRes.message);
-                    setTopBooks([]);
-                }
-                setInitialLoadComplete(true);
                 updateURL();
             } catch (error) {
                 console.error('Error during initialization:', error);
@@ -220,7 +195,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
 
     // Sync URL with selected book state
     useEffect(() => {
-        // if (!initialLoadComplete) return; // Wait for initial data load
         const params = new URLSearchParams(location.search);
         const bookIdFromUrl = params.get('book');
 
@@ -312,7 +286,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                 showWholeList([], "Top 10 Rated Books");
             } else {
                 showWholeList(validBooks, "Top 10 Rated Books");
-                setTopBooks(validBooks);
             }
         } catch (err) {
             if (load !== latestLoad.current) return;
@@ -616,7 +589,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
                                                                     });
                                                                     e.target.src = '/placeholder-book-cover.jpg';
                                                                 }}
-                                                                onLoad={() => console.log('Image loaded successfully:', `/api/images/books/${encodeURIComponent(book.path)}`)}
                                                             />
                                                         ) : (
                                                             <div className="book-cover-placeholder">📖</div>

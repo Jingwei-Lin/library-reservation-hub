@@ -90,10 +90,8 @@ public class PersonalAgent {
      * 初始化 ChatClient
      * @param dashscopeChatModel
      */
-    public PersonalAgent(ChatModel dashscopeChatModel) {
-//        // 初始化基于文件的对话记忆
-        String fileDir = System.getProperty("user.dir") + "/tmp/chat-memory";
-        ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
+    public PersonalAgent(ChatModel dashscopeChatModel, FileBasedChatMemory chatMemory) {
+        // the file-based memory (ChatMemoryConfig): the last 20 messages of each conversation
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
@@ -139,11 +137,12 @@ public class PersonalAgent {
      *               the tools through {@link UserInfoTool#toolContextFor(Long)}, never through the model.
      */
     public Flux<String> doChatByStream(String message, String chatId, String userContext, Long userId) {
-        String finalPrompt = buildPromptWithUserContext(message, userContext);
-
+        // The user's details go into this turn's system prompt, not into the user message: the memory stores the
+        // user message, and it should hold what the user typed, not their e-mail and phone on every turn.
         return chatClient
                 .prompt()
-                .user(finalPrompt)
+                .system(systemPromptWithUserContext(userContext))
+                .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 .toolCallbacks(allTools)
                 .toolContext(UserInfoTool.toolContextFor(userId))
@@ -151,14 +150,10 @@ public class PersonalAgent {
                 .content();
     }
 
-    /**
-     * 构造带用户上下文的 prompt
-     */
-    private String buildPromptWithUserContext(String message, String userContext) {
-        if (userContext == null || userContext.isEmpty()) {
-            return String.format("[UserContext]: {\"status\":\"not_logged_in\"}\n[Message]: %s", message);
-        }
-        return String.format("[UserContext]: %s\n[Message]: %s", userContext, message);
+    /** The system prompt plus who is asking, for one turn; never stored in the chat memory */
+    static String systemPromptWithUserContext(String userContext) {
+        String context = userContext == null || userContext.isEmpty() ? "{\"status\":\"not_logged_in\"}" : userContext;
+        return SYSTEM_PROMPT + "\n\n[UserContext]: " + context;
     }
 
 

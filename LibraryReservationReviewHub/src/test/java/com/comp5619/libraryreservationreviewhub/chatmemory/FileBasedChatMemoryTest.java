@@ -50,9 +50,11 @@ class FileBasedChatMemoryTest {
         assertThat(dir.resolve(id + ".kryo")).exists();
     }
 
+    // the two concurrency tests are about locking, not about how much is kept, so they use an unbounded window
+
     @Test
     void concurrentAddsToOneConversationLoseNothing() throws Exception {
-        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString(), Integer.MAX_VALUE);
         String id = UUID.randomUUID().toString();
         runConcurrently(8, t -> {
             for (int i = 0; i < 25; i++) {
@@ -64,7 +66,7 @@ class FileBasedChatMemoryTest {
 
     @Test
     void concurrentConversationsDoNotCorruptEachOther() throws Exception {
-        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString(), Integer.MAX_VALUE);
         String[] ids = new String[16];
         for (int t = 0; t < ids.length; t++) {
             ids[t] = UUID.randomUUID().toString();
@@ -78,6 +80,74 @@ class FileBasedChatMemoryTest {
         for (String id : ids) {
             assertThat(memory.get(id)).hasSize(60);
         }
+    }
+
+    // ---- bounded memory (step 5 plan D2) ----
+
+    @Test
+    void aConversationKeepsItsLastTwentyMessages() {
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        String id = UUID.randomUUID().toString();
+        for (int i = 0; i < 13; i++) {   // 26 messages
+            memory.add(id, List.of(new UserMessage("q" + i)));
+            memory.add(id, List.of(new AssistantMessage("a" + i)));
+        }
+
+        List<Message> kept = memory.get(id);
+        assertThat(kept).hasSize(20);
+        assertThat(kept.get(0).getText()).isEqualTo("q3");
+        assertThat(kept.get(19).getText()).isEqualTo("a12");
+        // the file holds no more than the window either
+        assertThat(new FileBasedChatMemory(dir.toString()).get(id)).hasSize(20);
+    }
+
+    @Test
+    void theWindowStartsAtAUserMessage() {
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        String id = UUID.randomUUID().toString();
+        for (int i = 0; i < 10; i++) {
+            memory.add(id, List.of(new UserMessage("q" + i), new AssistantMessage("a" + i)));
+        }
+        memory.add(id, List.of(new UserMessage("q10")));   // 21 messages: the last 20 would start with "a0"
+
+        List<Message> kept = memory.get(id);
+        assertThat(kept.get(0)).isInstanceOf(UserMessage.class);
+        assertThat(kept.get(0).getText()).isEqualTo("q1");
+        assertThat(kept).hasSize(19);
+    }
+
+    @Test
+    void aCorruptFileStartsAFreshConversation() throws Exception {
+        String id = UUID.randomUUID().toString();
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        memory.add(id, List.of(new UserMessage("a question long enough to be cut in half"), new AssistantMessage("an answer")));
+        // cut the file in half, as a crash in the middle of a write would
+        Path file = dir.resolve(id + ".kryo");
+        byte[] whole = Files.readAllBytes(file);
+        Files.write(file, java.util.Arrays.copyOf(whole, whole.length / 2));
+
+        assertThat(memory.get(id)).isEmpty();
+        memory.add(id, List.of(new UserMessage("hello again")));
+        assertThat(memory.get(id)).extracting(Message::getText).containsExactly("hello again");
+    }
+
+    @Test
+    void conversationsIdleForSevenDaysAreDeletedAndOthersKept() throws Exception {
+        FileBasedChatMemory memory = new FileBasedChatMemory(dir.toString());
+        String idle = UUID.randomUUID().toString();
+        String recent = UUID.randomUUID().toString();
+        memory.add(idle, List.of(new UserMessage("old")));
+        memory.add(recent, List.of(new UserMessage("new")));
+        long eightDaysAgo = System.currentTimeMillis() - java.time.Duration.ofDays(8).toMillis();
+        assertThat(dir.resolve(idle + ".kryo").toFile().setLastModified(eightDaysAgo)).isTrue();
+        Path notOurs = Files.writeString(dir.resolve("notes.kryo"), "not a conversation");
+        notOurs.toFile().setLastModified(eightDaysAgo);
+
+        assertThat(memory.deleteIdleConversations(java.time.Duration.ofDays(7))).isEqualTo(1);
+
+        assertThat(dir.resolve(idle + ".kryo")).doesNotExist();
+        assertThat(memory.get(recent)).extracting(Message::getText).containsExactly("new");
+        assertThat(notOurs).exists();   // only files named like a conversation
     }
 
     /** Starts {@code threads} workers together and rethrows the first failure. */

@@ -1,2 +1,5 @@
 node_modules/
 dist/
+# local settings and secrets stay out of the image (the Dockerfile copies the whole folder)
+.env
+.env.*

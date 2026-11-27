@@ -205,7 +205,7 @@ class BookServiceImplTest {
         when(bookMapper.selectById(1L)).thenReturn(testBook);
         when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
 
-        assertTrue(bookService.updateBook(update, adminUser));
+        assertTrue(bookService.updateBook(update, null, adminUser));
     }
 
     @Test
@@ -217,7 +217,7 @@ class BookServiceImplTest {
         when(bookMapper.selectById(999L)).thenReturn(null);
 
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> bookService.updateBook(update, adminUser));
+                () -> bookService.updateBook(update, null, adminUser));
         assertEquals(ErrorCode.NOT_FOUND_ERROR.getCode(), ex.getCode());
     }
 
@@ -370,7 +370,7 @@ class BookServiceImplTest {
         when(stockService.lockBook(1L)).thenReturn(testBook);
         when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
 
-        assertTrue(bookService.updateBook(update, adminUser));
+        assertTrue(bookService.updateBook(update, 5, adminUser));
         verify(stockService).addCopies(1L, 3);
         verify(bookMapper).updateBook(argThat(b -> b.getQuantity() == null));   // not written a second time
     }
@@ -385,7 +385,7 @@ class BookServiceImplTest {
         when(stockService.lockBook(1L)).thenReturn(testBook);
         when(bookMapper.updateBook(any(Book.class))).thenReturn(1);
 
-        assertTrue(bookService.updateBook(update, adminUser));
+        assertTrue(bookService.updateBook(update, 5, adminUser));
         verify(stockService, never()).addCopies(anyLong(), anyInt());
         verify(bookMapper).updateBook(argThat(b -> b.getQuantity() == 2));
     }
@@ -398,7 +398,7 @@ class BookServiceImplTest {
         when(userService.isAdmin(adminUser)).thenReturn(true);
         when(bookMapper.selectById(1L)).thenReturn(testBook);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> bookService.updateBook(update, adminUser));
+        BusinessException ex = assertThrows(BusinessException.class, () -> bookService.updateBook(update, 5, adminUser));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), ex.getCode());
     }
 

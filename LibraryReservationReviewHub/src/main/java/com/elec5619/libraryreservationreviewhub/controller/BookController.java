@@ -10,6 +10,7 @@ import com.elec5619.libraryreservationreviewhub.exception.BusinessException;
 import com.elec5619.libraryreservationreviewhub.exception.ErrorCode;
 import com.elec5619.libraryreservationreviewhub.exception.ThrowUtils;
 import com.elec5619.libraryreservationreviewhub.model.dto.book.BookAddRequest;
+import com.elec5619.libraryreservationreviewhub.model.dto.book.BookUpdateRequest;
 import com.elec5619.libraryreservationreviewhub.model.entity.Book;
 import com.elec5619.libraryreservationreviewhub.model.entity.User;
 import com.elec5619.libraryreservationreviewhub.model.vo.BookStatsVO;
@@ -50,12 +51,19 @@ public class BookController {
     @PutMapping("/{id}")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> update(@PathVariable Long id,
-                                        @RequestBody Book book,
+                                        @RequestBody BookUpdateRequest req,
                                         HttpServletRequest request) {
+        Book book = new Book();
         // the entity's id field is bookId, not id
         book.setBookId(id.longValue());
+        book.setTitle(req.getTitle());
+        book.setAuthor(req.getAuthor());
+        book.setGenre(req.getGenre());
+        book.setDescription(req.getDescription());
+        book.setPath(req.getPath());
+        book.setQuantity(req.getQuantity());
         User operator = userService.getLoginUser(request);
-        return ResultUtils.success(bookService.updateBook(book, operator));
+        return ResultUtils.success(bookService.updateBook(book, req.getExpectedQuantity(), operator));
     }
 
     @PutMapping("/{id}/restore")

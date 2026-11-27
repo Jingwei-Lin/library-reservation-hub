@@ -119,7 +119,7 @@ public class BookServiceImpl implements BookService {
      */
     @Override
     @Transactional
-    public boolean updateBook(Book book, User operator) {
+    public boolean updateBook(Book book, Integer expectedQuantity, User operator) {
         ThrowUtils.throwIf(book == null || book.getBookId() == null, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(operator == null || !userService.isAdmin(operator), ErrorCode.NO_AUTH_ERROR);
 
@@ -128,8 +128,14 @@ public class BookServiceImpl implements BookService {
 
         if (book.getQuantity() != null) {
             ThrowUtils.throwIf(book.getQuantity() < 0, ErrorCode.PARAMS_ERROR, "Quantity cannot be negative");
+            ThrowUtils.throwIf(expectedQuantity == null, ErrorCode.PARAMS_ERROR,
+                    "A quantity change needs the quantity it was made from (expectedQuantity)");
             Book locked = stockService.lockBook(book.getBookId());
-            int added = book.getQuantity() - (locked.getQuantity() == null ? 0 : locked.getQuantity());
+            int shelf = locked.getQuantity() == null ? 0 : locked.getQuantity();
+            // a reservation or a return since the page loaded: the edit was made from a count that is gone
+            ThrowUtils.throwIf(shelf != expectedQuantity, ErrorCode.OPERATION_ERROR,
+                    "The stock changed since this page loaded. Reload and try again.");
+            int added = book.getQuantity() - shelf;
             if (added > 0) {
                 stockService.addCopies(book.getBookId(), added);
                 book.setQuantity(null);   // already written, through the queue

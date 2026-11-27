@@ -160,7 +160,7 @@ class WaitingQueueIntegrationTest {
         join(c).andExpect(jsonPath("$.code").value(0));
 
         mockMvc.perform(put("/book/" + bookId).session(login("admin@admin.com"))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":3}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantity\":3,\"expectedQuantity\":0}"))
                 .andExpect(jsonPath("$.code").value(0));
 
         assertThat(status(b)).isEqualTo("notified");

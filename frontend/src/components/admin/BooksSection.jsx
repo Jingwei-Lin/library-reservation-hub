@@ -104,7 +104,15 @@ const BooksSection = ({ canLoad }) => {
     }
     try {
       setBooksError(''); setBooksSuccess('');
-      const res = await bookService.updateBook(b.bookId, { ...b, bookId: b.bookId });
+      const orig = booksOriginal.find(o => o.bookId === b.bookId);
+      const payload = { title: b.title, author: b.author, genre: b.genre, description: b.description, path: b.path };
+      // the quantity only when it was changed, with the count it was changed from: the server refuses the edit
+      // if the shelf has changed since this page loaded (a reservation or a return in the meantime)
+      if (orig && Number(b.quantity ?? 0) !== Number(orig.quantity ?? 0)) {
+        payload.quantity = Number(b.quantity ?? 0);
+        payload.expectedQuantity = Number(orig.quantity ?? 0);
+      }
+      const res = await bookService.updateBook(b.bookId, payload);
       if (res && res.code === 0) {
         setBooksSuccess('Book updated successfully');
         await fetchBooks();

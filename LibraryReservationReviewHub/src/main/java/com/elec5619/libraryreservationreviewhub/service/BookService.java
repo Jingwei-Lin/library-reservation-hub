@@ -13,7 +13,8 @@ import java.util.List;
 public interface BookService {
     Long addBook(BookAddRequest req, User operator);
     boolean deleteBook(Long id, User operator);
-    boolean updateBook(Book book, User operator);
+    /** An admin edit; a quantity change is refused unless the shelf still holds expectedQuantity */
+    boolean updateBook(Book book, Integer expectedQuantity, User operator);
     Book getBookById(Long id);
 
     /** Several books by id in one query, deleted ones included; ids with no book are left out */

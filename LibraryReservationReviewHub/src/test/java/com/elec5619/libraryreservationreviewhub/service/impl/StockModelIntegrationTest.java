@@ -87,12 +87,12 @@ class StockModelIntegrationTest {
         Book edit = new Book();
         edit.setBookId(bookId);
         edit.setAvailable(false);
-        bookService.updateBook(edit, admin);
+        bookService.updateBook(edit, null, admin);
         assertThat(stock()).isEqualTo("quantity=2 held=0 available=true");
 
         edit.setQuantity(0);
         edit.setAvailable(true);
-        bookService.updateBook(edit, admin);
+        bookService.updateBook(edit, 2, admin);
         assertThat(stock()).isEqualTo("quantity=0 held=0 available=false");
     }
 

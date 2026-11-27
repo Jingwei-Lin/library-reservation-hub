@@ -137,6 +137,10 @@ for one book run one after the other:
 | Leave the queue | A copy held for the user passes to the next person |
 | Hold runs out | A copy held for 3 days (`HOLD_DAYS`) without a reservation: the entry is `cancelled` and the copy passes on. `WaitingListJanitor` checks hourly |
 
+**Reservation dates:** the pickup is from today to 7 days ahead, and the due date at least one day and at most 30
+days after it, also when the pickup is moved. The server checks these on calendar days, with "today" in the
+library's zone (Australia/Sydney), as the reservation dialog does.
+
 **Reservation statuses:** `reserved` → `borrowed` (admin: Confirm Borrow) → `returned` (admin: Confirm Return);
 `reserved` → `cancelled` (the user or an admin). Nothing else is allowed. "Overdue" is not a status: the admin
 page marks reservations due today or past due. Each change is one conditional `UPDATE … WHERE status = <from>`,
@@ -207,7 +211,7 @@ user, or an admin; routes for a user's own data act on the signed-in user from t
 | GET | `/book/{id}` | anyone | One book |
 | GET | `/book/stats` | anyone | Library statistics |
 | POST | `/book/add` | admin | Add a book |
-| PUT | `/book/{id}` | admin | Edit a book (new copies serve the queue first) |
+| PUT | `/book/{id}` | admin | Edit a book; a quantity change sends the count it was made from and is refused if the shelf changed since (new copies serve the queue first) |
 | DELETE | `/book/{id}` | admin | Delete a book (kept, hidden from users) |
 | PUT | `/book/{id}/restore` | admin | Restore a deleted book |
 | GET | `/book-rating/{bookId}` | anyone | One book's average rating |
@@ -215,7 +219,7 @@ user, or an admin; routes for a user's own data act on the signed-in user from t
 | GET | `/book-rating/top10` | anyone | Top 10: ids and averages |
 | GET | `/book-rating/top10-books` | anyone | Top 10 with the books |
 | POST | `/book-rating/{bookId}/recalc` | admin | Recalculate one rating |
-| POST | `/reservation/create/{bookId}` | user | Reserve a copy |
+| POST | `/reservation/create/{bookId}` | user | Reserve a copy (date rules in §3) |
 | DELETE | `/reservation/cancel/{reservationId}` | user | Cancel own reserved reservation |
 | PUT | `/reservation/pickup/{reservationId}` | user | Change own pickup date |
 | GET | `/reservation/user` | user | Own reservations |

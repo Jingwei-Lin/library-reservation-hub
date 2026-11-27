@@ -111,6 +111,15 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - front-end fixes (local dates, a 404 page, the placeholder cover, dark mode on sign-in, keyboard access);
   - the back-end container runs as a non-root user with a health check, CI actions are pinned, and the build
     fails below 90% line coverage.
+- **Reviewed the result and fixed what it found** (a code review of everything since the course; nothing
+  critical), each with a test that failed before the fix:
+  - an admin's title edit could create or destroy copies, because the page sent the shelf count it had loaded;
+    a quantity change now says what it was made from and is refused if the stock moved in the meantime;
+  - the sign-in limit could be bypassed with simultaneous guesses; attempts are now counted before the password
+    check;
+  - the server now enforces the reservation dialog's date rules (pickup within 7 days, loans of 1 to 30 days);
+  - smaller fixes: profile format checks, the chat's user details built as JSON, steady review paging, and dead
+    code that could bypass the stock rules.
 
 ## Architecture
 
@@ -171,7 +180,7 @@ Compose starts three containers:
 
 ## Tests and coverage
 
-**Back end:** `./gradlew test` runs 354 JUnit tests:
+**Back end:** `./gradlew test` runs 372 JUnit tests:
 - Mockito unit tests for the services and controllers;
 - Spring Boot integration tests, including the concurrency tests, against a MySQL 8.4 that Testcontainers starts
   for the run and loads from `Schema.sql`. Docker must be running; no database or environment variables are
@@ -188,7 +197,7 @@ cd LibraryReservationReviewHub
   (`jacocoTestCoverageVerification`). The figures exclude configuration, DTO/VO, exception and `common/`
   classes.
 
-**Front end:** `npm test` (in `frontend/`) runs 55 Vitest tests, some rendering components with Testing
+**Front end:** `npm test` (in `frontend/`) runs 57 Vitest tests, some rendering components with Testing
 Library: the API client's handling of ended sessions, the sign-in return address, the book list and its
 paging, the chat panel, the reserve dialog's dates, keyboard access, and the page fixes.
 

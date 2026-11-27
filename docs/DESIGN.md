@@ -185,11 +185,66 @@ admin page edits and deletes).
   message. Conversations idle for 7 days are deleted by `ChatMemoryJanitor`; an unreadable file starts a fresh
   conversation.
 
-## 7. Tests
+## 7. API overview
+
+Every route is under `/api` and answers HTTP 200 with `{ code, data, message }` (§5). **Who:** anyone, a signed-in
+user, or an admin; routes for a user's own data act on the signed-in user from the session. The full schema is at
+`/api/swagger-ui.html` when the back end runs.
+
+| Method | Path | Who | What |
+|---|---|---|---|
+| POST | `/user/register` | anyone | Create an account |
+| POST | `/user/login` | anyone | Sign in (at most 5 failures per e-mail in 15 minutes) |
+| POST | `/user/logout` | anyone | Sign out |
+| GET | `/user/get/login` | anyone | The signed-in user (40100 for a guest) |
+| GET | `/user/getProfile` | user | Own profile |
+| PUT | `/user/updateProfile` | user | Edit own profile; e-mail or password changes need the current password |
+| GET | `/user/get` | admin | One user |
+| POST | `/user/update` | admin | Edit, ban or unban a user |
+| POST | `/user/list/page/vo` | admin | A page of users |
+| GET | `/book/search` | anyone | Search and page the books (keyword, availability, sort) |
+| GET | `/book/genre/{genre}` | anyone | One genre's books |
+| GET | `/book/{id}` | anyone | One book |
+| GET | `/book/stats` | anyone | Library statistics |
+| POST | `/book/add` | admin | Add a book |
+| PUT | `/book/{id}` | admin | Edit a book (new copies serve the queue first) |
+| DELETE | `/book/{id}` | admin | Delete a book (kept, hidden from users) |
+| PUT | `/book/{id}/restore` | admin | Restore a deleted book |
+| GET | `/book-rating/{bookId}` | anyone | One book's average rating |
+| GET | `/book-rating` | anyone | Several books' ratings (`?ids=1,2,3`) |
+| GET | `/book-rating/top10` | anyone | Top 10: ids and averages |
+| GET | `/book-rating/top10-books` | anyone | Top 10 with the books |
+| POST | `/book-rating/{bookId}/recalc` | admin | Recalculate one rating |
+| POST | `/reservation/create/{bookId}` | user | Reserve a copy |
+| DELETE | `/reservation/cancel/{reservationId}` | user | Cancel own reserved reservation |
+| PUT | `/reservation/pickup/{reservationId}` | user | Change own pickup date |
+| GET | `/reservation/user` | user | Own reservations |
+| GET | `/reservation/check/{bookId}` | user | Whether the user has an active reservation for the book |
+| GET | `/reservation/{reservationId}` | user | One reservation (its owner or an admin) |
+| GET | `/reservation/all` | admin | All reservations, paged |
+| PUT | `/reservation/status/{reservationId}` | admin | Confirm a borrow or a return, or cancel |
+| GET | `/waiting-list/my` | user | Own entries still in a queue |
+| GET | `/waiting-list/my/status` | user | Own entries with one status |
+| GET | `/waiting-list/my/page` | user | Own entries, paged |
+| GET | `/waiting-list/my/eligibility` | user | Place in each queue and the copies held |
+| POST | `/waiting-list/my/add` | user | Join a book's queue |
+| DELETE | `/waiting-list/my/{bookId}` | user | Leave a book's queue |
+| GET | `/waiting-list/user/{userId}` | admin | One user's entries |
+| GET | `/review/book/{bookId}` | anyone | A book's reviews |
+| GET | `/review/{reviewId}` | anyone | One review |
+| GET | `/review/username/{reviewId}` | anyone | A review author's name |
+| POST | `/review/add/{bookId}` | user | Review a book |
+| PUT | `/review/update` | user | Edit a review (its author or an admin) |
+| DELETE | `/review/delete/{reviewId}` | user | Delete a review (its author or an admin) |
+| GET | `/review/all` | admin | All reviews, paged |
+| GET | `/ai/personal_agent/chat/server_sent_event` | anyone | The AI chat, streamed (§6) |
+
+## 8. Tests
 
 - **Back end:** `./gradlew test` runs Mockito unit tests and Spring Boot integration tests. The integration tests
   start one MySQL 8.4 with Testcontainers for the run, loaded from `Schema.sql` (`support/TestDatabase`), so
   only Docker is needed. Concurrency tests run real transactions against it.
-- **Front end:** `npm test` runs Vitest: the API interceptor, `safeRedirect`, the paging helpers, the admin
-  helpers, and the pagination bar (Testing Library on jsdom).
-- **CI** runs both, with lint and the front-end build, on every push.
+- **Front end:** `npm test` runs Vitest: the API interceptor, `safeRedirect`, the paging helpers and the
+  book-list hook, the admin helpers; and, with Testing Library on jsdom, the pagination bar, the chat panel, the
+  reserve dialog's dates, keyboard access and the page fixes.
+- **CI** runs both, with lint and the front-end build, on every push, and fails below 90% line coverage.

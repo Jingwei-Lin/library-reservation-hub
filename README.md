@@ -100,6 +100,17 @@ Teammates built user management, reviews and ratings, the admin pages and the AI
   - brought back the disabled tests, with real assertions, and added front-end unit tests (Vitest);
   - split the three largest React components (the admin page, the book page and the book list) into parts;
   - translated the Chinese comments, and rewrote the design document from the code.
+- **Closed the remaining low-priority findings**, each with a test that failed before the fix:
+  - sign-in gives one message for an unknown e-mail and a wrong password, and refuses an e-mail after five
+    failed attempts in 15 minutes;
+  - names like O'Brien and phone numbers up to 15 digits register; a `%` search matches only `%`; paging by
+    genre no longer repeats or skips books; review dates keep their time; the top 10 orders ties;
+  - lists load their users and books in one query instead of one per row, and prompts and personal details are
+    out of the normal logs;
+  - images in AI replies show as links (nothing loads by itself), and a failed reply says so;
+  - front-end fixes (local dates, a 404 page, the placeholder cover, dark mode on sign-in, keyboard access);
+  - the back-end container runs as a non-root user with a health check, CI actions are pinned, and the build
+    fails below 90% line coverage.
 
 ## Architecture
 
@@ -160,7 +171,7 @@ Compose starts three containers:
 
 ## Tests and coverage
 
-**Back end:** `./gradlew test` runs 324 JUnit tests:
+**Back end:** `./gradlew test` runs 354 JUnit tests:
 - Mockito unit tests for the services and controllers;
 - Spring Boot integration tests, including the concurrency tests, against a MySQL 8.4 that Testcontainers starts
   for the run and loads from `Schema.sql`. Docker must be running; no database or environment variables are
@@ -173,13 +184,20 @@ cd LibraryReservationReviewHub
 
 - **Skipped:** `PersonalAgentTest` calls the real AI model, so it is skipped unless `DASHSCOPE_API_KEY` holds a
   real key.
-- **Coverage:** line coverage is 96% overall and 98% for the service layer. The report excludes configuration,
-  DTO/VO, exception and `common/` classes.
+- **Coverage:** line coverage is 96% overall and 98% for the service layer, and the build fails below 90%
+  (`jacocoTestCoverageVerification`). The figures exclude configuration, DTO/VO, exception and `common/`
+  classes.
 
-**Front end:** `npm test` (in `frontend/`) runs the Vitest unit tests: the API client's handling of ended
-sessions, the sign-in return address, the book-list paging, and the admin helpers.
+**Front end:** `npm test` (in `frontend/`) runs 55 Vitest tests, some rendering components with Testing
+Library: the API client's handling of ended sessions, the sign-in return address, the book list and its
+paging, the chat panel, the reserve dialog's dates, keyboard access, and the page fixes.
 
 CI runs both on every push, with the front-end lint and build, and uploads the JaCoCo report.
 
-How the app is built (architecture, data model, the stock and waiting-list rules, sessions and the AI assistant)
-is described in [docs/DESIGN.md](docs/DESIGN.md).
+How the app is built (architecture, data model, the stock and waiting-list rules, sessions, the AI assistant and
+an API overview) is described in [docs/DESIGN.md](docs/DESIGN.md).
+
+## Licence
+
+There is no open-source licence. The code was written by a team of five as course work and is shared here so it
+can be read; its authors keep the rights to it.

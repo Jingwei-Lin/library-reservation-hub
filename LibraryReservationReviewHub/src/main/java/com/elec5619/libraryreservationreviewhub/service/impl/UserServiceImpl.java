@@ -328,6 +328,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         ThrowUtils.throwIf(StrUtil.isBlank(req.getFirstName()), ErrorCode.PARAMS_ERROR, "First name cannot be blank");
         ThrowUtils.throwIf(StrUtil.isBlank(req.getLastName()), ErrorCode.PARAMS_ERROR, "Last name cannot be blank");
         ThrowUtils.throwIf(StrUtil.isBlank(req.getEmail()), ErrorCode.PARAMS_ERROR, "Email cannot be blank");
+        // the same format rules as registration and the admin edit
+        ThrowUtils.throwIf(!ValidCheckUtil.isValidEmail(req.getEmail()), ErrorCode.PARAMS_ERROR, "Invalid email format");
+        ThrowUtils.throwIf(StrUtil.isNotBlank(req.getPhone()) && !ValidCheckUtil.isValidPhone(req.getPhone()),
+                ErrorCode.PARAMS_ERROR, "Invalid phone format");
         if (StrUtil.isNotBlank(req.getPassword())) {
             ThrowUtils.throwIf(req.getPassword().length() < 8, ErrorCode.PARAMS_ERROR, "Password must be at least 8 characters");
             ThrowUtils.throwIf(!req.getPassword().equals(req.getConfirmPassword()), ErrorCode.PARAMS_ERROR, "Passwords do not match");

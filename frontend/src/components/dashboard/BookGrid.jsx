@@ -1,5 +1,6 @@
 import React from "react";
 import { coverUrl, showPlaceholderCover } from "../../covers";
+import { asButton } from "../../asButton";
 
 /**
  * The books on the current page, as cards.
@@ -11,7 +12,7 @@ const BookGrid = ({ books, onSelect }) => (
             <div
                 key={book.bookId || book.title + book.author}
                 className="book-card"
-                onClick={() => onSelect(book)}
+                {...asButton(() => onSelect(book))}
                 style={{ cursor: book.bookId ? 'pointer' : 'not-allowed' }}
             >
                 <div className="book-cover">

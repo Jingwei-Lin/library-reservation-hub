@@ -1,4 +1,5 @@
 import React from "react";
+import { asButton } from "../../asButton";
 
 // [genre, label]: the genre as stored, and how the menu shows it
 const GENRES = [
@@ -29,14 +30,14 @@ const Sidebar = ({ hasNotification, onAllBooks, onGenre, onLeave }) => (
         <div className="nav-box">
             <h3>Navigation</h3>
             <ul>
-                <li onClick={onAllBooks}>
+                <li {...asButton(onAllBooks)}>
                     All Books
                 </li>
-                <li onClick={() => onLeave("/reservations")}>
+                <li {...asButton(() => onLeave("/reservations"))}>
                     My Reservations
                 </li>
                 <li
-                    onClick={() => onLeave("/waitinglist")}
+                    {...asButton(() => onLeave("/waitinglist"))}
                     className={hasNotification ? "shiny" : ""}
                 >
                     My Waiting List
@@ -48,7 +49,7 @@ const Sidebar = ({ hasNotification, onAllBooks, onGenre, onLeave }) => (
             <h3>Categories</h3>
             <ul>
                 {GENRES.map(([genre, label]) => (
-                    <li key={genre} onClick={() => onGenre(genre)}>{label}</li>
+                    <li key={genre} {...asButton(() => onGenre(genre))}>{label}</li>
                 ))}
             </ul>
         </div>

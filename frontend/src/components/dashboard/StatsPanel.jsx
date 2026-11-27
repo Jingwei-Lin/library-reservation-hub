@@ -1,4 +1,5 @@
 import React from "react";
+import { asButton } from "../../asButton";
 
 /**
  * The right-hand panel: the library's statistics (counted by the server) and Quick Actions.
@@ -15,7 +16,7 @@ const StatsPanel = ({ totalStats, onTop10 }) => (
         <div className="recommend-box">
             <h3>Quick Actions</h3>
             <ul>
-                <li onClick={onTop10}>Top 10 Rated Books</li>
+                <li {...asButton(onTop10)}>Top 10 Rated Books</li>
             </ul>
         </div>
     </div>

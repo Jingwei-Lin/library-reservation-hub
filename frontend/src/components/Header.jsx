@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getTheme, toggleTheme } from "../themeUtils";
+import { asButton } from "../asButton";
 import "./Header.css";
 
 const Header = ({ user, onSignOut, isAuthenticated, searchTerm, setSearchTerm, handleSearch }) => {
@@ -77,12 +78,21 @@ const Header = ({ user, onSignOut, isAuthenticated, searchTerm, setSearchTerm, h
                 </button>
             </form>
             <div className="user-wrapper" ref={panelRef}>
-                <div className="dark-mode-toggle" onClick={handleToggleTheme}>
+                <div
+                    className="dark-mode-toggle"
+                    {...asButton(handleToggleTheme)}
+                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
                     {theme === "dark" ? "🌞" : "🌙"}
                 </div>
                 {isAuthenticated ? (
                     <>
-                        <div className="user-icon" onClick={() => setIsPanelOpen(!isPanelOpen)}>
+                        <div
+                            className="user-icon"
+                            {...asButton(() => setIsPanelOpen(!isPanelOpen))}
+                            aria-label="User menu"
+                            aria-expanded={isPanelOpen}
+                        >
                             👤
                         </div>
                         <div className={`user-panel ${isPanelOpen ? "open" : ""}`}>

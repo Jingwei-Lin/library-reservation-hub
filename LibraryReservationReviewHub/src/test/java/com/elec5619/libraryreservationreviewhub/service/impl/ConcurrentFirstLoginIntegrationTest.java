@@ -1,5 +1,6 @@
 package com.elec5619.libraryreservationreviewhub.service.impl;
 
+import com.elec5619.libraryreservationreviewhub.service.LoginAttempts;
 import com.elec5619.libraryreservationreviewhub.service.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +53,9 @@ class ConcurrentFirstLoginIntegrationTest {
 
     @Test
     void simultaneousFirstLoginsAllStaySignedIn() throws Exception {
-        int devices = 8;
+        // five: sign-in counts each attempt before the password check (LoginAttempts), so at most five attempts
+        // on one account run at once, correct ones included
+        int devices = LoginAttempts.MAX_FAILURES;
         ExecutorService pool = Executors.newFixedThreadPool(devices);
         CountDownLatch start = new CountDownLatch(1);
         List<Future<MockHttpServletRequest>> logins = new ArrayList<>();

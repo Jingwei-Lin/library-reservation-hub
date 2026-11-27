@@ -23,7 +23,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Calendar;
+import java.time.ZoneOffset;
+import java.time.ZoneId;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,6 +34,32 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ReservationServiceImpl implements ReservationService {
+
+    /**
+     * The library's day. The reservation dialog works in the user's own day, and the library is in Sydney; the
+     * server judges "today" there too, not in the zone it happens to run in (UTC in Docker), or before 11 am a date
+     * the dialog allows would be refused.
+     */
+    static final ZoneId LIBRARY_ZONE = ZoneId.of("Australia/Sydney");
+    /** How far ahead a pickup may be, and the longest loan: the same as the reservation dialog */
+    static final int MAX_PICKUP_DAYS_AHEAD = 7;
+    static final int MAX_LOAN_DAYS = 30;
+
+    /** A request date as its calendar day: the dialog sends "YYYY-MM-DD", which arrives as midnight UTC */
+    private static LocalDate day(Date date) {
+        return date.toInstant().atZone(ZoneOffset.UTC).toLocalDate();
+    }
+
+    /** Pickup from today to MAX_PICKUP_DAYS_AHEAD; due at least one day and at most MAX_LOAN_DAYS after pickup */
+    private static void checkLoanDates(LocalDate pickup, LocalDate due) {
+        LocalDate today = LocalDate.now(LIBRARY_ZONE);
+        ThrowUtils.throwIf(pickup.isBefore(today), ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
+        ThrowUtils.throwIf(pickup.isAfter(today.plusDays(MAX_PICKUP_DAYS_AHEAD)), ErrorCode.PARAMS_ERROR,
+                "Pickup date must be within the next " + MAX_PICKUP_DAYS_AHEAD + " days");
+        ThrowUtils.throwIf(!due.isAfter(pickup), ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
+        ThrowUtils.throwIf(due.isAfter(pickup.plusDays(MAX_LOAN_DAYS)), ErrorCode.PARAMS_ERROR,
+                "Reservation period cannot exceed " + MAX_LOAN_DAYS + " days");
+    }
 
     private final ReservationMapper reservationMapper;
     private final BookService bookService;
@@ -53,37 +81,7 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(pickupTime == null, ErrorCode.PARAMS_ERROR, "Pickup date is required");
         ThrowUtils.throwIf(dueTime == null, ErrorCode.PARAMS_ERROR, "Due date is required");
 
-        // Normalize dates to compare only date part
-        Calendar todayCal = Calendar.getInstance();
-        todayCal.set(Calendar.HOUR_OF_DAY, 0);
-        todayCal.set(Calendar.MINUTE, 0);
-        todayCal.set(Calendar.SECOND, 0);
-        todayCal.set(Calendar.MILLISECOND, 0);
-        Date today = todayCal.getTime();
-
-        Calendar pickupCal = Calendar.getInstance();
-        pickupCal.setTime(pickupTime);
-        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
-        pickupCal.set(Calendar.MINUTE, 0);
-        pickupCal.set(Calendar.SECOND, 0);
-        pickupCal.set(Calendar.MILLISECOND, 0);
-        Date pickupDateOnly = pickupCal.getTime();
-
-        // Allow pickup date to be today or future
-        ThrowUtils.throwIf(pickupDateOnly.before(today), ErrorCode.PARAMS_ERROR, "Pickup date cannot be in the past");
-
-        // Set dueTime to just before midnight (23:59:59.999)
-        Calendar dueCal = Calendar.getInstance();
-        dueCal.setTime(dueTime);
-        dueCal.set(Calendar.HOUR_OF_DAY, 23);
-        dueCal.set(Calendar.MINUTE, 59);
-        dueCal.set(Calendar.SECOND, 59);
-        dueCal.set(Calendar.MILLISECOND, 999);
-        Date adjustedDueTime = dueCal.getTime();
-
-        // Validate due date is after pickup date
-        ThrowUtils.throwIf(adjustedDueTime.before(pickupTime) || adjustedDueTime.equals(pickupTime),
-                ErrorCode.PARAMS_ERROR, "Due date must be after pickup date");
+        checkLoanDates(day(pickupTime), day(dueTime));
 
         // Lock the book row first: requests for the same book then run one at a time, so the checks below see
         // the latest data (a second click waits here and then finds the first reservation), and every stock
@@ -269,31 +267,14 @@ public class ReservationServiceImpl implements ReservationService {
         ThrowUtils.throwIf(!"reserved".equals(reservation.getReservationStatus()),
                 ErrorCode.OPERATION_ERROR, "Can only update pickup time for reserved status");
 
-        // Validate new pickup time
         Date newPickupTime = req.getPickupTime();
-        Calendar todayCal = Calendar.getInstance();
-        todayCal.set(Calendar.HOUR_OF_DAY, 0);
-        todayCal.set(Calendar.MINUTE, 0);
-        todayCal.set(Calendar.SECOND, 0);
-        todayCal.set(Calendar.MILLISECOND, 0);
-        Date today = todayCal.getTime();
-
-        Calendar pickupCal = Calendar.getInstance();
-        pickupCal.setTime(newPickupTime);
-        pickupCal.set(Calendar.HOUR_OF_DAY, 0);
-        pickupCal.set(Calendar.MINUTE, 0);
-        pickupCal.set(Calendar.SECOND, 0);
-        pickupCal.set(Calendar.MILLISECOND, 0);
-        Date pickupDateOnly = pickupCal.getTime();
-
-        // Allow pickup date to be today or future
-        ThrowUtils.throwIf(pickupDateOnly.before(today),
-                ErrorCode.PARAMS_ERROR, "New pickup date cannot be in the past");
-
-        // Validate new pickup time is before due time
-        ThrowUtils.throwIf(newPickupTime.after(reservation.getDueTime()) ||
-                        newPickupTime.equals(reservation.getDueTime()),
-                ErrorCode.PARAMS_ERROR, "New pickup time must be before due time");
+        // the same rules as a new reservation, with the due date it already has (these two keep their own wording)
+        LocalDate newPickup = day(newPickupTime);
+        LocalDate due = day(reservation.getDueTime());
+        ThrowUtils.throwIf(newPickup.isBefore(LocalDate.now(LIBRARY_ZONE)), ErrorCode.PARAMS_ERROR,
+                "New pickup date cannot be in the past");
+        ThrowUtils.throwIf(!due.isAfter(newPickup), ErrorCode.PARAMS_ERROR, "New pickup time must be before due time");
+        checkLoanDates(newPickup, due);
 
         // Update the reservation
         reservation.setPickupTime(newPickupTime);

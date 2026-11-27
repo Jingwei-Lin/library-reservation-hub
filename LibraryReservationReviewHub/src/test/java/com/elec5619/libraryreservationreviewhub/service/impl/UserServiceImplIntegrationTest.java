@@ -339,12 +339,5 @@ class UserServiceImplIntegrationTest {
         assertEquals("Alice Smith", list.get(0).getUserName());
     }
 
-    @Test
-    void testGetUserNameById() {
-        long id = userService.userRegister("getname@example.com", "password123", "password123", "Tom", "Lee", "0400000000");
-        String name = userService.getUserNameById(id);
-        assertEquals("Tom Lee", name);
-    }
-
     // getEncryptPassword (unsalted MD5) was replaced by PasswordUtil (BCrypt): see PasswordUtilTest
 }

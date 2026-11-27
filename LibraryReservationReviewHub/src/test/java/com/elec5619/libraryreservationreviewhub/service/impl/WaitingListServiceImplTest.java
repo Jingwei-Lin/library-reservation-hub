@@ -7,7 +7,6 @@ import com.elec5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.elec5619.libraryreservationreviewhub.model.enums.WaitingStatusEnum;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListCreateDTO;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListQueryDTO;
-import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
 import com.elec5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.elec5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
 import com.elec5619.libraryreservationreviewhub.model.vo.WaitingListVO;
@@ -72,44 +71,6 @@ class WaitingListServiceImplTest {
         Long id = service.create(dto);
         assertEquals(10L, id);
         verify(waitingListMapper, times(1)).insert(any(WaitingList.class));
-    }
-
-    /* -------------------- updateStatus -------------------- */
-
-    @Test
-    void updateStatus_success() {
-        WaitingList db = new WaitingList();
-        db.setWaitId(5L);
-        db.setStatus(WaitingStatusEnum.WAITING);
-        db.setIsNotified(false);
-
-        when(waitingListMapper.selectById(5L)).thenReturn(db);
-        when(waitingListMapper.updateById(any(WaitingList.class))).thenReturn(1);
-
-        WaitingListUpdateDTO dto = new WaitingListUpdateDTO();
-        dto.setWaitId(5L);
-        dto.setStatus(WaitingStatusEnum.NOTIFIED);
-        dto.setIsNotified(true);
-        dto.setNotificationDate(LocalDateTime.of(2025, 1, 2, 12, 0, 0));
-
-        boolean ok = service.updateStatus(dto);
-        assertTrue(ok);
-
-        ArgumentCaptor<WaitingList> cap = ArgumentCaptor.forClass(WaitingList.class);
-        verify(waitingListMapper).updateById(cap.capture());
-        WaitingList updated = cap.getValue();
-        assertEquals(WaitingStatusEnum.NOTIFIED, updated.getStatus());
-        assertEquals(true, updated.getIsNotified());
-        assertEquals(LocalDateTime.of(2025,1,2,12,0,0), updated.getNotificationDate());
-    }
-
-    /* -------------------- deleteById -------------------- */
-
-    @Test
-    void deleteById_success() {
-        when(waitingListMapper.deleteById(9L)).thenReturn(1);
-        assertTrue(service.deleteById(9L));
-        verify(waitingListMapper).deleteById(9L);
     }
 
     /* -------------------- getById -------------------- */

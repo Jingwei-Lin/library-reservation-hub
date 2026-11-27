@@ -7,7 +7,6 @@ import com.elec5619.libraryreservationreviewhub.mapper.BookMapper;
 import com.elec5619.libraryreservationreviewhub.model.enums.WaitingStatusEnum;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListCreateDTO;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListQueryDTO;
-import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
 import com.elec5619.libraryreservationreviewhub.model.entity.Book;
 import com.elec5619.libraryreservationreviewhub.model.entity.User;
 import com.elec5619.libraryreservationreviewhub.model.entity.WaitingList;

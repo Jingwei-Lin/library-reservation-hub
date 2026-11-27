@@ -312,12 +312,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user != null && Boolean.TRUE.equals(user.getIsAdmin());
     }
 
-    @Override
-    public String getUserNameById(Long userId) {
-        User u = this.getById(userId);
-        return u.getFirstName()+ " " + u.getLastName();
-    }
-
     /**
      * Update user profile
      */

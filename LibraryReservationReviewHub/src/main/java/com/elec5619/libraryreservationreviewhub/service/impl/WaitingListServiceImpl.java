@@ -13,7 +13,6 @@ import com.elec5619.libraryreservationreviewhub.mapper.WaitingListMapper;
 import com.elec5619.libraryreservationreviewhub.model.enums.WaitingStatusEnum;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListCreateDTO;
 import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListQueryDTO;
-import com.elec5619.libraryreservationreviewhub.model.dto.waitingList.WaitingListUpdateDTO;
 import com.elec5619.libraryreservationreviewhub.model.entity.Book;
 import com.elec5619.libraryreservationreviewhub.model.entity.WaitingList;
 import com.elec5619.libraryreservationreviewhub.model.vo.NotifyEligibilityVO;
@@ -83,34 +82,6 @@ public class WaitingListServiceImpl
         int rows = baseMapper.insert(entity);
         ThrowUtils.throwIf(rows <= 0 || entity.getWaitId() == null, ErrorCode.OPERATION_ERROR);
         return entity.getWaitId();
-    }
-
-    @Override
-    public boolean updateStatus(WaitingListUpdateDTO dto) {
-        ThrowUtils.throwIf(dto == null || dto.getWaitId() == null, ErrorCode.PARAMS_ERROR);
-
-        WaitingList entity = baseMapper.selectById(dto.getWaitId());
-        ThrowUtils.throwIf(entity == null, ErrorCode.NOT_FOUND_ERROR, "Waiting-list entry not found");
-
-        if (dto.getStatus() != null) {
-            entity.setStatus(dto.getStatus());
-        }
-        if (dto.getIsNotified() != null) {
-            entity.setIsNotified(dto.getIsNotified());
-        }
-        if (dto.getNotificationDate() != null) {
-            entity.setNotificationDate(dto.getNotificationDate());
-        }
-
-        int rows = baseMapper.updateById(entity);
-        ThrowUtils.throwIf(rows <= 0, ErrorCode.OPERATION_ERROR);
-        return true;
-    }
-
-    @Override
-    public boolean deleteById(Long id) {
-        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
-        return baseMapper.deleteById(id) > 0;
     }
 
     @Override

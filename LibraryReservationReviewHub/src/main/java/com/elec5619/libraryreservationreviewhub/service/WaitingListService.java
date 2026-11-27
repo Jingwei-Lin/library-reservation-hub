@@ -17,12 +17,6 @@ public interface WaitingListService extends IService<WaitingList> {
     /** Creates an entry */
     Long create(WaitingListCreateDTO dto);
 
-    /** Changes an entry's status */
-    boolean updateStatus(WaitingListUpdateDTO dto);
-
-    /** Deletes an entry */
-    boolean deleteById(Long id);
-
     /** An entry by id */
     WaitingListVO getById(Long id);
 

@@ -86,6 +86,16 @@ jacoco {
     toolVersion = "0.8.12"               // latest stable
 }
 
+// classes the coverage figures leave out: the entry point, configuration, DTOs/VOs, exceptions, common/
+def coverageExcludes = [
+        '**/LibraryReservationReviewHubApplication*',
+        '**/*Config*',
+        '**/*Dto*',
+        '**/*Vo*',
+        '**/*Exception*',
+        '**/common/**'
+]
+
 jacocoTestReport {
     dependsOn test                       // run tests first
 
@@ -95,18 +105,28 @@ jacocoTestReport {
         csv.required  = false
     }
 
-    // (Optional) exclude generated code / DTOs / config
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                    '**/LibraryReservationReviewHubApplication*',
-                    '**/*Config*',
-                    '**/*Dto*',
-                    '**/*Vo*',
-                    '**/*Exception*',
-                    '**/common/**'
+            fileTree(dir: it, exclude: coverageExcludes)
+        }))
+    }
+}
 
-            ])
+// a floor for line coverage over the same classes; CI runs it, so a change that drops coverage below it fails
+jacocoTestCoverageVerification {
+    dependsOn test
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = (project.findProperty('coverageMinimum') ?: '0.90') as BigDecimal
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: coverageExcludes)
         }))
     }
 }

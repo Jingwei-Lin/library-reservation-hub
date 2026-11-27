@@ -39,22 +39,32 @@ public class LoginAttempts {
     }
 
     /** Throws TOO_MANY_REQUESTS while the e-mail has used up its failed attempts */
-    public void checkAllowed(String email) {
+    /**
+     * Starts a sign-in attempt, before the password is checked: refuses it with TOO_MANY_REQUESTS while the e-mail
+     * has used up its attempts, and otherwise counts it as a failure, in one atomic step. Counted first, guesses
+     * sent at the same moment can't all pass the check while the slow password checks run; a successful sign-in
+     * then clears the count ({@link #reset}). A refused attempt is not counted.
+     */
+    public void begin(String email) {
         Instant now = clock.instant();
-        Window w = windows.get(key(email));
-        if (w != null && !ended(w, now) && w.failures() >= MAX_FAILURES) {
-            long seconds = Duration.between(now, w.start().plus(WINDOW)).toSeconds();
+        Window[] full = {null};
+        // compute is atomic per key: of attempts at the same moment, exactly the first MAX_FAILURES are counted
+        windows.compute(key(email), (k, w) -> {
+            if (w == null || ended(w, now)) {
+                return new Window(now, 1);
+            }
+            if (w.failures() >= MAX_FAILURES) {
+                full[0] = w;
+                return w;
+            }
+            return new Window(w.start(), w.failures() + 1);
+        });
+        if (full[0] != null) {
+            long seconds = Duration.between(now, full[0].start().plus(WINDOW)).toSeconds();
             long minutes = Math.max(1, (seconds + 59) / 60);
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "Too many failed sign-in attempts. Try again in "
                     + minutes + (minutes == 1 ? " minute." : " minutes."));
         }
-    }
-
-    public void recordFailure(String email) {
-        Instant now = clock.instant();
-        // compute is atomic per key, so failures at the same moment are all counted
-        windows.compute(key(email), (k, w) -> w == null || ended(w, now) ? new Window(now, 1)
-                : new Window(w.start(), w.failures() + 1));
         if (windows.size() > PRUNE_AT) {
             windows.entrySet().removeIf(e -> ended(e.getValue(), now));
         }

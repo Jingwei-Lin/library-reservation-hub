@@ -13,6 +13,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -47,35 +48,39 @@ class LoginAttemptsTest {
     private final TestClock clock = new TestClock();
     private final LoginAttempts attempts = new LoginAttempts(clock);
 
+    /** Attempts that are counted (each began and then failed) */
     private void fail(String email, int times) {
         for (int i = 0; i < times; i++) {
-            attempts.recordFailure(email);
+            attempts.begin(email);
         }
     }
 
     @Test
-    void fourFailuresStillAllowAnAttempt() {
+    void aFifthAttemptIsStillAllowed() {
         fail("a@example.com", 4);
 
-        assertThatCode(() -> attempts.checkAllowed("a@example.com")).doesNotThrowAnyException();
+        assertThatCode(() -> attempts.begin("a@example.com")).doesNotThrowAnyException();
     }
 
     @Test
-    void theFifthFailureBlocksUntilTheWindowEnds() {
+    void afterFiveFailuresAttemptsAreRefusedUntilTheWindowEnds() {
         fail("a@example.com", 5);
 
-        assertThatThrownBy(() -> attempts.checkAllowed("a@example.com"))
+        assertThatThrownBy(() -> attempts.begin("a@example.com"))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
                     assertThat(e.getCode()).isEqualTo(ErrorCode.TOO_MANY_REQUESTS.getCode());
                     assertThat(e.getMessage()).isEqualTo("Too many failed sign-in attempts. Try again in 15 minutes.");
                 });
+        // a refused attempt is not counted
+        assertThat(attempts.failures("a@example.com")).isEqualTo(5);
 
         clock.advance(Duration.ofMinutes(14).plusSeconds(30));
-        assertThatThrownBy(() -> attempts.checkAllowed("a@example.com")).hasMessageContaining("in 1 minute.");
+        assertThatThrownBy(() -> attempts.begin("a@example.com")).hasMessageContaining("in 1 minute.");
 
         clock.advance(Duration.ofSeconds(30));
-        assertThatCode(() -> attempts.checkAllowed("a@example.com")).doesNotThrowAnyException();
-        assertThat(attempts.failures("a@example.com")).isZero();
+        assertThatCode(() -> attempts.begin("a@example.com")).doesNotThrowAnyException();
+        // that attempt started a new window
+        assertThat(attempts.failures("a@example.com")).isEqualTo(1);
     }
 
     @Test
@@ -98,6 +103,7 @@ class LoginAttemptsTest {
 
         assertThat(attempts.failures("a@example.com")).isZero();
         assertThat(attempts.failures("b@example.com")).isEqualTo(2);
+        assertThatCode(() -> attempts.begin("a@example.com")).doesNotThrowAnyException();
     }
 
     @Test
@@ -109,14 +115,19 @@ class LoginAttemptsTest {
     }
 
     @Test
-    void failuresAtTheSameMomentAreAllCounted() throws Exception {
+    void ofAttemptsAtTheSameMomentOnlyFiveAreCounted() throws Exception {
         int threads = 50;
         ExecutorService pool = Executors.newFixedThreadPool(threads);
         CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger refused = new AtomicInteger();
         for (int i = 0; i < threads; i++) {
             pool.submit(() -> {
                 start.await();
-                attempts.recordFailure("a@example.com");
+                try {
+                    attempts.begin("a@example.com");
+                } catch (BusinessException e) {
+                    refused.incrementAndGet();
+                }
                 return null;
             });
         }
@@ -124,6 +135,7 @@ class LoginAttemptsTest {
         pool.shutdown();
         assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
 
-        assertThat(attempts.failures("a@example.com")).isEqualTo(threads);
+        assertThat(attempts.failures("a@example.com")).isEqualTo(LoginAttempts.MAX_FAILURES);
+        assertThat(refused.get()).isEqualTo(threads - LoginAttempts.MAX_FAILURES);
     }
 }

@@ -120,16 +120,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "Parameters cannot be blank");
         }
 
-        // an e-mail that has used up its failed attempts is refused before anything is checked
-        loginAttempts.checkAllowed(userAccount);
+        // counted (or refused, past the limit) before anything is checked; a success below clears the count
+        loginAttempts.begin(userAccount);
 
         // 2. Find the user
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", userAccount);
         User user = this.getOne(queryWrapper);
-        // 3. Check the password; an unknown e-mail gets the same answer and is counted the same way
+        // 3. Check the password; an unknown e-mail gets the same answer and was counted the same way
         if (user == null || !PasswordUtil.matches(userPassword, user.getUserPassword())) {
-            loginAttempts.recordFailure(userAccount);
             throw new BusinessException(ErrorCode.PARAMS_ERROR, SIGN_IN_REFUSED);
         }
         loginAttempts.reset(userAccount);

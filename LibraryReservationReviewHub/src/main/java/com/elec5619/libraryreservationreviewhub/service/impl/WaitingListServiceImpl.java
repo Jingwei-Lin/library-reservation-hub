@@ -55,7 +55,7 @@ public class WaitingListServiceImpl
     /** Paging and sorting from the request (wait_id DESC by default) */
     private PageCalc calc(PageRequest pr) {
         int current = Math.max(1, pr.getCurrent());
-        int size = Math.min(Math.max(1, pr.getPageSize()), 101);
+        int size = Math.min(Math.max(1, pr.getPageSize()), PageRequest.MAX_PAGE_SIZE);
 
         String sortField = "wait_id";
         boolean asc = false;
@@ -179,7 +179,7 @@ public class WaitingListServiceImpl
 
         // the page's window
         if (total == 0) {
-            return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), 0, List.of());
+            return new PageResult<>(p.current(), p.size(), 0, List.of());
         }
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<WaitingList> page =
@@ -190,7 +190,7 @@ public class WaitingListServiceImpl
         List<WaitingListVO> records = entityPage.getRecords()
                 .stream().map(this::toVO).collect(Collectors.toList());
 
-        return new PageResult<>(pageReq.getCurrent(), pageReq.getPageSize(), entityPage.getTotal(), records);
+        return new PageResult<>(p.current(), p.size(), entityPage.getTotal(), records);
     }
 
     /* ===================== Helpers ===================== */

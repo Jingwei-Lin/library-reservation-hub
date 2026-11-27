@@ -12,7 +12,7 @@ public interface ReviewMapper {
      * Select all reviews for a specific book, ordered by review date (newest first)
      */
     @Select("SELECT review_id AS reviewId, user_id AS userId, book_id AS bookId, rating, comment, review_date AS reviewDate " +
-            "FROM review WHERE book_id = #{bookId} ORDER BY review_date DESC")
+            "FROM review WHERE book_id = #{bookId} ORDER BY review_date DESC, review_id DESC")
     List<Review> selectByBookId(@Param("bookId") Long bookId);
 
     /* ================= CRUD ================= */
@@ -36,7 +36,7 @@ public interface ReviewMapper {
      * All of one user's reviews, newest first
      */
     @Select("SELECT review_id AS reviewId, user_id AS userId, book_id AS bookId, rating, comment, review_date AS reviewDate " +
-            "FROM review WHERE user_id = #{userId} ORDER BY review_date DESC")
+            "FROM review WHERE user_id = #{userId} ORDER BY review_date DESC, review_id DESC")
     List<Review> selectByUserId(@Param("userId") Long userId);
 
     /**
@@ -92,7 +92,7 @@ public interface ReviewMapper {
         "  <if test=\"minRating != null\">AND rating &gt;= #{minRating}</if>",
         "  <if test=\"maxRating != null\">AND rating &lt;= #{maxRating}</if>",
         "</where>",
-        "ORDER BY review_date DESC",
+        "ORDER BY review_date DESC, review_id DESC",
         "LIMIT #{limit} OFFSET #{offset}",
         "</script>"
     })

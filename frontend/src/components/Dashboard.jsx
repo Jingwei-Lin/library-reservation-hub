@@ -1,10 +1,10 @@
 // Dashboard.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { bookService } from "../services/bookService";
 import { waitingListService } from "../services/waitingListService";
 import { validateSession } from "../services/authApi";
-import { isSessionEnded, reportSessionEnded } from "../services/api";
+import { reportSessionEnded } from "../services/api";
 import Header from "./Header";
 
 import ChatPanel from "./ChatPanel";
@@ -18,6 +18,7 @@ import { useTheme } from "../hooks/useTheme";
 
 import "./Dashboard.css";
 import { BOOKS_PER_PAGE, pageOf } from '../pagination';
+import { useBookList } from "../hooks/useBookList";
 
 const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignOut }) => {
     const navigate = useNavigate();
@@ -30,21 +31,15 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     const initialView = urlParams.get('view') || '';
     const initialPage = parseInt(urlParams.get('page')) || 1;
 
-    const [books, setBooks] = useState([]);
-    const [currentTitle, setCurrentTitle] = useState("All Books");
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    // the list, its loads, loading and error: see useBookList
+    const {
+        books, currentTitle, loading, setLoading, error, setError, serverPaged, totalBooks,
+        fetchBooks, loadTop10Books, loadGenreBooks,
+    } = useBookList(BOOKS_PER_PAGE);
     // what is typed in the search box, and the search the list is showing (they differ until Search is pressed);
     // both start from ?search=, so a reload keeps the search
     const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [activeSearch, setActiveSearch] = useState(initialSearch);
-    // All Books and search are paged by the server (books holds one page, totalBooks the server's total);
-    // a genre and the top 10 are small lists, paged here
-    const [serverPaged, setServerPaged] = useState(true);
-    const [totalBooks, setTotalBooks] = useState(0);
-    // each list load gets a number; only the latest one may change the list, so a slow earlier load can't
-    // replace a newer one
-    const latestLoad = useRef(0);
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [selectedBookId, setSelectedBookId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -187,39 +182,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
     }, [location.search, navigate]);
 
 
-    // All Books, or a search: one page from the server, with the server's total
-    const fetchBooks = async (keyword = "", page = 1) => {
-        const load = ++latestLoad.current;
-        try {
-            setLoading(true);
-            setError("");
-            const response = keyword
-                ? await bookService.searchBooks(keyword, page, booksPerPage)
-                : await bookService.getAllBooks(page, booksPerPage);
-            if (load !== latestLoad.current) return;   // a newer list was asked for meanwhile
-            if (response && response.code === 0 && response.data) {
-                setBooks(response.data.records || []);
-                setTotalBooks(response.data.total ?? 0);
-                setServerPaged(true);
-                setCurrentTitle(keyword ? `Search Results for "${keyword}"` : "All Books");
-            } else {
-                setError("Invalid response format");
-                setBooks([]);
-                setTotalBooks(0);
-            }
-        } catch (err) {
-            if (load !== latestLoad.current) return;
-            if (!isSessionEnded(err)) {
-                setError(err.message || "Failed to load books");
-                console.error("Error fetching books:", err);
-                setBooks([]);
-                setTotalBooks(0);
-            }
-        } finally {
-            if (load === latestLoad.current) setLoading(false);
-        }
-    };
-
     // counted by the server over every listed book, not from the page on screen
     const fetchTotalStats = async () => {
         try {
@@ -233,73 +195,6 @@ const Dashboard = ({ user, setUser, setIsAuthenticated, isAuthenticated, onSignO
             }
         } catch (err) {
             console.error("Error fetching total statistics:", err);
-        }
-    };
-
-    // a small list, paged here
-    const showWholeList = (list, title) => {
-        setBooks(list);
-        setTotalBooks(list.length);
-        setServerPaged(false);
-        setCurrentTitle(title);
-    };
-
-    const loadTop10Books = async () => {
-        const load = ++latestLoad.current;
-        try {
-            setLoading(true);
-            setError("");
-            const response = await bookService.getTop10Books();
-            if (load !== latestLoad.current) return;
-
-            const bookList = response && response.code === 0 && Array.isArray(response.data) ? response.data : [];
-            const validBooks = bookList.filter(book => {
-                const bookId = Number(book.bookId);
-                return book.bookId != null && !isNaN(bookId) && bookId > 0;
-            });
-            if (validBooks.length === 0) {
-                setError("No top-rated books available yet.");
-                showWholeList([], "Top 10 Rated Books");
-            } else {
-                showWholeList(validBooks, "Top 10 Rated Books");
-            }
-        } catch (err) {
-            if (load !== latestLoad.current) return;
-            console.error("Error loading top 10 books:", err);
-            setError("Failed to load top 10 books");
-            showWholeList([], "Top 10 Rated Books");
-        } finally {
-            if (load === latestLoad.current) setLoading(false);
-        }
-    };
-
-    // Helper function to load genre books without setting URL states
-    const loadGenreBooks = async (genre) => {
-        const load = ++latestLoad.current;
-        try {
-            setLoading(true);
-            setError("");
-            const response = await bookService.getBooksByGenre(genre);
-            if (load !== latestLoad.current) return;
-
-            if (response && response.code === 0 && response.data) {
-                const bookList = Array.isArray(response.data) ? response.data : response.data.records || [];
-                const validBooks = bookList.filter(book => {
-                    const bookId = Number(book.bookId);
-                    return book.bookId != null && !isNaN(bookId) && bookId > 0;
-                });
-                showWholeList(validBooks, `${genre} Books`);
-            } else {
-                setError("Invalid response format for genre");
-                showWholeList([], `${genre} Books`);
-            }
-        } catch (err) {
-            if (load !== latestLoad.current) return;
-            console.error("Error loading genre books:", err);
-            setError(`Failed to load ${genre} books: ${err.message}`);
-            showWholeList([], `${genre} Books`);
-        } finally {
-            if (load === latestLoad.current) setLoading(false);
         }
     };
 

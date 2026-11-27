@@ -1,5 +1,8 @@
 package com.elec5619.libraryreservationreviewhub.controller;
 
+import cn.hutool.json.JSONUtil;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import com.elec5619.libraryreservationreviewhub.app.PersonalAgent;
 import com.elec5619.libraryreservationreviewhub.chatmemory.FileBasedChatMemory;
 import com.elec5619.libraryreservationreviewhub.exception.BusinessException;
@@ -59,22 +62,22 @@ public class PersonalAgentController {
             currentUser = null;
         }
         if (currentUser != null) {
-            log.info("[SSE] user from the session: id={}, name={}", currentUser.getId(), currentUser.getFirstName());
+            log.info("[SSE] user from the session: id={}", currentUser.getId());
         } else {
             log.warn("[SSE] no user in the session (a guest, or the session has ended)");
         }
 
         // 2. The user's details, as context the model can read
-        String userContext;
+        // built by the JSON library: the name is data, so quotes in it can't add fields or text to the prompt
+        Map<String, Object> context = new LinkedHashMap<>();
         if (currentUser == null) {
-            userContext = "{\"status\":\"not_logged_in\"}";
+            context.put("status", "not_logged_in");
         } else {
-            userContext = String.format(
-                    "{\"status\":\"logged_in\",\"userId\":%d,\"userName\":\"%s\"}",
-                    currentUser.getId(),
-                    currentUser.getFirstName()
-            );
+            context.put("status", "logged_in");
+            context.put("userId", currentUser.getId());
+            context.put("userName", currentUser.getFirstName());
         }
+        String userContext = JSONUtil.toJsonStr(context);
 
         // 3. The context goes to the agent with the message
         // The user id also goes to the tools through ToolContext, set by the server, so get_user_info can only
